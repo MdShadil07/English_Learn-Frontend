@@ -29,6 +29,9 @@ export default defineConfig(({ mode }) => ({
   },
   // Build optimizations: manual chunking to create predictable bundles for heavy libs
   build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
     rollupOptions: {
       output: {
         manualChunks(id: string) {
@@ -45,5 +48,10 @@ export default defineConfig(({ mode }) => ({
         }
       }
     }
+  },
+  optimizeDeps: {
+    include: [],
+    // prevent Vite from pre-bundling these CJS/dual packages that can cause hoisting issues
+    exclude: ["lucide-react", "framer-motion"],
   },
 }));
