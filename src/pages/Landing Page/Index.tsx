@@ -1,6 +1,6 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useTheme } from 'next-themes';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sun, Moon, Menu, X, LogIn } from 'lucide-react';
 
@@ -25,6 +25,26 @@ const LandingPage = () => {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const navigate = useNavigate();
+
+  const navigateWithFallback = (path: string) => {
+    // Close the menu immediately for mobile UX
+    setIsMenuOpen(false);
+    try {
+      // Try client-side navigation first
+      navigate(path);
+      // In case navigate doesn't work due to environment, fallback to full navigation after a short delay
+      setTimeout(() => {
+        if (window.location.pathname !== path) {
+          window.location.href = path;
+        }
+      }, 300);
+    } catch (err) {
+      // Fallback to full navigation
+      window.location.href = path;
+    }
   };
 
   const navItems = [
@@ -160,20 +180,18 @@ const LandingPage = () => {
                 </a>
               ))}
               <div className="pt-2 flex flex-col space-y-3">
-                <Link 
-                  to="/login" 
+                <button
+                  onClick={() => navigateWithFallback('/login')}
                   className="py-2 px-4 rounded-md border border-slate-300 dark:border-slate-700 text-center text-slate-800 dark:text-slate-200 font-medium hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
                 >
                   Sign In
-                </Link>
-                <Link 
-                  to="/signup" 
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium"
-                  onClick={() => setIsMenuOpen(false)}
+                </button>
+                <button
+                  onClick={() => navigateWithFallback('/signup')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium rounded-md py-2 px-4"
                 >
                   Sign Up Free
-                </Link>
+                </button>
               </div>
             </nav>
           </div>

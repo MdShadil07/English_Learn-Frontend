@@ -1,9 +1,22 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, TrendingUp, Star, Zap, CheckCircle2, Trophy, Target, Users } from 'lucide-react';
 
 const CTA = () => {
+  const navigate = useNavigate();
+
+  const goToSignup = () => {
+    try {
+      navigate('/signup');
+      setTimeout(() => {
+        if (window.location.pathname !== '/signup') window.location.href = '/signup';
+      }, 300);
+    } catch {
+      window.location.href = '/signup';
+    }
+  };
   return (
     <section className="relative py-12 md:py-24 overflow-hidden bg-slate-50 flex items-center justify-center min-h-[auto] lg:min-h-[700px]">
       
@@ -86,6 +99,7 @@ const CTA = () => {
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center lg:justify-start w-full">
                   <Button 
                     size="lg" 
+                    onClick={goToSignup}
                     className="relative w-full sm:w-auto h-12 md:h-14 px-8 rounded-full text-base font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-emerald-900/10 overflow-hidden transition-all hover:scale-[1.02] active:scale-95 border-0 group"
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import useLowEnd from '@/hooks/use-lowend';
 import type { Variants, Transition } from 'framer-motion';
 import {
   Activity,
@@ -58,7 +59,51 @@ const INSIGHT_WIDGETS = [
   }
 ];
 
-export default function AnalyticsHero({ user = { fullName: 'Learner' } }) {
+type AnalyticsHeroProps = {
+  user?: {
+    fullName: string;
+    email?: string;
+  };
+};
+
+export default function AnalyticsHero({ user = { fullName: 'Learner' } }: AnalyticsHeroProps) {
+  const isLowEnd = useLowEnd();
+
+  // If device is low-end, render a simplified static hero to avoid expensive animations
+  if (isLowEnd) {
+    return (
+      <div className="relative w-full pt-8 pb-12 md:pt-10 md:pb-16 overflow-visible">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 dark:bg-slate-800/80 border border-blue-200 dark:border-blue-500/30 shadow-sm">
+                <Activity className="w-4 h-4 text-blue-500" />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">Real-time Performance</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white">Precision Insights.</h1>
+              <p className="text-base text-slate-600 dark:text-slate-400 max-w-lg">Decode your fluency. Our engine analyzes multiple linguistic signals to provide actionable accuracy on your progress.</p>
+
+              <div className="flex gap-3 justify-center lg:justify-start mt-4">
+                <button className="px-6 py-3 rounded-full bg-emerald-600 text-white">Deep Dive Analysis</button>
+                <button className="px-6 py-3 rounded-full bg-white border">View Stories</button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <div className="w-[300px] h-[380px] bg-white rounded-2xl border shadow-md flex flex-col items-center justify-center">
+                <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.fullName)}`} alt="avatar" className="w-16 h-16 rounded-full" />
+                </div>
+                <div className="text-lg font-bold">{user.fullName}</div>
+                <div className="text-xs text-slate-500">{user.email ?? ''}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // Animation Variants
   const itemVariants: Variants = {
