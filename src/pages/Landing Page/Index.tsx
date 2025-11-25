@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { useTheme } from 'next-themes';
+import useThemeLocal from '@/hooks/useThemeLocal';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sun, Moon, Menu, X, LogIn } from 'lucide-react';
@@ -14,7 +14,7 @@ import CTA from '../../components/Landing Page Component/CTA';
 import Footer from '../../components/Landing Page Component/Footer';
 
 const LandingPage = () => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useThemeLocal();
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
