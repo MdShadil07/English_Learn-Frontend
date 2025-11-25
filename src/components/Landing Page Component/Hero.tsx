@@ -110,11 +110,12 @@ export default function DashboardHero({ user = { fullName: 'Learner' }, greeting
     },
   };
 
-  // Infinite float animation (Optimized)
-  const floatAnimation = {
-    y: [0, -12, 0],
-    transition: { duration: 6, repeat: Infinity, ease: "easeInOut" }
-  };
+   // Infinite float animation (Optimized)
+   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   const floatAnimation: any = {
+      y: [0, -12, 0],
+      transition: { duration: 6, repeat: Infinity, ease: [0.42, 0, 0.58, 1] }
+   };
 
   return (
     <motion.div 
@@ -386,7 +387,7 @@ export default function DashboardHero({ user = { fullName: 'Learner' }, greeting
 
           {/* Widget 2: New Word (Left) */}
           <motion.div 
-             className="absolute bottom-32 -left-12 bg-white dark:bg-slate-800 p-3 pr-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 dark:border-slate-700 z-30 flex items-center gap-3 hidden lg:flex"
+             className="absolute bottom-32 -left-12 bg-white dark:bg-slate-800 p-3 pr-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 dark:border-slate-700 z-30 flex items-center gap-3 lg:flex"
              initial={{ x: -40, opacity: 0 }} 
              animate={{ x: 0, opacity: 1 }} 
              transition={{ delay: 1.4, type: "spring" }}
