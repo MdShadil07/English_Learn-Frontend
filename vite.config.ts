@@ -36,14 +36,15 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id: string) {
           if (id.includes('node_modules')) {
+            // Keep some very large or special-case libs in their own chunk
             if (id.includes('framer-motion')) return 'vendor_framer';
             if (id.includes('recharts')) return 'vendor_charts';
             if (id.includes('@tanstack') || id.includes('react-query')) return 'vendor_query';
             if (id.includes('@supabase') || id.includes('supabase')) return 'vendor_supabase';
             if (id.includes('lucide-react')) return 'vendor_icons';
-            if (id.includes('react') || id.includes('react-dom')) return 'vendor_react';
-            // default vendor chunk
-            return 'vendor_misc';
+            // Bundle React and most other node_modules into a single `vendor` chunk
+            // This avoids circular cross-chunk initialization issues seen in production
+            return 'vendor';
           }
         }
       }
