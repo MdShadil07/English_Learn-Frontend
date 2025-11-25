@@ -1,0 +1,38 @@
+/* Basic shared styling for pricing components */
+.pricing-hero {
+  padding: 48px 20px;
+  background: linear-gradient(90deg, #f6f9ff 0%, #ffffff 100%);
+  text-align: center;
+}
+.pricing-hero-inner { max-width: 980px; margin: 0 auto; }
+.pricing-title { font-size: 2rem; margin: 0 0 8px; }
+.pricing-subtitle { color: #555; margin: 0 0 16px; }
+.pricing-hero-cta .btn { margin: 6px; }
+
+.plans-grid { display: flex; gap: 18px; justify-content: center; padding: 36px 18px; flex-wrap: wrap; }
+.pricing-card { background: #fff; border: 1px solid #e6e9ef; padding: 20px; width: 300px; border-radius: 8px; box-shadow: 0 6px 18px rgba(21,25,40,0.04); position: relative; }
+.pricing-card.recommended { border-color: #2b6cb0; box-shadow: 0 8px 22px rgba(43,108,176,0.08); }
+.badge { position: absolute; right: 12px; top: 12px; background: #ffdd57; padding: 4px 8px; border-radius: 999px; font-weight: 600; font-size: 12px; }
+.card-title { margin: 0 0 6px; font-size: 1.15rem; }
+.card-price { font-size: 1.5rem; font-weight: 700; margin: 8px 0; }
+.card-features { list-style: none; padding: 0; margin: 12px 0 16px; color: #333; }
+.btn { display: inline-block; padding: 10px 14px; border-radius: 6px; cursor: pointer; text-decoration: none; }
+.btn-primary { background: #2b6cb0; color: white; border: none; }
+.btn-outline { background: transparent; border: 1px solid #2b6cb0; color: #2b6cb0; }
+
+.pricing-compare { padding: 24px; background: #fbfcfe; }
+.billing-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.billing-table th, .billing-table td { padding: 10px; border: 1px solid #eaecef; text-align: left; }
+
+.subscription-form { max-width: 520px; margin: 18px auto; display: grid; gap: 10px; }
+.subscription-form label { display: flex; flex-direction: column; font-size: 0.95rem; }
+.subscription-form input, .subscription-form select { padding: 8px 10px; border-radius: 6px; border: 1px solid #dfe6f0; }
+.form-actions { text-align: left; }
+
+.dashboard-subscription, .aichat-subscription, .profile-subscription { padding: 18px; background: #fff; border-radius: 8px; margin: 12px 0; }
+
+/* Small responsive tweaks */
+@media (max-width: 720px) {
+  .plans-grid { flex-direction: column; align-items: center; }
+  .pricing-card { width: 92%; }
+}

@@ -1,0 +1,375 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 220 20% 98%;
+    --foreground: 220 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 15%;
+
+    --primary: 222 47% 35%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 220 15% 94%;
+    --secondary-foreground: 222 47% 35%;
+
+    --muted: 220 15% 96%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 25 95% 53%;
+    --accent-foreground: 0 0% 15%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 222 47% 35%;
+
+    --radius: 0.75rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(222 47% 35%) 0%, hsl(222 47% 45%) 50%, hsl(25 95% 53%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(25 95% 53%) 0%, hsl(35 95% 63%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(220 20% 99%) 0%, hsl(220 20% 97%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(142 71% 55%) 100%);
+
+    --shadow-soft: 0 2px 12px -2px hsl(220 15% 15% / 0.08);
+    --shadow-medium: 0 8px 20px -4px hsl(220 15% 15% / 0.12);
+    --shadow-strong: 0 16px 40px -8px hsl(220 15% 15% / 0.16);
+    --shadow-glow: 0 0 30px hsl(25 95% 53% / 0.3);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Sidebar - matches dashboard light mode background (white) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 15%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 158 64% 96%;
+    --sidebar-accent-foreground: 158 64% 15%;
+    --sidebar-border: 158 64% 90%;
+    --sidebar-ring: 158 64% 52%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 220 15% 95%;
+
+    --card: 220 20% 13%;
+    --card-foreground: 220 15% 95%;
+
+    --popover: 220 20% 13%;
+    --popover-foreground: 220 15% 95%;
+
+    --primary: 222 47% 65%;
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 220 15% 95%;
+
+    --muted: 220 15% 16%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 25 95% 58%;
+    --accent-foreground: 0 0% 10%;
+
+    --success: 142 71% 50%;
+    --success-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 222 47% 65%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(222 47% 35%) 0%, hsl(222 47% 45%) 50%, hsl(25 95% 58%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(25 95% 58%) 0%, hsl(35 95% 68%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(220 20% 11%) 0%, hsl(220 20% 10%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 50%) 0%, hsl(142 71% 60%) 100%);
+
+    --shadow-soft: 0 2px 12px -2px hsl(0 0% 0% / 0.3);
+    --shadow-medium: 0 8px 20px -4px hsl(0 0% 0% / 0.4);
+    --shadow-strong: 0 16px 40px -8px hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 30px hsl(25 95% 58% / 0.4);
+
+    /* Sidebar - matches dashboard dark mode background (slate-950) */
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 220 15% 95%;
+    --sidebar-primary: 158 64% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 158 64% 15%;
+    --sidebar-accent-foreground: 158 64% 95%;
+    --sidebar-border: 220 15% 20%;
+    --sidebar-ring: 158 64% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    /* Firefox */
+    scrollbar-width: none;
+
+    /* Safari and Chrome */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* IE and Edge */
+    -ms-overflow-style: none;
+    /* Better cross-browser support */
+    scrollbar-color: transparent transparent;
+  }
+
+  .scrollbar-hide:hover {
+    /* Allow scrollbar on hover for accessibility */
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      display: block;
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.3);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(156, 163, 175, 0.5);
+    }
+  }
+
+  /* Custom animations for modern UI */
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+
+    50% {
+      transform: translateY(-20px) rotate(5deg);
+    }
+  }
+
+  @keyframes float-delayed {
+
+    0%,
+    100% {
+      transform: translateY(0px) scale(1);
+    }
+
+    50% {
+      transform: translateY(-15px) scale(1.05);
+    }
+  }
+
+  @keyframes pulse-glow {
+
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200px 0;
+    }
+
+    100% {
+      background-position: calc(200px + 100%) 0;
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float-delayed 8s ease-in-out infinite;
+    animation-delay: 2s;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 4s ease-in-out infinite;
+  }
+
+  /* Glassmorphism utility */
+  .glass {
+    backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+  }
+
+  .glass-dark {
+    backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(17, 25, 40, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.125);
+  }
+
+  /* Enhanced gradient utilities */
+  .bg-gradient-conic {
+    background: conic-gradient(from 180deg at 50% 50%, #16a34a 0deg, #0891b2 72.0000010728836deg, #0ea5e9 144.0000021457672deg, #0284c7 216.0000032186508deg, #16a34a 288.0000042915344deg, #16a34a 360deg);
+  }
+
+  .bg-gradient-mesh {
+    background-image:
+      radial-gradient(at 40% 20%, hsla(28, 100%, 74%, 1) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 1) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, hsla(340, 100%, 76%, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(22, 100%, 77%, 1) 0px, transparent 50%),
+      radial-gradient(at 80% 100%, hsla(242, 100%, 70%, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 0%, hsla(343, 100%, 76%, 1) 0px, transparent 50%);
+  }
+}
+
+/* Advanced Subscription Icon Animations */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shimmer-luxury {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateX(100%) skewX(-15deg);
+    opacity: 0;
+  }
+}
+
+@keyframes premium-glow {
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes sparkle-float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.7;
+  }
+
+  25% {
+    transform: translateY(-2px) rotate(90deg);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateY(-4px) rotate(180deg);
+    opacity: 0.7;
+  }
+
+  75% {
+    transform: translateY(-2px) rotate(270deg);
+    opacity: 1;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animate-shimmer-luxury {
+  animation: shimmer-luxury 3s infinite;
+}
+
+.animate-premium-glow {
+  animation: premium-glow 4s ease-in-out infinite;
+}
+
+.animate-sparkle-float {
+  animation: sparkle-float 6s ease-in-out infinite;
+}
+
+/* Enhanced hover effects for subscription icons */
+.subscription-icon-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.subscription-icon-hover:hover {
+  transform: translateY(-2px) scale(1.05);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+.dark .subscription-icon-hover:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Premium subscription specific effects */
+.premium-gradient {
+  background: linear-gradient(135deg,
+      rgba(147, 51, 234, 0.1) 0%,
+      rgba(79, 70, 229, 0.1) 25%,
+      rgba(59, 130, 246, 0.1) 50%,
+      rgba(147, 51, 234, 0.1) 75%,
+      rgba(79, 70, 229, 0.1) 100%);
+}
+
+.pro-gradient {
+  background: linear-gradient(135deg,
+      rgba(245, 158, 11, 0.1) 0%,
+      rgba(251, 191, 36, 0.1) 25%,
+      rgba(252, 211, 77, 0.1) 50%,
+      rgba(245, 158, 11, 0.1) 75%,
+      rgba(251, 191, 36, 0.1) 100%);
+}

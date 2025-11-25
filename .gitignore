@@ -1,0 +1,13 @@
+# Vite caches
+.vite/
+vite.config.local.*
+
+# Generated assets
+dist/
+*.tsbuildinfo
+
+# Local preview output
+*.local
+
+# Storybook (if you use it)
+.storybook/
