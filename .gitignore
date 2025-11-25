@@ -14,3 +14,10 @@ dist/
 
 
 node_modules/
+node_modules/
+dist/
+.next/
+bun.lockb
+.vercel
+.env
+.env.local
