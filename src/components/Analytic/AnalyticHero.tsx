@@ -307,4 +307,4 @@ export default function AnalyticsHero({ user = { fullName: 'Learner' } }) {
       </div>
     </div>
   );
-}
+}   

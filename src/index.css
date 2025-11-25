@@ -341,6 +341,37 @@ All colors MUST be HSL.
   animation: sparkle-float 6s ease-in-out infinite;
 }
 
+/* Small utility to hint the browser about upcoming transforms for better compositing */
+.will-change-transform {
+  will-change: transform, opacity;
+}
+
+/* Respect user's reduced motion preference and disable heavy animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delayed,
+  .animate-pulse-glow,
+  .animate-pulse-ring,
+  .animate-shimmer,
+  .animate-shimmer-luxury,
+  .animate-premium-glow,
+  .animate-sparkle-float,
+  .animate-bounce {
+    animation: none !important;
+  }
+}
+
+/* Reduce expensive backdrop-blur on small screens to improve paint performance */
+@media (max-width: 768px) {
+  .glass,
+  .glass-dark,
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg {
+    backdrop-filter: blur(6px) !important;
+  }
+}
+
 /* Enhanced hover effects for subscription icons */
 .subscription-icon-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

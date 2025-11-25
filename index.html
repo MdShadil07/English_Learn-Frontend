@@ -1,24 +1,57 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>learnsphere-ai-53</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
 
-    <meta property="og:title" content="learnsphere-ai-53" />
-    <meta property="og:description" content="Lovable Generated Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CognitoSpeak</title>
+  <meta name="description" content="CognitoSpeak — AI-powered English learning assistant" />
+  <meta name="author" content="Md Shadil" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
+  <meta property="og:title" content="CognitoSpeak" />
+  <meta property="og:description" content="CognitoSpeak — AI-powered English learning assistant" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/logo.svg" />
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@CognitoSpeak" />
+  <meta name="twitter:image" content="/logo.svg" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <!-- Preconnect & preload critical font to improve LCP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="/fonts/Inter.var.woff2" as="font" type="font/woff2" crossorigin />
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- Author info bar (lightweight, visible before JS loads) -->
+  <div id="author-info" role="contentinfo" aria-label="About the author" style="position:fixed;right:12px;bottom:12px;z-index:9999;background:rgba(255,255,255,0.92);color:#0f172a;padding:10px 14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.12);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;max-width:320px;line-height:1.2;font-size:13px">
+    <div style="display:flex;gap:10px;align-items:center;position:relative">
+      <img src="/logo.svg" alt="Learn logo" style="width:36px;height:36px;border-radius:8px;flex-shrink:0" />
+      <div style="flex:1">
+        <div style="font-weight:600;color:#0f172a;margin-bottom:2px">Md Shadil</div>
+        <div style="color:#334155">Built this AI-powered English learning app to help people who struggle with English — integrates AI tools, real-time performance monitoring and voice features.</div>
+      </div>
+      <button id="author-info-close" aria-label="Close author info" style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:14px;padding:4px;line-height:1">✕</button>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      try {
+        var bar = document.getElementById('author-info');
+        var btn = document.getElementById('author-info-close');
+        if (!bar) return;
+        if (btn) btn.addEventListener('click', function(){ bar.style.display = 'none'; });
+        // Auto-dismiss after 7 seconds
+        setTimeout(function(){ if (bar) bar.style.display = 'none'; }, 7000);
+      } catch (e) { /* ignore in old browsers */ }
+    })();
+  </script>
+
+  <script type="module" src="/src/main.tsx" defer></script>
+</body>
+
 </html>

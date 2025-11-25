@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface Stat {
   label: string;
   value: string;
-  icon: any;
+  icon: React.ElementType;
   color: string;
   bgColor: string;
 }
@@ -43,4 +43,4 @@ const StatsCard: React.FC<StatsCardProps> = ({ stats }) => {
   );
 };
 
-export default StatsCard;
+export default memo(StatsCard);

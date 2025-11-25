@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, Target, User as UserIcon, Loader2 } from 'lucide-react';
 
@@ -8,8 +8,11 @@ import { cn } from '@/lib/utils';
 
 import { AIPersonality, Message, UserSettings } from './types';
 import { getPersonalityIcon } from '@/components/Icons/AIPersonalityIcons';
-import { FormattedAIMessage, hasFormatting } from './FormattedAIMessage';
+import { hasFormatting } from '../../utils/aiFormatter';
 import { ThinkingIndicator } from './ThinkingIndicator';
+
+// Lazy-load formatted message renderer to avoid pulling heavy parsing libs into main bundle
+const FormattedAIMessage = React.lazy(() => import('./FormattedAIMessage'));
 
 interface ChatMessageItemProps {
   message: Message;
@@ -18,7 +21,7 @@ interface ChatMessageItemProps {
   settings: UserSettings;
 }
 
-const ChatMessageItem: React.FC<ChatMessageItemProps> = ({ 
+const ChatMessageItemInner: React.FC<ChatMessageItemProps> = ({ 
   message, 
   index, 
   selectedPersonality, 
@@ -62,7 +65,9 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             )}
           >
             {message.role === 'assistant' && hasVisualFormatting ? (
-              <FormattedAIMessage content={message.content} />
+              <Suspense fallback={<div className="text-sm text-slate-400">...</div>}>
+                <FormattedAIMessage content={message.content} />
+              </Suspense>
             ) : (
               <p className="whitespace-pre-wrap text-sm leading-relaxed">
                 {message.content}
@@ -88,5 +93,21 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     </motion.div>
   );
 };
+
+// Use memo to avoid unnecessary re-renders for unchanged messages
+function areEqual(prev: ChatMessageItemProps, next: ChatMessageItemProps) {
+  const m1 = prev.message;
+  const m2 = next.message;
+  if (m1.id !== m2.id) return false;
+  if (m1.content !== m2.content) return false;
+  if (m1.isStreaming !== m2.isStreaming) return false;
+  if (prev.selectedPersonality.id !== next.selectedPersonality.id) return false;
+  // shallow compare relevant settings to avoid deep checks
+  if (prev.settings?.voiceEnabled !== next.settings?.voiceEnabled) return false;
+  if (prev.settings?.language !== next.settings?.language) return false;
+  return true;
+}
+
+const ChatMessageItem = React.memo(ChatMessageItemInner, areEqual);
 
 export default ChatMessageItem;

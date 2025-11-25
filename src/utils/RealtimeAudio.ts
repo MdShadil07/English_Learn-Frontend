@@ -1,10 +1,37 @@
 export class AudioRecorder {
   private stream: MediaStream | null = null;
   private audioContext: AudioContext | null = null;
-  private processor: ScriptProcessorNode | null = null;
+  // AudioWorkletNode preferred, fall back to ScriptProcessorNode when unavailable
+  private processor: AudioWorkletNode | ScriptProcessorNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
 
   constructor(private onAudioData: (audioData: Float32Array) => void) {}
+
+  // Create a blob URL for the worklet processor so we can register it dynamically
+  private createWorkletModuleUrl(): string {
+    const workletCode = `
+      class RecorderProcessor extends AudioWorkletProcessor {
+        constructor() {
+          super();
+        }
+        process(inputs) {
+          const input = inputs[0];
+          if (input && input[0]) {
+            const channel = input[0];
+            // Copy to a new Float32Array and transfer its buffer to the main thread
+            const buffer = new Float32Array(channel.length);
+            buffer.set(channel);
+            this.port.postMessage(buffer.buffer, [buffer.buffer]);
+          }
+          return true;
+        }
+      }
+      registerProcessor('recorder-processor', RecorderProcessor);
+    `;
+
+    const blob = new Blob([workletCode], { type: 'application/javascript' });
+    return URL.createObjectURL(blob);
+  }
 
   async start() {
     try {
@@ -17,21 +44,52 @@ export class AudioRecorder {
           autoGainControl: true
         }
       });
-      
-      this.audioContext = new AudioContext({
-        sampleRate: 24000,
-      });
-      
+
+      this.audioContext = new AudioContext({ sampleRate: 24000 });
       this.source = this.audioContext.createMediaStreamSource(this.stream);
+
+      // Prefer AudioWorkletNode when available
+      if (this.audioContext.audioWorklet && typeof this.audioContext.audioWorklet.addModule === 'function') {
+        try {
+          const moduleUrl = this.createWorkletModuleUrl();
+          // Register the worklet processor
+          // addModule expects a same-origin or blob URL; blob URL is fine here
+          await this.audioContext.audioWorklet.addModule(moduleUrl);
+          // Create the worklet node
+          this.processor = new AudioWorkletNode(this.audioContext, 'recorder-processor');
+
+          // Handle incoming buffers from the worklet
+          (this.processor as AudioWorkletNode).port.onmessage = (e: MessageEvent) => {
+            const arrayBuffer = e.data as ArrayBuffer;
+            try {
+              const floatData = new Float32Array(arrayBuffer);
+              this.onAudioData(floatData);
+            } catch (err) {
+              // If reconstruction fails, ignore gracefully
+              console.error('Failed to reconstruct audio buffer from worklet:', err);
+            }
+          };
+
+          this.source.connect(this.processor as AudioWorkletNode);
+          // Connect to destination to keep the node active; volume is zeroed by default
+          (this.processor as AudioWorkletNode).connect(this.audioContext.destination);
+          return;
+        } catch (err) {
+          console.warn('AudioWorkletNode registration failed, falling back to ScriptProcessorNode:', err);
+          // fall through to ScriptProcessorNode fallback
+        }
+      }
+
+      // Fallback for older browsers: ScriptProcessorNode (deprecated but widely supported)
+      // Use a small buffer size to reduce latency
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-      
-      this.processor.onaudioprocess = (e) => {
+      (this.processor as ScriptProcessorNode).onaudioprocess = (e: AudioProcessingEvent) => {
         const inputData = e.inputBuffer.getChannelData(0);
         this.onAudioData(new Float32Array(inputData));
       };
-      
-      this.source.connect(this.processor);
-      this.processor.connect(this.audioContext.destination);
+
+      this.source.connect(this.processor as ScriptProcessorNode);
+      (this.processor as ScriptProcessorNode).connect(this.audioContext.destination);
     } catch (error) {
       console.error('Error accessing microphone:', error);
       throw error;
@@ -40,11 +98,17 @@ export class AudioRecorder {
 
   stop() {
     if (this.source) {
-      this.source.disconnect();
+      try { this.source.disconnect(); } catch (err) { console.warn('Error disconnecting source', err); }
       this.source = null;
     }
     if (this.processor) {
-      this.processor.disconnect();
+      try { this.processor.disconnect(); } catch (err) { console.warn('Error disconnecting processor', err); }
+      // If it is an AudioWorkletNode, also remove its message handler
+      try {
+        if ((this.processor as AudioWorkletNode).port) {
+          (this.processor as AudioWorkletNode).port.onmessage = null;
+        }
+      } catch (err) { console.warn('Error clearing processor message handler', err); }
       this.processor = null;
     }
     if (this.stream) {
@@ -52,7 +116,7 @@ export class AudioRecorder {
       this.stream = null;
     }
     if (this.audioContext) {
-      this.audioContext.close();
+      try { this.audioContext.close(); } catch (err) { console.warn('Error closing AudioContext', err); }
       this.audioContext = null;
     }
   }

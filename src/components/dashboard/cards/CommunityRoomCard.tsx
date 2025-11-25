@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Video, Users, Clock, UserCheck, Zap, ArrowRight, Calendar, Headphones } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -157,4 +157,4 @@ const CommunityRoomCard = ({ rooms = [] }) => {
   );
 };
 
-export default CommunityRoomCard;
+export default memo(CommunityRoomCard);

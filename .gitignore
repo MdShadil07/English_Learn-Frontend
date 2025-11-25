@@ -11,3 +11,6 @@ dist/
 
 # Storybook (if you use it)
 .storybook/
+
+
+node_modules/

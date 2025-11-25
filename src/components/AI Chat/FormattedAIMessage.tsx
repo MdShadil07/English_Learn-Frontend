@@ -4,22 +4,11 @@
  * Used by Pro and Premium personalities
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-
-export interface FormattedSegment {
-  type: 'text' | 'error' | 'correction' | 'note' | 'important' | 'tip' | 'heading' | 'bullet' | 'numbered' | 
-        'bold' | 'translation' | 'vocab_word' | 'grammar_point' | 'essay_section' | 'business_tip' | 'story_element';
-  content: string;
-  originalText?: string;
-  level?: number; // For headings or list nesting
-  metadata?: {
-    word?: string; // For vocabulary words
-    translation?: string; // For native language translation
-    language?: string; // Language code for translation
-    category?: string; // Category for vocab, essay sections, etc.
-  };
-}
+import type { FormattedSegment } from '../../utils/aiFormatter';
+import { hasFormatting as _hasFormatting } from '../../utils/aiFormatter';
+import useMessageFormatter from '../../hooks/useMessageFormatter';
 
 interface FormattedMessageProps {
   content: string;
@@ -27,173 +16,51 @@ interface FormattedMessageProps {
 }
 
 /**
- * Parse formatted response from AI
- * Extracts various formatting markers:
- * - [ERROR:text] and [CORRECTION:text] for corrections
- * - [NOTE:text] for important notes
- * - [TIP:text] for helpful tips  
- * - [IMPORTANT:text] for critical information
- * - [BOLD:text] for vocabulary words and emphasis
- * - [TRANSLATION:language|text] for native language translations
- * - [VOCAB_WORD:word|meaning] for vocabulary teaching
- * - [GRAMMAR_POINT:text] for grammar explanations
- * - [ESSAY_SECTION:category|text] for essay feedback
- * - [BUSINESS_TIP:text] for professional communication
- * - [STORY_ELEMENT:category|text] for creative writing feedback
- * Strips out ALL markdown symbols if AI accidentally uses them
- */
-const parseFormattedContent = (content: string): FormattedSegment[] => {
-  const segments: FormattedSegment[] = [];
-  
-  // Aggressive markdown cleanup - AI should NEVER use these based on updated prompts
-  // This is a comprehensive fallback safety net
-  const cleanedContent = content
-    // Remove markdown headers (##, ###, etc.)
-    .replace(/^#{1,6}\s+(.+)$/gm, '$1')
-    // Remove bold **text** or __text__ (except in our markers)
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/__(.+?)__/g, '$1')
-    // Remove italic *text* or _text_
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '$1')
-    // Remove bullet points and list markers
-    .replace(/^[*\-+•]\s+/gm, '')
-    // Remove numbered lists
-    .replace(/^\d+\.\s+/gm, '')
-    // Remove blockquotes
-    .replace(/^>\s+/gm, '')
-    // Remove horizontal rules
-    .replace(/^[-*_]{3,}$/gm, '')
-    // Remove code blocks
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/`(.+?)`/g, '$1')
-    // Remove strikethrough ~~text~~
-    .replace(/~~(.+?)~~/g, '$1')
-    // Clean up multiple consecutive line breaks (keep max 2)
-    .replace(/\n{3,}/g, '\n\n');
-  
-  // Enhanced regex to find ALL our custom markers
-  const markerRegex = /\[(ERROR|CORRECTION|NOTE|TIP|IMPORTANT|BOLD|TRANSLATION|VOCAB_WORD|GRAMMAR_POINT|ESSAY_SECTION|BUSINESS_TIP|STORY_ELEMENT):(.*?)\]/g;
-  
-  let lastIndex = 0;
-  let match;
-  
-  while ((match = markerRegex.exec(cleanedContent)) !== null) {
-    // Add text before the marker
-    if (match.index > lastIndex) {
-      const textBefore = cleanedContent.substring(lastIndex, match.index);
-      if (textBefore.trim() || textBefore.includes('\n')) {
-        segments.push({
-          type: 'text',
-          content: textBefore
-        });
-      }
-    }
-    
-    // Parse the marker
-    const markerType = match[1].toLowerCase();
-    const markerContent = match[2].trim();
-    
-    if (markerContent) {
-      // Handle special markers with metadata
-      if (markerType === 'translation') {
-        // Format: [TRANSLATION:language|text]
-        const parts = markerContent.split('|');
-        if (parts.length >= 2) {
-          segments.push({
-            type: 'translation',
-            content: parts.slice(1).join('|').trim(),
-            metadata: {
-              language: parts[0].trim()
-            }
-          });
-        }
-      } else if (markerType === 'vocab_word') {
-        // Format: [VOCAB_WORD:word|meaning]
-        const parts = markerContent.split('|');
-        if (parts.length >= 2) {
-          segments.push({
-            type: 'vocab_word',
-            content: parts.slice(1).join('|').trim(),
-            metadata: {
-              word: parts[0].trim()
-            }
-          });
-        }
-      } else if (markerType === 'essay_section' || markerType === 'story_element') {
-        // Format: [ESSAY_SECTION:category|text] or [STORY_ELEMENT:category|text]
-        const parts = markerContent.split('|');
-        if (parts.length >= 2) {
-          segments.push({
-            type: markerType as any,
-            content: parts.slice(1).join('|').trim(),
-            metadata: {
-              category: parts[0].trim()
-            }
-          });
-        } else {
-          segments.push({
-            type: markerType as any,
-            content: markerContent
-          });
-        }
-      } else {
-        // Standard markers
-        segments.push({
-          type: markerType as any,
-          content: markerContent
-        });
-      }
-    }
-    
-    lastIndex = match.index + match[0].length;
-  }
-  
-  // Add remaining text after last marker
-  if (lastIndex < cleanedContent.length) {
-    const textAfter = cleanedContent.substring(lastIndex);
-    if (textAfter.trim() || textAfter.includes('\n')) {
-      segments.push({
-        type: 'text',
-        content: textAfter
-      });
-    }
-  }
-  
-  // If no markers found, return as plain text
-  if (segments.length === 0) {
-    segments.push({
-      type: 'text',
-      content: cleanedContent
-    });
-  }
-  
-  return segments;
-};
-
-/**
  * FormattedAIMessage Component
  * Renders AI messages with visual error/correction highlighting
  * Pro/Premium features with red error highlighting and green correction highlighting
  */
 export const FormattedAIMessage: React.FC<FormattedMessageProps> = ({ content, className }) => {
-  const segments = parseFormattedContent(content);
+  const { format } = useMessageFormatter();
+  const [segments, setSegments] = useState<FormattedSegment[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    setSegments([]);
+    // Use streaming formatter: append partial segments as they arrive
+    format(content, (partial) => {
+      if (!mounted) return;
+      setSegments((prev) => [...prev, ...partial]);
+    })
+      .then(() => {
+        // no-op. final resolution handled by onProgress and done signal
+      })
+      .catch(() => {
+        if (mounted) setSegments([{ type: 'text', content }]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [content, format]);
+
+  const renderSegments = segments.length ? segments : [{ type: 'text', content }];
 
   return (
     <div className={cn('whitespace-pre-wrap text-sm leading-relaxed', className)}>
-      {segments.map((segment, index) => {
+      {renderSegments.map((segment, index) => {
         switch (segment.type) {
           case 'error':
             return (
-              <span
+              <div
                 key={index}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 mx-0.5 my-0.5 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-2 border-red-300 dark:border-red-800 rounded-md font-medium shadow-sm hover:shadow-md transition-shadow"
+                className="inline-flex items-start gap-2 px-3 py-2 my-1 bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300 border-2 border-red-300 dark:border-red-800 rounded-md font-medium shadow-sm hover:shadow-md transition-shadow break-words max-w-full whitespace-normal"
                 title="Error - this needs correction"
-                role="mark"
+                role="alert"
                 aria-label="Error"
+                aria-live="polite"
               >
                 <svg 
-                  className="w-4 h-4 flex-shrink-0" 
+                  className="w-4 h-4 flex-shrink-0 mt-0.5" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -206,21 +73,23 @@ export const FormattedAIMessage: React.FC<FormattedMessageProps> = ({ content, c
                     d="M6 18L18 6M6 6l12 12" 
                   />
                 </svg>
-                <span className="line-through decoration-2 decoration-red-500">{segment.content}</span>
-              </span>
+                <div className="flex-1">
+                  <p className="line-through decoration-2 decoration-red-500 break-words whitespace-normal">{segment.content}</p>
+                </div>
+              </div>
             );
           
           case 'correction':
             return (
-              <span
+              <div
                 key={index}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 mx-0.5 my-0.5 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-2 border-green-300 dark:border-green-800 rounded-md font-semibold shadow-sm hover:shadow-md transition-shadow"
+                className="inline-flex items-start gap-2 px-3 py-2 my-1 bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 border-2 border-green-300 dark:border-green-800 rounded-md font-semibold shadow-sm hover:shadow-md transition-shadow break-words max-w-full whitespace-normal"
                 title="Correction - this is the correct form"
-                role="mark"
+                role="status"
                 aria-label="Correction"
               >
                 <svg 
-                  className="w-4 h-4 flex-shrink-0" 
+                  className="w-4 h-4 flex-shrink-0 mt-0.5" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -233,15 +102,17 @@ export const FormattedAIMessage: React.FC<FormattedMessageProps> = ({ content, c
                     d="M5 13l4 4L19 7" 
                   />
                 </svg>
-                <span className="font-bold">{segment.content}</span>
-              </span>
+                <div className="flex-1">
+                  <p className="font-bold break-words whitespace-normal">{segment.content}</p>
+                </div>
+              </div>
             );
 
           case 'note':
             return (
               <div
                 key={index}
-                className="flex items-start gap-2 px-4 py-3 my-2 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-600 rounded-r-lg shadow-sm"
+                className="w-full flex items-start gap-2 px-4 py-3 my-2 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 dark:border-blue-600 rounded-r-lg shadow-sm break-words whitespace-normal"
                 role="note"
                 aria-label="Note"
               >
@@ -269,7 +140,7 @@ export const FormattedAIMessage: React.FC<FormattedMessageProps> = ({ content, c
             return (
               <div
                 key={index}
-                className="flex items-start gap-2 px-4 py-3 my-2 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 dark:border-amber-600 rounded-r-lg shadow-sm"
+                className="w-full flex items-start gap-2 px-4 py-3 my-2 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 dark:border-amber-600 rounded-r-lg shadow-sm break-words whitespace-normal"
                 role="note"
                 aria-label="Tip"
               >
@@ -440,130 +311,10 @@ export const FormattedAIMessage: React.FC<FormattedMessageProps> = ({ content, c
 /**
  * Check if content has any formatting
  */
-export const hasFormatting = (content: string): boolean => {
-  return /\[(ERROR|CORRECTION|NOTE|TIP|IMPORTANT|BOLD|TRANSLATION|VOCAB_WORD|GRAMMAR_POINT|ESSAY_SECTION|BUSINESS_TIP|STORY_ELEMENT):/.test(content);
-};
-
 /**
- * Strip all formatting markers and markdown for plain text (e.g., for TTS)
+ * Check if content has any formatting
  */
-export const stripFormatting = (content: string): string => {
-  return content
-    // Remove our custom markers (keep the content)
-    .replace(/\[ERROR:.*?\]/g, '')
-    .replace(/\[CORRECTION:(.*?)\]/g, '$1')
-    .replace(/\[NOTE:(.*?)\]/g, '$1')
-    .replace(/\[TIP:(.*?)\]/g, '$1')
-    .replace(/\[IMPORTANT:(.*?)\]/g, '$1')
-    // Remove markdown (comprehensive)
-    .replace(/^#{1,6}\s+(.+)$/gm, '$1')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/__(.+?)__/g, '$1')
-    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '$1')
-    .replace(/^[*\-+•]\s+/gm, '')
-    .replace(/^\d+\.\s+/gm, '')
-    .replace(/^>\s+/gm, '')
-    .replace(/^[-*_]{3,}$/gm, '')
-    .replace(/```[\s\S]*?```/g, '')
-    .replace(/`(.+?)`/g, '$1')
-    .replace(/~~(.+?)~~/g, '$1')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-};
-
-/**
- * Extract errors from content
- */
-export const extractErrors = (content: string): string[] => {
-  const errors: string[] = [];
-  const errorRegex = /\[ERROR:(.*?)\]/g;
-  let match;
-
-  while ((match = errorRegex.exec(content)) !== null) {
-    errors.push(match[1]);
-  }
-
-  return errors;
-};
-
-/**
- * Extract corrections from content
- */
-export const extractCorrections = (content: string): string[] => {
-  const corrections: string[] = [];
-  const correctionRegex = /\[CORRECTION:(.*?)\]/g;
-  let match;
-
-  while ((match = correctionRegex.exec(content)) !== null) {
-    corrections.push(match[1]);
-  }
-
-  return corrections;
-};
-
-/**
- * Extract notes from content
- */
-export const extractNotes = (content: string): string[] => {
-  const notes: string[] = [];
-  const noteRegex = /\[NOTE:(.*?)\]/g;
-  let match;
-
-  while ((match = noteRegex.exec(content)) !== null) {
-    notes.push(match[1]);
-  }
-
-  return notes;
-};
-
-/**
- * Extract tips from content
- */
-export const extractTips = (content: string): string[] => {
-  const tips: string[] = [];
-  const tipRegex = /\[TIP:(.*?)\]/g;
-  let match;
-
-  while ((match = tipRegex.exec(content)) !== null) {
-    tips.push(match[1]);
-  }
-
-  return tips;
-};
-
-/**
- * Extract important items from content
- */
-export const extractImportant = (content: string): string[] => {
-  const important: string[] = [];
-  const importantRegex = /\[IMPORTANT:(.*?)\]/g;
-  let match;
-
-  while ((match = importantRegex.exec(content)) !== null) {
-    important.push(match[1]);
-  }
-
-  return important;
-};
-
-/**
- * Count all formatted elements
- */
-export const countFormattedElements = (content: string): { 
-  errors: number; 
-  corrections: number; 
-  notes: number;
-  tips: number;
-  important: number;
-} => {
-  const errors = (content.match(/\[ERROR:/g) || []).length;
-  const corrections = (content.match(/\[CORRECTION:/g) || []).length;
-  const notes = (content.match(/\[NOTE:/g) || []).length;
-  const tips = (content.match(/\[TIP:/g) || []).length;
-  const important = (content.match(/\[IMPORTANT:/g) || []).length;
-
-  return { errors, corrections, notes, tips, important };
-};
+// Internal helper uses the shared util directly
+const hasFormatting = (content: string): boolean => _hasFormatting(content);
 
 export default FormattedAIMessage;

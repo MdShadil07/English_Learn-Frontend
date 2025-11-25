@@ -27,4 +27,23 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Build optimizations: manual chunking to create predictable bundles for heavy libs
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('framer-motion')) return 'vendor_framer';
+            if (id.includes('recharts')) return 'vendor_charts';
+            if (id.includes('@tanstack') || id.includes('react-query')) return 'vendor_query';
+            if (id.includes('@supabase') || id.includes('supabase')) return 'vendor_supabase';
+            if (id.includes('lucide-react')) return 'vendor_icons';
+            if (id.includes('react') || id.includes('react-dom')) return 'vendor_react';
+            // default vendor chunk
+            return 'vendor_misc';
+          }
+        }
+      }
+    }
+  },
 }));

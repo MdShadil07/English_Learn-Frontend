@@ -48,7 +48,7 @@ const personalities = [
     role: 'Casual Chat', 
     tier: 'Free', 
     color: 'emerald',
-    avatar: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Person%20Tipping%20Hand%20Medium-Light%20Skin%20Tone.png',
+    avatar: '/logo.svg',
     desc: 'Great for daily conversation practice. Provides minor corrections on the fly.',
     features: ['Casual Tone', 'Minor Corrections', 'Basic Vocabulary']
   },
@@ -58,7 +58,7 @@ const personalities = [
     role: 'Professional', 
     tier: 'Pro', 
     color: 'blue',
-    avatar: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Woman%20Technologist%20Medium-Light%20Skin%20Tone.png',
+    avatar: '/logo.svg',
     desc: 'Focused on business English and formal structure. Ideal for workplace prep.',
     features: ['Formal Tone', 'Grammar Precision', 'Business Terms']
   },
@@ -68,7 +68,7 @@ const personalities = [
     role: 'Grammar Coach', 
     tier: 'Pro', 
     color: 'indigo',
-    avatar: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Man%20Teacher%20Medium-Light%20Skin%20Tone.png',
+    avatar: '/logo.svg',
     desc: 'Stops to explain rules. Perfect if you want to understand the "why" behind mistakes.',
     features: ['Rule Explanations', 'Structure Drills', 'Detailed Feedback']
   },
@@ -78,7 +78,7 @@ const personalities = [
     role: 'Intensive', 
     tier: 'Premium', 
     color: 'amber',
-    avatar: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Detective%20Medium-Light%20Skin%20Tone.png',
+    avatar: '/logo.svg',
     desc: 'High-intensity practice with deep analysis. Corrects major & minor errors instantly.',
     features: ['Deep Analysis', 'Strict Corrections', 'Unlimited Chats']
   },
@@ -88,7 +88,7 @@ const personalities = [
     role: 'Academic', 
     tier: 'Premium', 
     color: 'rose',
-    avatar: 'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Woman%20Student%20Medium-Light%20Skin%20Tone.png',
+    avatar: '/logo.svg',
     desc: 'Prepares you for IELTS/TOEFL with complex sentence structures and advanced vocabulary.',
     features: ['Academic Vocab', 'Complex Syntax', 'Essay Review']
   }

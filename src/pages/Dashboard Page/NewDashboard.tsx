@@ -13,7 +13,8 @@ import RoomsView from '../../components/dashboard/features/RoomsView';
 import NotesView from '../../components/dashboard/features/NotesView';
 import CommunityView from '../../components/dashboard/features/CommunityView';
 import FocusModeView from '../../components/dashboard/features/FocusModeView';
-import AIChat from '../../pages/AI Chat Page/AIChatPage';
+import React, { lazy, Suspense } from 'react';
+const AIChat = lazy(() => import('../../pages/AI Chat Page/AIChatPage'));
 import AIPractice from '../../components/dashboard/AIPractice';
 import VoiceRooms from '../../components/dashboard/VoiceRooms';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,6 +24,10 @@ import AnalyticsDashboard from '../../pages/Analytic Page/AnalyticsDashboard';
 const NewDashboard = () => {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState<string>('home');
+  // `highlightedView` is used for instant sidebar highlight while heavy views
+  // (like AI Chat) are mounted after idle. This avoids starting heavy dynamic
+  // imports on the immediate click which can cause INP.
+  const [highlightedView, setHighlightedView] = useState<string>('home');
   // Compute premium status and render reusable toast component near top-level so it shows on dashboard
   const subscriptionTier = (user?.tier || 'free').toString().toLowerCase();
   const isPremiumUser = subscriptionTier === 'premium' || subscriptionTier === 'pro';
@@ -92,7 +97,11 @@ const NewDashboard = () => {
       case 'reading':
         return <ReadingView />;
       case 'ai-chat':
-        return <AIChat />;
+        return (
+          <Suspense fallback={<div className="p-6">Opening chat…</div>}>
+            <AIChat />
+          </Suspense>
+        );
       case 'ai-practice':
         return <AIPractice />;
       case 'rooms':
@@ -120,8 +129,32 @@ const NewDashboard = () => {
     }
   };
 
+    // Wrapper passed to sidebar to handle optimistic highlight + idle mount
+    const handleViewChange = (id: string) => {
+      // Immediately update sidebar highlight
+      setHighlightedView(id);
+
+      // If the view is the heavy AI chat, defer actual mounting until idle
+      if (id === 'ai-chat') {
+        const schedule = (cb: () => void) => {
+          if ('requestIdleCallback' in window) {
+            // @ts-ignore
+            requestIdleCallback(cb, { timeout: 200 });
+          } else {
+            // Fallback
+            setTimeout(cb, 50);
+          }
+        };
+        schedule(() => setActiveView(id));
+        return;
+      }
+
+      // For normal views, mount immediately
+      setActiveView(id);
+    };
+
   return (
-    <NewDashboardLayout activeView={activeView} onViewChange={setActiveView}>
+    <NewDashboardLayout activeView={highlightedView} onViewChange={handleViewChange}>
       {/* Mount upgrade toast so it runs its effect when dashboard renders */}
       <UpgradeToast isPremiumUser={isPremiumUser} />
       {renderView()}

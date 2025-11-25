@@ -1,397 +1,242 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React from "react";
 import {
-  Sparkles,
   ArrowRight,
-  Zap,
-  Mic,
-  BarChart3,
-  Globe,
   Play,
   Trophy,
   Flame,
-  CheckCircle2,
-  Activity,
-  Languages,
-  Brain,
-  Wifi,
+  Mic,
+  BarChart3,
+  Settings,
   Laptop,
   Coffee,
+  Globe,
   Train,
-  Settings
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+  Sparkles
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-// Badge not used in this file — keep imports minimal
 
-// --- Configuration: Context Nodes (People Learning Everywhere) ---
+// Context bubbles around the phone
 const CONTEXT_NODES = [
-   { 
-      id: 1, 
-      icon: Laptop, 
-      label: "Working Professional", 
-      sub: "Business English",
-      color: "text-pink-500", 
-      bg: "bg-pink-500/10",
-      border: "border-pink-500/20",
-      position: "top-10 left-2 md:left-6", 
-      delay: 0 
-   },
-   { 
-      id: 2, 
-      icon: Coffee, 
-      label: "Casual Learner", 
-      sub: "Cafe Conversation",
-      color: "text-amber-500", 
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/20",
-      position: "bottom-20 left-2 md:left-4", 
-      delay: 1.5 
-   },
-   { 
-      id: 3, 
-      icon: Globe, 
-      label: "Global Traveler", 
-      sub: "Cultural Nuances",
-      color: "text-blue-500", 
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20",
-      position: "top-16 right-2 md:right-6", 
-      delay: 0.8 
-   },
-   { 
-      id: 4, 
-      icon: Train, 
-      label: "Daily Commuter", 
-      sub: "Podcast Listening",
-      color: "text-emerald-500", 
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/20",
-      position: "bottom-32 right-2 md:right-6", 
-      delay: 2.2 
-   },
-      {
-         id: 5,
-         icon: BarChart3,
-         label: "Proficiency",
-         sub: "B2",
-         color: "text-emerald-600",
-         bg: "bg-emerald-100",
-         border: "border-emerald-500/20",
-         position: "top-28 left-4 md:left-12",
-         delay: 1.2
-      },
+  {
+    id: 1,
+    icon: Laptop,
+    label: "Working Professional",
+    sub: "Business English",
+    color: "text-pink-500",
+    position: "top-10 left-2 md:left-6",
+  },
+  {
+    id: 2,
+    icon: Coffee,
+    label: "Casual Learner",
+    sub: "Cafe Conversation",
+    color: "text-amber-500",
+    position: "bottom-20 left-2 md:left-4",
+  },
+  {
+    id: 3,
+    icon: Globe,
+    label: "Global Traveler",
+    sub: "Cultural Nuances",
+    color: "text-blue-500",
+    position: "top-16 right-2 md:right-6",
+  },
+  {
+    id: 4,
+    icon: Train,
+    label: "Daily Commuter",
+    sub: "Podcast Listening",
+    color: "text-emerald-500",
+    position: "bottom-32 right-2 md:right-6",
+  },
 ];
 
-export default function DashboardHero({ user = { fullName: 'Learner' }, greeting = 'Hello' }) {
-  
-  // Animation Variants
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring" as const, stiffness: 100, damping: 20 },
-    },
-  };
-
-  // Infinite float animation
-  const floatAnimation = {
-     y: [0, -10, 0],
-     opacity: [1, 1, 1],
-     scale: [1, 1, 1],
-     transition: { duration: 6, repeat: Infinity }
-  };
-
+export default function DashboardHero({
+  user = { fullName: "Learner" },
+  greeting = "Hello",
+}) {
   return (
-    <div className="relative w-full pt-8 pb-16 md:pt-12 md:pb-24 overflow-visible">
-      
-      {/* --- Ambient Lighting Effects (Optimized for Light/Dark) --- */}
-      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-         {/* Top Right Glow */}
-         <motion.div 
-            className="absolute top-[-20%] right-[-10%] w-[30rem] md:w-[50rem] h-[30rem] md:h-[50rem] bg-emerald-400/20 rounded-full blur-[80px] md:blur-[120px] dark:bg-emerald-500/10 mix-blend-multiply dark:mix-blend-screen"
-            animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-         />
-         {/* Bottom Left Glow */}
-         <motion.div 
-            className="absolute bottom-[-10%] left-[-10%] w-[25rem] md:w-[40rem] h-[25rem] md:h-[40rem] bg-blue-400/20 rounded-full blur-[80px] md:blur-[100px] dark:bg-blue-600/10 mix-blend-multiply dark:mix-blend-screen"
-            animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-         />
-      </div>
+    <div className="relative w-full pt-10 pb-20 md:pt-12 md:pb-24 overflow-visible">
+      {/* HERO GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 items-center relative z-10">
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10">
-        
-        {/* --- Left Column: Text & Actions --- */}
-        <motion.div 
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: { transition: { staggerChildren: 0.1 } }
-          }}
-          className="space-y-8 text-center lg:text-left"
-        >
+        {/* LEFT — TEXT + CTA */}
+        <div className="space-y-8 text-center lg:text-left">
           
-          {/* Animated Badge */}
-          <motion.div variants={itemVariants} className="inline-flex items-center justify-center lg:justify-start w-full lg:w-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 dark:bg-slate-800/80 border border-emerald-200 dark:border-emerald-500/30 shadow-sm backdrop-blur-md">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide">
-                AI Coaching Active
-              </span>
+          {/* STATUS BADGE (VERY LIGHT) */}
+          <div className="inline-flex items-center justify-center lg:justify-start">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full 
+              bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-600 text-xs font-semibold">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              AI Coaching Active
             </div>
-          </motion.div>
-
-          {/* Headline */}
-          <div className="space-y-4">
-            <motion.h1
-              variants={itemVariants}
-              className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight"
-            >
-              {greeting}, <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-blue-600 animate-gradient-x">
-                {user?.fullName || 'Learner'}
-              </span>
-            </motion.h1>
-            <motion.p
-              variants={itemVariants}
-              className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl mx-auto lg:mx-0"
-            >
-              Your personalized learning hub is live. Track your real-time growth, 
-              engage with 50k+ peers, and master fluency with our adaptive AI.
-            </motion.p>
           </div>
 
-          {/* CTA Buttons */}
-          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2">
+          {/* HEADLINE */}
+          <div className="space-y-3">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight text-slate-900 dark:text-white">
+              {greeting}, <br />
+              <span className="text-emerald-600">
+                {user?.fullName || "Learner"}
+              </span>
+            </h1>
+
+            <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl mx-auto lg:mx-0">
+              Your personalized learning hub is live. Track your growth and 
+              master fluency with adaptive AI guidance.
+            </p>
+          </div>
+
+          {/* CTA BUTTONS */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2">
             <Button
               size="lg"
-              className="h-14 px-8 text-base font-bold rounded-full bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+              className="h-14 px-8 text-base font-bold rounded-full 
+              bg-slate-900 text-white dark:bg-white dark:text-slate-900"
             >
               Start Session <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
+
             <Button
               size="lg"
               variant="outline"
-              className="h-14 px-8 text-base font-bold rounded-full border-2 border-slate-200 bg-white/50 dark:bg-slate-900/50 text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 backdrop-blur-sm"
+              className="h-14 px-8 text-base font-bold rounded-full border-2"
             >
               <Play className="mr-2 w-5 h-5" /> My Progress
             </Button>
-          </motion.div>
+          </div>
 
-          {/* Stats / Social Proof */}
-          <motion.div variants={itemVariants} className="flex items-center justify-center lg:justify-start gap-8 pt-4">
-            <div className="flex items-center gap-3 group cursor-default">
-               <div className="p-2.5 bg-orange-100 dark:bg-orange-900/20 rounded-2xl text-orange-500 group-hover:scale-110 transition-transform">
-                  <Flame className="w-6 h-6 fill-current" />
-               </div>
-               <div className="text-left leading-tight">
-                  <div className="text-xl font-bold text-slate-900 dark:text-white">12</div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Day Streak</div>
-               </div>
+          {/* SOCIAL PROOF */}
+          <div className="flex items-center justify-center lg:justify-start gap-10 pt-4">
+            {/* Streak */}
+            <div className="flex items-center gap-3">
+              <Flame className="w-6 h-6 text-orange-500" />
+              <div>
+                <div className="text-xl font-bold text-slate-900 dark:text-white">12</div>
+                <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">
+                  Day Streak
+                </div>
+              </div>
             </div>
-            <div className="w-px h-10 bg-slate-200 dark:bg-slate-800"></div>
-            <div className="flex items-center gap-3 group cursor-default">
-               <div className="p-2.5 bg-yellow-100 dark:bg-yellow-900/20 rounded-2xl text-yellow-500 group-hover:scale-110 transition-transform">
-                  <Trophy className="w-6 h-6 fill-current" />
-               </div>
-               <div className="text-left leading-tight">
-                  <div className="text-xl font-bold text-slate-900 dark:text-white">Top 5%</div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Global Rank</div>
-               </div>
+
+            {/* Divider */}
+            <div className="w-px h-10 bg-slate-300 dark:bg-slate-700"></div>
+
+            {/* Rank */}
+            <div className="flex items-center gap-3">
+              <Trophy className="w-6 h-6 text-yellow-500" />
+              <div>
+                <div className="text-xl font-bold text-slate-900 dark:text-white">
+                  Top 5%
+                </div>
+                <div className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">
+                  Global Rank
+                </div>
+              </div>
             </div>
-          </motion.div>
+          </div>
+        </div>
 
-        </motion.div>
+        {/* RIGHT — PHONE MOCKUP */}
+        <div className="relative flex justify-center lg:justify-end items-center h-[580px] md:h-[650px] w-full mt-10 lg:mt-0">
 
-        {/* --- Right Column: Advanced Phone Visualization --- */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="relative flex justify-center lg:justify-end items-center h-[600px] md:h-[700px] w-full perspective-1000 mt-12 lg:mt-0"
-        >
-          
-          {/* --- Animated Connection Lines (SVG) --- */}
-          {/* Visible only on larger screens to reduce clutter on mobile */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible hidden md:block z-0">
-             <defs>
-               <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                 <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
-                 <stop offset="50%" stopColor="#10b981" stopOpacity="1" />
-                 <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-               </linearGradient>
-             </defs>
-             {/* Lines connecting context nodes to phone center */}
-             {CONTEXT_NODES.map((node, i) => (
-               <g key={i}>
-                 {/* Static Path */}
-                 <path 
-                   d={`M ${i % 2 === 0 ? '100' : '500'} ${i < 2 ? '100' : '600'} Q 300 350 300 350`} // Simplified bezier to center
-                   stroke="currentColor" 
-                   className="text-slate-200 dark:text-slate-800" 
-                   strokeWidth="1" 
-                   fill="none" 
-                   strokeDasharray="4 4"
-                 />
-                 {/* Animated Pulse */}
-                 <circle r="3" fill="#10b981">
-                    <animateMotion 
-                       dur={`${4 + i}s`} 
-                       repeatCount="indefinite"
-                       path={`M ${i % 2 === 0 ? '100' : '500'} ${i < 2 ? '100' : '600'} Q 300 350 300 350`}
-                    />
-                 </circle>
-               </g>
-             ))}
-          </svg>
-
-          {/* --- Context Nodes (Floating Around) --- */}
-          {CONTEXT_NODES.map((node, i) => (
-                  <motion.div
-                     key={node.id}
-                     className={`absolute ${node.position} z-20 hidden md:flex items-center gap-3 p-3 pr-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border shadow-xl cursor-pointer transition-transform duration-300 ${node.border}`}
-                     animate={floatAnimation}
-                     initial={{ opacity: 0, scale: 0.95 }}
-                     whileHover={{ scale: 1.06, y: -6 }}
-                     style={{ animationDelay: `${node.delay}s` }}
-                  >
-               <div className={`p-2.5 rounded-xl ${node.bg} ${node.color}`}>
-                  <node.icon className="w-5 h-5" />
-               </div>
-               <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">{node.label}</div>
-                  <div className="text-[10px] text-slate-500 font-medium">{node.sub}</div>
-               </div>
-                  {/* Connection Dot */}
-                  <div className={`absolute w-2 h-2 rounded-full ${node.color.replace('text-', 'bg-')} -z-10 top-1/2 -translate-y-1/2 ${i % 2 === 0 ? 'right-1' : 'left-1'}`}></div>
-            </motion.div>
+          {/* FLOATING NODES */}
+          {CONTEXT_NODES.map((node) => (
+            <div
+              key={node.id}
+              className={`absolute ${node.position} hidden md:flex items-center gap-3
+               bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 
+               p-3 pr-5 rounded-xl shadow-md`}
+            >
+              <node.icon className={`w-5 h-5 ${node.color}`} />
+              <div>
+                <div className="text-xs font-bold">{node.label}</div>
+                <div className="text-[10px] text-slate-500">{node.sub}</div>
+              </div>
+            </div>
           ))}
 
-          {/* --- Central Phone Mockup --- */}
-          <motion.div
-            className="relative z-20 w-[300px] md:w-[340px] h-[620px] md:h-[660px] bg-white dark:bg-slate-900 rounded-[3.5rem] border-[8px] border-slate-900 shadow-2xl shadow-slate-200/50 dark:shadow-emerald-900/20 overflow-hidden ring-4 ring-slate-100 dark:ring-slate-800"
-            initial={{ rotateY: -8, rotateX: 4 }}
-            animate={{ rotateY: 0, rotateX: 0 }}
-            transition={{ duration: 2, type: 'spring', stiffness: 40 }}
-          >
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-30"></div>
+          {/* PHONE SHELL */}
+          <div className="relative z-20 w-[280px] md:w-[330px] h-[600px] md:h-[650px] 
+              bg-white dark:bg-slate-900 rounded-[3rem] border-[8px] border-slate-900 shadow-xl overflow-hidden">
 
-            {/* Screen Content */}
-            <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950 flex flex-col font-sans overflow-hidden">
-               
-               {/* App Header */}
-               <div className="pt-12 pb-4 px-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 sticky top-0 z-20 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                     <div className="relative">
-                        <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm">
-                           <AvatarImage src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Detective%20Medium-Light%20Skin%20Tone.png" />
-                           <AvatarFallback>AI</AvatarFallback>
-                        </Avatar>
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
-                     </div>
-                     <div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white leading-none">Coach Taylor</div>
-                        <div className="text-[10px] text-emerald-500 font-medium mt-0.5">Live Session</div>
-                     </div>
+            {/* SCREEN */}
+            <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950 flex flex-col">
+
+              {/* HEADER */}
+              <div className="pt-10 pb-4 px-6 bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9 border">
+                    <AvatarImage src="/logo.svg" />
+                    <AvatarFallback>AI</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="text-sm font-bold">Coach Taylor</div>
+                    <div className="text-[10px] text-emerald-500">Live Session</div>
                   </div>
-                  <div className="flex items-center gap-2 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded-full border border-red-100 dark:border-red-900/30">
-                     <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-                     <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Rec</span>
+                </div>
+
+                {/* Recording Indicator */}
+                <div className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/20 rounded-full">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-[9px] font-bold text-red-500 uppercase">Rec</span>
+                </div>
+              </div>
+
+              {/* CENTER MIC */}
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="relative w-28 h-28 flex items-center justify-center">
+                  <div className="absolute inset-0 border border-emerald-400/20 rounded-full"></div>
+                  <div className="absolute inset-4 border border-emerald-400/20 rounded-full"></div>
+                  <div className="absolute inset-8 border border-emerald-400/20 rounded-full"></div>
+
+                  <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white">
+                    <Mic className="w-7 h-7" />
                   </div>
-               </div>
+                </div>
+                <p className="text-sm text-slate-500 mt-3">Listening to you...</p>
+              </div>
 
-               {/* Main Interaction Area */}
-               <div className="flex-1 flex flex-col p-5 relative overflow-y-auto no-scrollbar">
-                  
-                  {/* AI Visualization (Center) */}
-                  <div className="flex-1 flex flex-col items-center justify-center min-h-[200px]">
-                     <div className="relative w-32 h-32 flex items-center justify-center">
-                        {/* Ripples */}
-                                    {[1, 2, 3].map((i) => (
-                                        <motion.div
-                                           key={i}
-                                           className="absolute inset-0 border border-emerald-500/20 rounded-full"
-                                           animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                                           transition={{ duration: 2, repeat: Infinity, delay: i * 0.6 }}
-                                        />
-                                    ))}
-                        <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-full shadow-xl shadow-emerald-500/30 flex items-center justify-center z-10">
-                           <Mic className="w-8 h-8 text-white" />
-                        </div>
-                     </div>
-                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-4 animate-pulse">Listening to you...</p>
-                  </div>
+              {/* TRANSCRIPTION CARD */}
+              <div className="bg-white dark:bg-slate-800 p-4 m-5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">
+                  Live Transcript — 98% Accuracy
+                </div>
 
-                  {/* Live Transcription & Correction Card */}
-                  <motion.div 
-                     initial={{ y: 20, opacity: 0 }}
-                     animate={{ y: 0, opacity: 1 }}
-                     transition={{ delay: 0.5 }}
-                     className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 space-y-3"
-                  >
-                     <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-700">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live Transcript</span>
-                        <span className="text-[10px] text-emerald-500 font-medium">98% Accuracy</span>
-                     </div>
-                     <div className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
-                        "I really enjoyed the <span className="text-red-500 line-through decoration-red-300">meet</span> yesterday."
-                     </div>
-                     <div className="flex items-start gap-2 bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                        <div className="text-xs">
-                           <span className="font-bold text-emerald-700 dark:text-emerald-400">Correction:</span> Use <span className="font-bold">"meeting"</span> as a noun here.
-                        </div>
-                     </div>
-                  </motion.div>
-               </div>
+                <div className="text-sm text-slate-700 dark:text-slate-200">
+                  “I really enjoyed the <span className="line-through text-red-500">meet</span> yesterday.”
+                </div>
 
-               {/* Bottom Controls */}
-               <div className="h-20 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-around px-6">
-                  <Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                     <Settings className="w-5 h-5 text-slate-400" />
-                  </Button>
-                  <Button size="icon" className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20">
-                     <div className="w-5 h-5 bg-white rounded-sm"></div>
-                  </Button>
-                  <Button size="icon" variant="ghost" className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
-                     <BarChart3 className="w-5 h-5 text-slate-400" />
-                  </Button>
-               </div>
+                <div className="mt-3 text-xs bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg">
+                  <span className="font-bold text-emerald-600">Correction:</span> Use “meeting”.
+                </div>
+              </div>
 
+              {/* BOTTOM BUTTONS */}
+              <div className="h-20 flex items-center justify-around border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+                <Button size="icon" variant="ghost">
+                  <Settings className="w-5 h-5 text-slate-500" />
+                </Button>
+                <Button size="icon" className="h-14 w-14 rounded-full bg-red-500">
+                  <div className="w-4 h-4 bg-white"></div>
+                </Button>
+                <Button size="icon" variant="ghost">
+                  <BarChart3 className="w-5 h-5 text-slate-500" />
+                </Button>
+              </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* --- Floating Phone Widgets (Break Out) --- */}
-          
-          
-
-          {/* Widget 2: New Word (Left) */}
-          <motion.div 
-             className="absolute bottom-32 left-4 md:left-8 bg-white dark:bg-slate-800 p-3 pr-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 dark:border-slate-700 z-30 hidden md:flex items-center gap-3"
-             initial={{ x: -40, opacity: 0 }} 
-             animate={{ x: 0, opacity: 1 }} 
-             transition={{ delay: 1.4, type: "spring" }}
-          >
-             <div className="p-2.5 bg-amber-100 rounded-xl text-amber-600">
-                <Sparkles className="w-5 h-5" />
-             </div>
-             <div>
-                <div className="text-xs font-bold text-slate-900 dark:text-white">Word Learned</div>
-                <div className="text-[10px] text-slate-500">"Serendipity"</div>
-             </div>
-          </motion.div>
-
-          {/* Phone Glow Backdrop */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[800px] bg-gradient-to-b from-emerald-500/20 via-teal-500/10 to-blue-500/20 blur-[100px] -z-10 rounded-full pointer-events-none"></div>
-
-        </motion.div>
+          {/* FLOATING — “WORD LEARNED” CARD */}
+          <div className="absolute bottom-28 left-5 md:left-10 hidden md:flex bg-white dark:bg-slate-800 p-3 pr-5 rounded-xl shadow-md border">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            <div className="ml-2">
+              <div className="text-xs font-bold">Word Learned</div>
+              <div className="text-[10px] text-slate-500">“Serendipity”</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

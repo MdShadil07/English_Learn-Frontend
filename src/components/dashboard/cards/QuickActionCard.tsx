@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -107,4 +107,4 @@ const QuickActionCard = ({ action, index, onActionClick }) => {
   );
 };
 
-export default QuickActionCard;
+export default memo(QuickActionCard);

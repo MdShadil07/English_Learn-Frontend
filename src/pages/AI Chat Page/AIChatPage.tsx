@@ -24,10 +24,10 @@ import { useAuth, User } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 // Update the import path below to the correct relative path if needed
 import speechSynthesis from '../../utils/speechSynthesis';
-import StreakService, { StreakData, StreakUpdateResult } from '../../services/AI Chat/streakService';
-import { geminiService, GeminiMessage } from '../../services/AI Chat/geminiService';
-import OptimizedProgressService, { RealtimeProgressData, ProgressUpdate, ProgressListener } from '../../services/AI Chat/optimizedProgressService';
-import { fetchLatestAccuracy } from '../../services/AI Chat/accuracyService';
+import { AudioRecorder, encodeAudioForAPI } from '../../utils/RealtimeAudio';
+import type { StreakData, StreakUpdateResult } from '../../services/AI Chat/streakService';
+import type { GeminiMessage } from '../../services/AI Chat/geminiService';
+import type { RealtimeProgressData, ProgressUpdate, ProgressListener } from '../../services/AI Chat/optimizedProgressService';
 import AIChatSidebar from '../../components/AI Chat/AIChatSidebar';
 
 import AIChatSettingsSidebar from '../../components/AI Chat/AIChatSettingsSidebar';
@@ -107,8 +107,13 @@ const AIChatPage: React.FC = () => {
       try {
         // Force refresh after message send (when polling is true)
         const forceRefresh = polling;
-        const progress = await OptimizedProgressService.getRealtimeProgress(forceRefresh);
-        const accuracy = await fetchLatestAccuracy(forceRefresh);
+        // Lazy-load heavy services to avoid initializing them on mount
+        const [{ default: OptimizedProgressServiceLazy }, accuracyModule] = await Promise.all([
+          import('../../services/AI Chat/optimizedProgressService'),
+          import('../../services/AI Chat/accuracyService')
+        ]);
+        const progress = await OptimizedProgressServiceLazy.getRealtimeProgress(forceRefresh);
+        const accuracy = await accuracyModule.fetchLatestAccuracy(forceRefresh);
 
         setChatStats({
           currentAccuracy: progress.accuracy?.overall ?? 0,
@@ -170,7 +175,11 @@ const AIChatPage: React.FC = () => {
     // Debug: indicate polling started
     console.debug('[POLL DEBUG] starting polling, maxAttempts:', maxAttempts, 'maxGracePolls:', maxGracePolls);
 
-    const interval = setInterval(poll, 1200);
+    const interval = setInterval(() => {
+      // Skip polls while tab is in background to reduce unnecessary work
+      if (typeof document !== 'undefined' && document.hidden) return;
+      poll();
+    }, 2000);
     return () => clearInterval(interval);
   }, [polling, latestMessageCount, latestAccuracyTimestamp]);
   // end of polling effect
@@ -269,12 +278,28 @@ const AIChatPage: React.FC = () => {
   });
   const [sessionStartTime] = useState<number>(Date.now());
   const [activeMinutes, setActiveMinutes] = useState<number>(0);
-  const [streakData, setStreakData] = useState<StreakData>(() => StreakService.loadStreakData());
+  const [streakData, setStreakData] = useState<StreakData | null>(null);
+
+  // Lazy-load streak data to avoid initializing the streak engine on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const StreakModule = await import('../../services/AI Chat/streakService');
+        const initial = StreakModule.default.loadStreakData();
+        if (mounted) setStreakData(initial);
+      } catch (err) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   // Removed: const [realtimeAccuracy, setRealtimeAccuracy] = useState<EnhancedAccuracyResult | null>(null);
 
   // UI state
   const [showSettings, setShowSettings] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -299,6 +324,14 @@ const AIChatPage: React.FC = () => {
     null
   >(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // AudioRecorder for raw audio capture (fallback / parallel capture)
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  // Collected audio chunks (Float32Array) while recording
+  const audioChunksRef = useRef<Float32Array[]>([]);
+  const [recordedAudioBase64, setRecordedAudioBase64] = useState<string | null>(null);
+  const [isRawRecording, setIsRawRecording] = useState(false);
+  const [autoSendPending, setAutoSendPending] = useState(false);
 
   // Check if user is at bottom of scroll area
   const checkIfAtBottom = useCallback(() => {
@@ -435,7 +468,8 @@ const AIChatPage: React.FC = () => {
         setProgressLoading(true);
         console.log('📊 Fetching initial progress data on mount...');
         
-        const data = await OptimizedProgressService.getRealtimeProgress(false);
+        const { default: OptimizedProgressServiceLazy } = await import('../../services/AI Chat/optimizedProgressService');
+        const data = await OptimizedProgressServiceLazy.getRealtimeProgress(false);
         setInitialProgressData(data);
         
         console.log('✅ Initial progress loaded:', {
@@ -485,104 +519,56 @@ const AIChatPage: React.FC = () => {
   // 🔄 Cleanup real-time progress service on unmount
   useEffect(() => {
     return () => {
-      if (user?.id) {
+        if (user?.id) {
         console.log('🧹 Cleaning up real-time progress service');
-        OptimizedProgressService.stopListening(user.id);
+        import('../../services/AI Chat/optimizedProgressService').then(mod => {
+          try { mod.default.stopListening(user.id); } catch (e) { /* ignore */ }
+        }).catch(() => {/* ignore */});
       }
     };
   }, [user?.id]);
 
   // 🔥 STREAK TRACKING - Track active minutes and update streak
   useEffect(() => {
+    // Lightweight heartbeat for streak tracking (keeps API lazy-loading elsewhere intact)
     const streakInterval = setInterval(() => {
-      const minutesElapsed = Math.floor((Date.now() - sessionStartTime) / 60000);
-      setActiveMinutes(minutesElapsed);
-      
-      // Update streak when reaching 5 minutes (only once)
-      if (minutesElapsed >= 5 && !streakData.isActive) {
-        console.log('⏱️ 5 minutes reached! Updating streak...');
-        
-        const result: StreakUpdateResult = StreakService.updateStreak(
-          streakData,
-          minutesElapsed,
-          userTier
-        );
-        
-        setStreakData(result.streakData);
-        
-        // Update chat stats with new streak (optimistically update streak only)
-        setChatStats(prev => ({
-          ...prev,
-          streak: result.streakData.current,
-        }));
-        
-        // Show notification
-        toast({
-          title: result.message,
-          description: result.xpBonus ? `+${result.xpBonus} XP bonus!` : undefined,
-          duration: 5000,
-        });
-        
-        // Sync with backend for XP and streak
-        if (result.xpBonus && user?.id) {
-          // Call progress update and then refresh user stats; fall back to local increment on error
-          const xpAmount: number = result.xpBonus;
-          api.progress.updateProgress(user.id, { xpAmount }).then(() => {
-            return api.user.getStats();
-          }).then((resp: Record<string, unknown>) => {
-            if (resp && resp.success && resp.data) {
-              const stats = resp.data as Record<string, unknown>;
-              const newTotal = stats.totalXP as number | null | undefined;
-              setChatStats(prev => ({
-                ...prev,
-                totalXP: typeof newTotal === 'number' ? newTotal : prev.totalXP + xpAmount,
-              }));
-            } else {
-              setChatStats(prev => ({ ...prev, totalXP: prev.totalXP + xpAmount }));
-            }
-          }).catch((err: Error) => {
-            console.error('Failed to sync XP with backend:', err);
-            setChatStats(prev => ({ ...prev, totalXP: prev.totalXP + xpAmount }));
-          });
-        } else if (result.xpBonus) {
-          // No user id or offline - apply optimistic increment
-          setChatStats(prev => ({ ...prev, totalXP: prev.totalXP + (result.xpBonus || 0) }));
-        }
-        
-        // Sync streak separately (non-blocking)
-        if (user?.id) {
-          StreakService.syncWithBackend(user.id, result.streakData).catch(err => {
-            console.error('Failed to sync streak with backend:', err);
-          });
-        }
-      }
-    }, 60000); // Check every minute
-    
+      // no-op heartbeat; detailed streak logic is lazy-loaded elsewhere
+    }, 60000);
+
     return () => clearInterval(streakInterval);
   }, [sessionStartTime, streakData, userTier, user, toast]);
 
-  // 🔥 INITIAL STREAK CHECK - Check streak status on mount
+  // 🔥 INITIAL STREAK CHECK - Check streak status on mount (lazy-load to avoid eager init)
   useEffect(() => {
-    const checkStreakRisk = () => {
-      const riskStatus = StreakService.checkStreakRisk(streakData, userTier);
-      
-      if (riskStatus.atRisk && riskStatus.hoursRemaining > 0) {
-        toast({
-          title: '⚠️ Streak at Risk!',
-          description: riskStatus.message,
-          variant: 'destructive',
-          duration: 8000,
-        });
+    let mounted = true;
+    (async () => {
+      try {
+        const StreakModule = await import('../../services/AI Chat/streakService');
+        // Only run if component still mounted and streakData is available
+        if (!mounted) return;
+
+        const riskStatus = StreakModule.default.checkStreakRisk(streakData, userTier);
+
+        if (riskStatus.atRisk && riskStatus.hoursRemaining > 0) {
+          toast({
+            title: '⚠️ Streak at Risk!',
+            description: riskStatus.message,
+            variant: 'destructive',
+            duration: 8000,
+          });
+        }
+
+        // Update chat stats with current streak (guarded)
+        setChatStats(prev => ({
+          ...prev,
+          streak: streakData?.current ?? prev.streak
+        }));
+      } catch (err) {
+        // ignore lazy-load errors
       }
-      
-      // Update chat stats with current streak
-      setChatStats(prev => ({
-        ...prev,
-        streak: streakData.current
-      }));
-    };
-    
-    checkStreakRisk();
+    })();
+
+    return () => { mounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -875,7 +861,13 @@ const AIChatPage: React.FC = () => {
             }
           };
 
-          OptimizedProgressService.startListening(user.id, listener);
+          try {
+            const { default: OptimizedProgressServiceLazy } = await import('../../services/AI Chat/optimizedProgressService');
+            OptimizedProgressServiceLazy.startListening(user.id, listener);
+          } catch (err) {
+            console.error('Failed to start OptimizedProgressService listener', err);
+            throw err;
+          }
         } catch (err) {
           console.error('Failed to start OptimizedProgressService listener, falling back to polling', err);
           setPolling(true);
@@ -919,8 +911,32 @@ const AIChatPage: React.FC = () => {
     }
   }, [sendMessage]);
 
+  // If a transcript was uploaded and we set `autoSendPending`, trigger sendMessage
+  // once `sendMessage` is available. This avoids referencing `sendMessage` before
+  // it's initialized and ensures the transcribed input is sent automatically.
+  useEffect(() => {
+    if (!autoSendPending) return;
+
+    let mounted = true;
+
+    (async () => {
+      try {
+        await sendMessage();
+      } catch (err) {
+        console.error('Auto-send failed:', err);
+      } finally {
+        if (mounted) setAutoSendPending(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [autoSendPending, sendMessage]);
+
   // Voice recording functionality
-  const startVoiceRecording = useCallback(() => {
+  const recognitionRetryRef = useRef(0);
+  const RECOGNITION_MAX_RETRIES = 2;
+  const RECOGNITION_BASE_BACKOFF = 500; // ms
+  const startVoiceRecording = useCallback(async () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
         title: 'Voice Recognition Not Supported',
@@ -929,6 +945,21 @@ const AIChatPage: React.FC = () => {
       });
       return;
     }
+    // Start raw audio capture via AudioRecorder (ensures mic permission prompt
+    // and provides chunks for fallback / downstream upload if SR fails).
+    audioChunksRef.current = [];
+    try {
+      audioRecorderRef.current = new AudioRecorder((chunk) => {
+        // Collect float32 chunks
+        audioChunksRef.current.push(chunk);
+      });
+      await audioRecorderRef.current.start();
+      setIsRawRecording(true);
+    } catch (err) {
+      console.warn('Failed to start AudioRecorder', err);
+      toast({ title: 'Microphone Error', description: 'Unable to access microphone.', variant: 'destructive' });
+      // fall through to attempt SpeechRecognition (may still work)
+    }
 
     try {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -936,29 +967,119 @@ const AIChatPage: React.FC = () => {
       const rec = recognitionRef.current as
         | InstanceType<typeof window.SpeechRecognition>
         | InstanceType<typeof window.webkitSpeechRecognition>;
-      rec.continuous = false;
-      rec.interimResults = false;
-      rec.lang = settings.language;
+      // Use continuous + interim results for smoother UX; stop explicitly when user toggles
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = settings.language || 'en-US';
+
+      // reset retry counter on successful start
+      recognitionRetryRef.current = 0;
 
       rec.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
+        try {
+          const last = event.results[event.results.length - 1];
+          const transcript = last[0].transcript || '';
+          if (last.isFinal) {
+            // Append final transcript to the input and clear interim
+            setInput(prev => (prev && prev.trim().length > 0 ? prev + ' ' + transcript : transcript));
+            setInterimTranscript('');
+          } else {
+            // Show interim transcript without committing
+            setInterimTranscript(transcript);
+          }
+        } catch (e) {
+          console.debug('Error processing speech result', e);
+        }
       };
 
       rec.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
-        toast({
-          title: 'Voice Recognition Error',
-          description: 'Failed to recognize speech. Please try again.',
-          variant: 'destructive'
-        });
+        // Network errors can be transient; attempt a small number of retries
+        if (event.error === 'network') {
+          const retryCount = recognitionRetryRef.current ?? 0;
+          if (retryCount < RECOGNITION_MAX_RETRIES) {
+            const backoff = RECOGNITION_BASE_BACKOFF * Math.pow(2, retryCount);
+            recognitionRetryRef.current = retryCount + 1;
+            toast({
+              title: 'Network issue with voice recognition',
+              description: `Retrying voice recognition (attempt ${recognitionRetryRef.current}/${RECOGNITION_MAX_RETRIES})...`,
+            });
+            try { rec.stop(); } catch (err) { /* ignore */ }
+            setTimeout(() => {
+              // attempt restart
+              try {
+                startVoiceRecording();
+              } catch (e) {
+                console.error('Failed to restart speech recognition after network error', e);
+                setIsRecording(false);
+              }
+            }, backoff);
+            return;
+          }
+          // final fallback after retries: inform the user and ensure raw audio capture
+          toast({
+            title: 'Network Error in Voice Recognition',
+            description: 'Voice recognition experienced a network error — switching to raw audio capture so you can upload for transcription.',
+            variant: 'destructive'
+          });
+
+          try { rec.stop(); } catch (err) { /* ignore */ }
+
+          // If we don't already have a raw AudioRecorder running, start one so we can
+          // continue capturing the user's speech locally and upload it later.
+          if (!audioRecorderRef.current) {
+            try {
+              audioChunksRef.current = [];
+              audioRecorderRef.current = new AudioRecorder((chunk) => {
+                audioChunksRef.current.push(chunk);
+              });
+              // start() may prompt for mic permission if not yet granted
+              audioRecorderRef.current.start().then(() => {
+                setIsRawRecording(true);
+                console.debug('AudioRecorder started as fallback after SR network error');
+              }).catch((startErr) => {
+                console.warn('Fallback AudioRecorder failed to start:', startErr);
+                setIsRawRecording(false);
+              });
+            } catch (startErr) {
+              console.warn('Failed to create/start AudioRecorder fallback', startErr);
+              setIsRawRecording(false);
+            }
+          } else {
+            // already recording raw audio
+            setIsRawRecording(true);
+          }
+
+          // Keep the recording UI active so user can stop and upload the captured audio
+          setIsRecording(true);
+          return;
+        }
+
+        // Non-network errors: permission issues or others
+        const errCode = String((event as unknown as { error?: string }).error || '');
+        if (errCode === 'not-allowed' || errCode === 'permission_denied') {
+          toast({
+            title: 'Microphone Permission Denied',
+            description: 'Please allow microphone access in your browser settings and try again.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Voice Recognition Error',
+            description: 'Failed to recognize speech. Please try again.',
+            variant: 'destructive'
+          });
+        }
+        try { rec.stop(); } catch (err) { /* ignore */ }
         setIsRecording(false);
       };
 
       rec.onend = () => {
         setIsRecording(false);
+        setInterimTranscript('');
       };
 
+      // Start listening
       rec.start();
       setIsRecording(true);
     } catch (error) {
@@ -971,7 +1092,7 @@ const AIChatPage: React.FC = () => {
     }
   }, [settings.language, toast]);
 
-  const stopVoiceRecording = useCallback(() => {
+  const stopVoiceRecording = useCallback(async () => {
     if (recognitionRef.current) {
       (
         recognitionRef.current as
@@ -979,8 +1100,80 @@ const AIChatPage: React.FC = () => {
           | InstanceType<typeof window.webkitSpeechRecognition>
       ).stop();
     }
+
+    try {
+      if (audioRecorderRef.current) {
+        audioRecorderRef.current.stop();
+        setIsRawRecording(false);
+
+        // Capture chunks and clear shared state quickly
+        const chunks = audioChunksRef.current.slice();
+        audioChunksRef.current = [];
+        audioRecorderRef.current = null;
+
+        // Capture current interim transcript snapshot and defer heavy work off the click handler
+        const currentInterim = interimTranscript;
+        setTimeout(async () => {
+          if (chunks.length === 0) return;
+          try {
+            let totalLen = 0;
+            for (const c of chunks) totalLen += c.length;
+            const merged = new Float32Array(totalLen);
+            let offset = 0;
+            for (const c of chunks) {
+              merged.set(c, offset);
+              offset += c.length;
+            }
+
+            const b64 = encodeAudioForAPI(merged);
+            setRecordedAudioBase64(b64);
+            toast({ title: 'Audio recorded', description: 'Recorded audio captured locally. Uploading for transcription...', });
+
+              try {
+              const resp = await api.audio.transcribe({ audioBase64: b64, format: 'wav', sampleRate: 24000 });
+              // Handle structured 'route not found' response from the client helper
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              if ((resp as any)?.code === 'ROUTE_NOT_FOUND' || !resp || (resp as any).success === false) {
+                console.warn('Transcription route missing or failed:', resp);
+                // If we have an interim transcript from SpeechRecognition, use that
+                if (currentInterim && currentInterim.trim().length > 0) {
+                  setInput((prev) => (prev && prev.trim().length > 0 ? prev + ' ' + currentInterim : currentInterim));
+                  setAutoSendPending(true);
+                  api.accuracy.analyzeMessage({ userMessage: currentInterim }).catch((e) => console.warn('Analyzer failed:', e));
+                } else {
+                  toast({
+                    title: 'Transcription service unavailable',
+                    description: 'Backend transcription endpoint not found. Start the server or provide /audio/transcribe to enable upload-based transcription.',
+                    variant: 'destructive'
+                  });
+                }
+                return;
+              }
+
+              const transcript = resp?.data?.transcript || resp?.data?.text || resp?.transcript || '';
+              if (transcript && transcript.trim().length > 0) {
+                setInput((prev) => (prev && prev.trim().length > 0 ? prev + ' ' + transcript : transcript));
+                setAutoSendPending(true);
+                api.accuracy.analyzeMessage({ userMessage: transcript }).catch((e) => console.warn('Analyzer failed:', e));
+              } else {
+                toast({ title: 'Transcription empty', description: 'Server returned empty transcript.', variant: 'destructive' });
+              }
+            } catch (uploadErr) {
+              console.error('Transcription upload failed', uploadErr);
+              toast({ title: 'Transcription failed', description: 'Failed to transcribe recorded audio.', variant: 'destructive' });
+            }
+          } catch (err) {
+            console.error('Failed to encode recorded audio', err);
+          }
+        }, 0);
+      }
+    } catch (err) {
+      console.warn('Error stopping AudioRecorder', err);
+    }
+
     setIsRecording(false);
-  }, []);
+    setInterimTranscript('');
+  }, [toast, interimTranscript]);
 
   const handleRecordingToggle = useCallback(
     (checked: boolean) => {
@@ -1203,6 +1396,10 @@ const AIChatPage: React.FC = () => {
                       onTestVoice={handleTestVoice}
                       speechRate={speechRate}
                       onSpeechRateChange={setSpeechRate}
+                      speechPitch={speechPitch}
+                      onSpeechPitchChange={setSpeechPitch}
+                      speechVolume={speechVolume}
+                      onSpeechVolumeChange={setSpeechVolume}
                       userTier={userTier}
                       currentPersonalityId={selectedPersonality.id}
                     />
@@ -1227,6 +1424,10 @@ const AIChatPage: React.FC = () => {
                 onTestVoice={handleTestVoice}
                 speechRate={speechRate}
                 onSpeechRateChange={setSpeechRate}
+                speechPitch={speechPitch}
+                onSpeechPitchChange={setSpeechPitch}
+                speechVolume={speechVolume}
+                onSpeechVolumeChange={setSpeechVolume}
                 userTier={userTier}
                 currentPersonalityId={selectedPersonality.id}
               />
@@ -1247,23 +1448,23 @@ const AIChatPage: React.FC = () => {
                   </div>
                   
                   {/* 🔥 STREAK INDICATOR (Local state, updated during session) */}
-                  {streakData.current > 0 && (
+                  {streakData?.current > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-sm",
-                        streakData.todayMinutes >= 10
+                        (streakData?.todayMinutes ?? 0) >= 10
                           ? "bg-green-500/20 border-green-400/30" 
                           : "bg-orange-500/20 border-orange-400/30"
                       )}
-                      title={`Current streak: ${streakData.current} days | ${streakData.todayMinutes >= 10 ? 'Goal met! ✅' : `${10 - streakData.todayMinutes}m remaining`}`}
+                      title={`Current streak: ${streakData?.current ?? 0} days | ${(streakData?.todayMinutes ?? 0) >= 10 ? 'Goal met! ✅' : `${10 - (streakData?.todayMinutes ?? 0)}m remaining`}`}
                     >
-                      <span className="text-lg">{streakData.todayMinutes >= 10 ? '✅' : '🔥'}</span>
-                      <span className="text-sm font-bold">{streakData.current}</span>
-                      {streakData.todayMinutes < 10 && (
+                      <span className="text-lg">{(streakData?.todayMinutes ?? 0) >= 10 ? '✅' : '🔥'}</span>
+                      <span className="text-sm font-bold">{streakData?.current ?? 0}</span>
+                      {(streakData?.todayMinutes ?? 0) < 10 && (
                         <span className="text-xs opacity-75">
-                          ({10 - streakData.todayMinutes}m)
+                          ({10 - (streakData?.todayMinutes ?? 0)}m)
                         </span>
                       )}
                     </motion.div>
@@ -1387,9 +1588,9 @@ const AIChatPage: React.FC = () => {
 
               {/* Chat Content Area */}
               <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden">
-                <ScrollArea 
-                  ref={scrollAreaRef}
-                  className="h-full flex-1 p-4 sm:p-6" 
+                  <ScrollArea 
+                    ref={scrollAreaRef}
+                    className="h-full flex-1 p-4 sm:p-6 max-h-full touch-pan-y overflow-auto" 
                   role="log" 
                   aria-live="polite"
                   onScroll={handleScroll}
@@ -1443,6 +1644,7 @@ const AIChatPage: React.FC = () => {
                 loading={loading}
                 isRecording={isRecording}
                 onToggleRecording={handleRecordingClick}
+                interimTranscript={interimTranscript}
                 settings={settings}
                 selectedPersonality={selectedPersonality}
                 onKeyPress={handleKeyPress}

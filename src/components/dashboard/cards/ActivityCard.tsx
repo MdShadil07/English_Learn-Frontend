@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, MessageSquare, Award, Users, Clock, TrendingUp, ChevronRight, CheckCircle2, Trophy, Mic, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -172,4 +172,4 @@ const ActivityCard = ({ activities = [] }) => {
   );
 };
 
-export default ActivityCard;
+export default memo(ActivityCard);

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useTheme } from 'next-themes';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sun, Moon, Menu, X, LogIn } from 'lucide-react';
 
-import Hero from '../../components/Landing Page Component/Hero';
+const HeroLite = lazy(() => import('../../components/landing/HeroLite'));
 import Features from '../../components/Landing Page Component/Features';
 import HowItWorks from '../../components/Landing Page Component/HowItWorks';
 import Testimonials from '../../components/Landing Page Component/Testimonials';
@@ -54,7 +54,7 @@ const LandingPage = () => {
 
       {/* Navbar */}
       <header className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-950/10 dark:via-transparent dark:to-teal-950/10"></div>
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-950/10 dark:via-transparent dark:to-teal-950/10"></div>
         <div className="container mx-auto px-4 relative">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -182,7 +182,9 @@ const LandingPage = () => {
 
       {/* Main content */}
       <main className="flex-grow pt-16">
-        <Hero />
+        <Suspense fallback={<div className="h-[380px] flex items-center justify-center">Loading…</div>}>
+          <HeroLite />
+        </Suspense>
         <Features />
         <HowItWorks />
         <Testimonials />

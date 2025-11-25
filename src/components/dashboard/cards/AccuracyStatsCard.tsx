@@ -2,7 +2,34 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Target, Award, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AccuracyResult } from '@/services/AI Chat/accuracyService';
+// import the correct type or define locally if not exported
+// import { AccuracyResult } from '@/services/AI Chat/accuracyService';
+
+// If the type is not exported, define it locally here:
+interface AccuracyResult {
+  overall: number;
+  adjustedOverall?: number;
+  netXP?: number;
+  insights?: {
+    improvement?: number;
+    level?: string;
+    strengths: string[];
+    weaknesses: string[];
+  };
+  grammar: number;
+  vocabulary: number;
+  spelling: number;
+  fluency: number;
+  punctuation?: number;
+  capitalization?: number;
+  statistics?: {
+    grammarErrorCount?: number;
+    spellingErrorCount?: number;
+    vocabularyErrorCount?: number;
+    fluencyErrorCount?: number;
+    errorCount?: number;
+  };
+}
 
 interface AccuracyStatsCardProps {
   accuracy: AccuracyResult;

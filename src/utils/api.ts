@@ -304,6 +304,30 @@ export const api = {
       createApiFunction('POST', '/accuracy/analyze')(data),
   },
 
+  // Audio / Speech endpoints
+  audio: {
+    // Upload base64-encoded PCM/WAV and return a transcript
+    transcribe: async (data: { audioBase64: string; format?: string; sampleRate?: number }) => {
+      // Use the generic API helper but catch 404s (route not implemented) and return
+      // a structured error so the frontend can fallback gracefully in dev when
+      // the backend transcription service is not available.
+      try {
+        return await createApiFunction('POST', '/audio/transcribe')(data);
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        if (msg.includes('not found') || msg.includes('Route') || msg.includes('404')) {
+          return {
+            success: false,
+            message: 'Route /audio/transcribe not found',
+            data: null,
+            code: 'ROUTE_NOT_FOUND'
+          } as unknown as ApiResponse<null> & { code: string };
+        }
+        throw err;
+      }
+    },
+  },
+
   // Admin endpoints
   admin: {
     getUsers: () => createApiFunction('GET', '/admin/users')(),
