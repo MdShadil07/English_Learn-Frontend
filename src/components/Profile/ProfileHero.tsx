@@ -115,9 +115,9 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
                   className="relative group mb-4"
                 >
                   <div className="relative w-32 h-32 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
-                    {profile.avatar_url ? (
+                    {profile.avatar ? (
                       <img
-                        src={profile.avatar_url}
+                        src={profile.avatar}
                         alt={profile.fullName}
                         className="w-full h-full object-cover"
                         onError={(e) => {

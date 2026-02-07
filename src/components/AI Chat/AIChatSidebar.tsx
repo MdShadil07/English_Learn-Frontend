@@ -135,7 +135,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       />
 
       <aside
-        className="w-full sm:w-80 flex h-full min-h-0 max-h-[calc(100vh-6rem)] flex-col overflow-hidden border-r border-emerald-200/40 bg-white/88 sm:backdrop-blur-2xl dark:border-emerald-900/30 dark:bg-slate-950/70"
+        className="w-full sm:w-80 flex h-full min-h-0 max-h-[calc(100vh-6rem)] flex-col overflow-hidden border-r border-emerald-200/40 bg-white/88 sm:backdrop-blur-2xl dark:border-emerald-900/30 dark:bg-slate-950/70 lg:max-h-[calc(100vh-2rem)]"
         style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
       >
         <div className="px-4 sm:px-5 pt-5 flex-none">

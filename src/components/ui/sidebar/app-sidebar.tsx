@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Bot,
@@ -19,6 +20,8 @@ import {
   BarChart3,
   Trophy,
   Flame,
+  Sun,
+  Moon,
   Settings,
   User,
   LogOut,
@@ -59,23 +62,33 @@ export function AppSidebar({
   userStats,
   ...props
 }) {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { state: sidebarState, openMobile } = useSidebar();
+  const { state: sidebarState } = useSidebar();
   const isCollapsed = sidebarState === "collapsed";
 
-  // On mobile the sidebar may be presented as a Sheet (openMobile=true).
-  // Treat the mobile sheet as an expanded sidebar for rendering purposes.
-  const showFull = !isCollapsed || Boolean(openMobile);
+  // Theme state
+  const [theme, setTheme] = React.useState("light");
 
-  // Theme is handled at layout-level; sidebar only renders profile and nav
-
-  // Profile dropdown hover/click state (hover opens on pointer devices)
-  const [profileMenuOpen, setProfileMenuOpen] = React.useState(false);
-  // When user clicks the profile trigger, pin the menu open until explicitly closed
-  const [profileMenuPinned, setProfileMenuPinned] = React.useState(false);
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    if (theme === "dark") {
+      document.documentElement.classList.remove("dark");
+    } else {
+      document.documentElement.classList.add("dark");
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  const handleProfileNavigation = () => {
+    navigate("/profile");
+  };
+
+  const handleEditProfileNavigation = () => {
+    navigate("/edit-profile");
   };
 
   const getInitials = (nameOrEmail?: string) => {
@@ -86,18 +99,6 @@ export function AppSidebar({
     }
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
-
-  // Defer heavy view changes to idle time to avoid blocking pointer path
-  const scheduleViewChange = React.useCallback((id: string) => {
-    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-      // requestIdleCallback typing may be missing in some TS configs; cast to unknown then to function
-      const ric = (window as unknown as { requestIdleCallback?: (fn: () => void, opts?: { timeout?: number }) => void }).requestIdleCallback;
-      if (ric) ric(() => onViewChange(id), { timeout: 200 });
-    } else {
-      // Fallback for environments without requestIdleCallback
-      setTimeout(() => onViewChange(id), 120);
-    }
-  }, [onViewChange]);
 
   // Navigation data structure
   const data = React.useMemo(
@@ -167,30 +168,32 @@ export function AppSidebar({
   return (
     <Sidebar
       collapsible="icon"
-      // On small screens the sidebar becomes an off-canvas panel; on sm+ it is static
-      className={cn(
-        "border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50",
-        // layout + motion handling
-        "transform will-change-transform motion-reduce:transition-none motion-safe:transition-transform motion-safe:duration-200",
-        // fixed overlay behavior on small screens; if collapsed, hide off-canvas
-        isCollapsed ? "-translate-x-full sm:translate-x-0" : "translate-x-0",
-        // make it overlay on mobile
-        "sm:static fixed sm:z-auto z-40 top-0 left-0 h-full w-64 sm:w-auto"
-      )}
+      className="border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50"
       {...props}
     >
       {/* Header */}
       <SidebarHeader className="border-b border-slate-200 dark:border-slate-800 p-4 h-16 flex items-center">
         <div className="flex items-center justify-between gap-3 w-full overflow-hidden">
-            <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white truncate">
+          <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white truncate">
             <div className="min-w-[2rem] flex items-center justify-center">
-              <Logo size={showFull ? 'xl' : 'sm'} sidebarState={showFull ? 'expanded' : 'collapsed'} className={showFull ? 'w-10 h-10' : 'w-8 h-8'} />
+              <Logo size={isCollapsed ? 'sm' : 'xl'} sidebarState={isCollapsed ? 'collapsed' : 'expanded'} className={isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} />
             </div>
-            {/* Show brand text when sidebar is expanded or mobile sheet is open */}
-            {showFull && <span className="truncate">CognitoSpeak</span>}
+            {!isCollapsed && <span className="truncate">CognitoSpeak</span>}
           </div>
           
-          {/* Theme toggle is provided in the header layout (NewDashboardLayout) */}
+          {!isCollapsed && (
+            <button
+              aria-label="Toggle theme"
+              className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-amber-400" />
+              ) : (
+                <Moon className="h-4 w-4 text-slate-500" />
+              )}
+            </button>
+          )}
         </div>
       </SidebarHeader>
 
@@ -199,24 +202,22 @@ export function AppSidebar({
           <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
             {/* Main Nav */}
             <div className="space-y-1 mb-6">
-            {data.navMain.map((item) => {
+              {data.navMain.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
                     key={item.title}
-                    onClick={() => scheduleViewChange(item.id)}
+                    onClick={() => onViewChange(item.id)}
                     className={cn(
-                      "flex items-center w-full rounded-xl px-3 text-sm font-medium transition-colors",
-                      // larger tap area on mobile
-                      "py-3 sm:py-2.5",
+                      "flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isCollapsed ? "justify-center" : "justify-start gap-3",
                       item.isActive
-                        ? "bg-emerald-500 text-white shadow-sm sm:shadow-md shadow-emerald-500/20"
+                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
                         : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
                     )}
                   >
                     <Icon className={cn("h-5 w-5 shrink-0", item.isActive ? "text-white" : "")} />
-                    {showFull && <span className="inline">{item.title}</span>}
+                    {!isCollapsed && <span>{item.title}</span>}
                   </button>
                 );
               })}
@@ -225,7 +226,7 @@ export function AppSidebar({
             {/* Secondary Sections */}
             {data.navSecondary.map((section) => (
               <div key={section.title} className="mb-6">
-                {showFull && (
+                {!isCollapsed && (
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
                     {section.title}
                   </h4>
@@ -237,7 +238,7 @@ export function AppSidebar({
                     return (
                       <button
                         key={item.title}
-                        onClick={() => scheduleViewChange(item.id)}
+                        onClick={() => onViewChange(item.id)}
                         className={cn(
                           "relative flex items-center w-full rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
                           isCollapsed ? "justify-center" : "justify-start gap-3",
@@ -247,14 +248,14 @@ export function AppSidebar({
                         )}
                       >
                         <Icon className={cn("h-4 w-4 shrink-0", item.isActive ? "text-emerald-500" : "")} />
-                        {showFull && (
+                        {!isCollapsed && (
                           <>
                             <span className="flex-1 text-left truncate">{item.title}</span>
                             {item.badge && (
                               <Badge
                                 variant="secondary"
                                 className={cn(
-                                  "text-[10px] px-1.5 py-0 h-5 inline-flex",
+                                  "text-[10px] px-1.5 py-0 h-5",
                                   item.badge === "New" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
                                   item.badge === "Live" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
                                   item.badge === "Pro" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
@@ -276,35 +277,10 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter className="border-t border-slate-200 dark:border-slate-800 p-3 bg-white/50 dark:bg-slate-900/50">
-        {showFull ? (
-          <DropdownMenu
-            open={profileMenuOpen}
-            onOpenChange={(open) => {
-              setProfileMenuOpen(open);
-              // If closed via outside click or esc, remove pinned state
-              if (!open) setProfileMenuPinned(false);
-            }}
-          >
+        {!isCollapsed ? (
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                onMouseEnter={() => { if (window.matchMedia('(pointer: fine)').matches && !profileMenuPinned) setProfileMenuOpen(true); }}
-                onMouseLeave={() => { if (window.matchMedia('(pointer: fine)').matches && !profileMenuPinned) setProfileMenuOpen(false); }}
-                onClick={() => {
-                  // Toggle and pin when opened by click so it remains open until user closes
-                  setProfileMenuOpen((v) => {
-                    const next = !v;
-                    setProfileMenuPinned(next);
-                    return next;
-                  });
-                }}
-                className={cn(
-                  "flex items-center gap-3 w-full rounded-xl px-2",
-                  "py-3 sm:py-2",
-                  "hover:bg-white dark:hover:bg-slate-800 transition-colors motion-reduce:transition-none",
-                  "border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm sm:hover:shadow-sm"
-                )}
-                aria-expanded={profileMenuOpen}
-              >
+              <button className="flex items-center gap-3 w-full rounded-xl px-2 py-2 hover:bg-white dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm">
                 <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm">
                   <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
@@ -319,29 +295,27 @@ export function AppSidebar({
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { setProfileMenuOpen(false); scheduleViewChange('profile'); }}><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setProfileMenuOpen(false); scheduleViewChange('edit-profile'); }}><Edit3 className="mr-2 h-4 w-4" /> Edit Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setProfileMenuOpen(false); scheduleViewChange('settings'); }}><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfileNavigation}>
+                <User className="mr-2 h-4 w-4" /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEditProfileNavigation}>
+                <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <Settings className="mr-2 h-4 w-4" /> Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="mr-2 h-4 w-4" /> Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                <LogOut className="mr-2 h-4 w-4" /> Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <div className="flex justify-center">
-             <button
-               onClick={() => setProfileMenuOpen((v) => { const next = !v; setProfileMenuPinned(next); return next; })}
-               onMouseEnter={() => { if (window.matchMedia('(pointer: fine)').matches && !profileMenuPinned) setProfileMenuOpen(true); }}
-               onMouseLeave={() => { if (window.matchMedia('(pointer: fine)').matches && !profileMenuPinned) setProfileMenuOpen(false); }}
-               className="relative p-2 sm:p-0"
-             >
-               <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm cursor-pointer hover:scale-105 transition-transform">
-                 <AvatarImage src={user?.avatar} />
-                 <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
-               </Avatar>
-               {/* small accessible toggle indicator */}
-               <span className="sr-only">Open profile menu</span>
-             </button>
-             {/* Small popup for collapsed mode on mobile - reuse DropdownMenuContent visually via absolute element if desired (kept simple here) */}
+             <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm cursor-pointer hover:scale-105 transition-transform">
+               <AvatarImage src={user?.avatar} />
+               <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
+             </Avatar>
           </div>
         )}
       </SidebarFooter>

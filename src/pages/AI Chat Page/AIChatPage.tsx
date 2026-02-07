@@ -1342,7 +1342,7 @@ const AIChatPage: React.FC = () => {
         <div className="flex h-full w-full max-w-7xl flex-1 min-h-0 flex-col">
 
           {/* Unified Chat Card */}
-          <div className="relative flex h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] flex-1 flex-col min-h-0 overflow-hidden bg-white shadow-none dark:bg-slate-950/95 sm:h-[calc(100vh-5rem)] sm:max-h-[calc(100vh-5rem)] sm:rounded-[1.75rem] sm:border sm:bg-white sm:dark:bg-slate-950 lg:h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-6rem)] lg:flex-row">
+          <div className="relative flex h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] flex-1 flex-col min-h-0 overflow-hidden bg-white shadow-none dark:bg-slate-950/95 sm:h-[calc(100vh-5rem)] sm:max-h-[calc(100vh-5rem)] sm:rounded-[1.75rem] sm:border sm:bg-white sm:dark:bg-slate-950 lg:h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-6rem)] lg:flex-row lg:overflow-visible">
 
             {/* Sidebar Section */}
             <AnimatePresence>
@@ -1352,7 +1352,7 @@ const AIChatPage: React.FC = () => {
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -300, opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex"
+                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex lg:sticky lg:top-0 lg:self-start lg:overflow-visible"
                 >
                   <div className="flex h-full w-full overflow-hidden">
                     <AIChatSidebar
@@ -1379,7 +1379,7 @@ const AIChatPage: React.FC = () => {
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -300, opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex"
+                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex lg:sticky lg:top-0 lg:self-start lg:overflow-visible"
                 >
                   <div className="flex h-full w-full overflow-hidden">
                     <AIChatSettingsSidebar
