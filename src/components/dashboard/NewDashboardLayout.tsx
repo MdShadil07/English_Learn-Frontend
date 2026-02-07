@@ -1,7 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Search, Calendar, Sun, Moon } from 'lucide-react';
-import { Input } from '../ui/input';
+import { Bell, Calendar, Sun, Moon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '../ui/sidebar';
@@ -14,6 +13,7 @@ import { AppSidebar } from '../ui/sidebar/app-sidebar';
 // Update the path below to the correct relative location of AuthContext
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../integrations/supabase/client';
+import { EnhancedSearchBar } from './EnhancedSearchBar';
 
 interface NewDashboardLayoutProps {
   children: ReactNode;
@@ -81,13 +81,7 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
             <SidebarTrigger className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-200 hover:shadow-md hover:rounded-2xl" />
           </div>
           <div className="flex items-center gap-3 flex-1">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search lessons, words, notes..."
-                className="pl-9 h-10 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 focus:bg-background focus:border-emerald-300"
-              />
-            </div>
+            <EnhancedSearchBar />
           </div>
 
           {/* User info and actions */}

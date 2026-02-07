@@ -259,6 +259,10 @@ export const api = {
     updateSkills: (skills: string[]) => createApiFunction('PUT', '/user/skills')(skills),
     update: (data: { firstName?: string; lastName?: string; username?: string }) =>
       createApiFunction('PUT', '/user/profile')(data),
+    search: (query: string) =>
+      createApiFunction('GET', `/user/search?q=${encodeURIComponent(query)}`, { requiresAuth: true })(),
+    getPublicProfile: (userId: string) =>
+      createApiFunction('GET', `/user/${userId}/public-profile`, { requiresAuth: true })(),
   },
 
   // Progress tracking endpoints

@@ -15,6 +15,7 @@ const Signup = lazy(() => import("./pages/Auth/Signup.tsx"));
 const ForgotPassword = lazy(() => import("./pages/Auth/ForgotPassword.tsx"));
 const NewDashboard = lazy(() => import("./pages/Dashboard Page/NewDashboard.tsx"));
 const Profile = lazy(() => import("./pages/Profile Page/Profile.tsx"));
+const UserProfilePage = lazy(() => import("./pages/PublicProfile/UserProfilePage.tsx"));
 const EditProfile = lazy(() => import("./pages/Edit Profile Page/EditProfile.tsx"));
 const Settings = lazy(() => import("./pages/Settings Page/Settings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -56,6 +57,16 @@ const App = () => (
                 <AuthProvider>
                   <ProtectedRoute>
                     <Profile />
+                  </ProtectedRoute>
+                </AuthProvider>
+              }
+            />
+            <Route
+              path="/user-profile/:userId"
+              element={
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <UserProfilePage />
                   </ProtectedRoute>
                 </AuthProvider>
               }
