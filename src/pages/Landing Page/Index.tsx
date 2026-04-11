@@ -169,7 +169,7 @@ const LandingPage = () => {
                 </Link>
                 <Link 
                   to="/signup" 
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium"
+                  className="py-2 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Sign Up Free
