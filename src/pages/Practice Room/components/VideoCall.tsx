@@ -210,28 +210,19 @@ const VideoCall: React.FC<VideoCallProps> = ({
   };
 
   const toggleVideo = async () => {
-    const newState = !isVideoOn;
-    setIsVideoOn(newState);
+    try {
+      const enabled = await roomService.toggleVideo();
+      setIsVideoOn(enabled);
 
-    if (newState) {
-      // Enable video
-      try {
-        if (!localStream) {
-          const stream = await roomService.initializeMedia(true, true);
-          setLocalStream(stream);
-        } else {
-          // Reinitialize with video
-          roomService.stopMedia();
-          const stream = await roomService.initializeMedia(true, true);
+      if (enabled && !localStream) {
+        const stream = roomService.getLocalStream();
+        if (stream) {
           setLocalStream(stream);
         }
-      } catch (error) {
-        console.error('Failed to enable video:', error);
-        setIsVideoOn(false);
       }
-    } else {
-      // Disable video
-      roomService.toggleVideo();
+    } catch (error) {
+      console.error('Failed to toggle video:', error);
+      setIsVideoOn(false);
     }
   };
 

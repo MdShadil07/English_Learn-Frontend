@@ -178,6 +178,54 @@ class RoomService {
     this.pendingIceCandidates.delete(userId);
   }
 
+  private isPeerConnectionClosed(peer: PeerConnection): boolean {
+    return peer.connection.signalingState === 'closed' || peer.connection.iceConnectionState === 'closed';
+  }
+
+  private async updatePeerConnectionTracks(peer: PeerConnection): Promise<void> {
+    if (!this.localStream || this.isPeerConnectionClosed(peer)) return;
+
+    const tracks = this.localStream.getTracks();
+    for (const track of tracks) {
+      const sender = peer.connection.getSenders().find(s => s.track?.kind === track.kind);
+      try {
+        if (sender) {
+          await sender.replaceTrack(track);
+        } else {
+          peer.connection.addTrack(track, this.localStream);
+        }
+      } catch (error) {
+        console.error('Failed to update peer track:', error);
+      }
+    }
+  }
+
+  private async synchronizeLocalStreamToPeers(): Promise<void> {
+    if (!this.localStream) return;
+
+    for (const peer of this.peerConnections.values()) {
+      await this.updatePeerConnectionTracks(peer);
+    }
+  }
+
+  private async renegotiatePeerConnection(userId: string): Promise<void> {
+    const peer = this.peerConnections.get(userId);
+    if (!peer || !this.socket || !this.currentRoomId || this.isPeerConnectionClosed(peer)) return;
+
+    try {
+      const offer = await peer.connection.createOffer();
+      await peer.connection.setLocalDescription(offer);
+
+      this.socket.emit('webrtc:offer', {
+        roomId: this.currentRoomId,
+        targetUserId: userId,
+        offer,
+      });
+    } catch (error) {
+      console.error('Failed to renegotiate peer connection:', error);
+    }
+  }
+
   /**
    * Create a new practice room
    */
@@ -401,14 +449,8 @@ class RoomService {
 
     this.socket.on('webrtc:call-joined', (data: { roomId: string; userId: string; existingParticipants?: string[] }) => {
       this.isInCall = true;
-      // Auto-connect to existing participants
-      if (data.existingParticipants) {
-        data.existingParticipants.forEach(participantId => {
-          if (participantId !== data.userId) {
-            this.sendOffer(participantId, data.roomId);
-          }
-        });
-      }
+      // Existing participants will initiate offer via `webrtc:user-joined-call`
+      // The joiner does not need to create duplicate offers.
     });
 
     this.socket.on('webrtc:call-left', (data: { roomId: string; userId: string }) => {
@@ -518,6 +560,11 @@ class RoomService {
       };
 
       this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      if (this.isInCall) {
+        await this.synchronizeLocalStreamToPeers();
+      }
+
       return this.localStream;
     } catch (error) {
       console.error('Failed to initialize media:', error);
@@ -552,14 +599,37 @@ class RoomService {
   /**
    * Toggle video
    */
-  toggleVideo(): boolean {
-    if (this.localStream) {
-      const videoTrack = this.localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        return videoTrack.enabled;
-      }
+  async toggleVideo(): Promise<boolean> {
+    if (!this.localStream) {
+      await this.initializeMedia(true, true);
+      return true;
     }
+
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      return videoTrack.enabled;
+    }
+
+    try {
+      const screen = await navigator.mediaDevices.getUserMedia({ video: true });
+      const newVideoTrack = screen.getVideoTracks()[0];
+      if (newVideoTrack) {
+        this.localStream.addTrack(newVideoTrack);
+        await this.synchronizeLocalStreamToPeers();
+
+        if (this.currentRoomId) {
+          for (const userId of this.peerConnections.keys()) {
+            await this.renegotiatePeerConnection(userId);
+          }
+        }
+
+        return true;
+      }
+    } catch (error) {
+      console.error('Failed to add video track:', error);
+    }
+
     return false;
   }
 
@@ -673,6 +743,12 @@ class RoomService {
         this.notifyPeerConnectionsUpdated();
       }
     };
+
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, this.localStream!);
+      });
+    }
 
     // Handle remote stream
     peerConnection.ontrack = (event) => {
