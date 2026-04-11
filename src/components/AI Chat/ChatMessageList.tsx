@@ -23,18 +23,11 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({
   loading,
   endRef
 }) => {
-  // Limit the number of rendered messages to avoid huge DOM trees and reduce re-renders
-  const VISIBLE_MESSAGE_LIMIT = 200;
-  const visibleMessages = React.useMemo(() => {
-    if (messages.length <= VISIBLE_MESSAGE_LIMIT) return messages;
-    return messages.slice(messages.length - VISIBLE_MESSAGE_LIMIT);
-  }, [messages]);
-
   return (
-    <ScrollArea className="flex-1 p-6" role="log" aria-live="polite" onScroll={() => { /* noop placeholder for scroll handling */ }}>
+    <ScrollArea className="flex-1 p-6" role="log" aria-live="polite">
       <div className="space-y-4">
         <AnimatePresence mode="popLayout">
-          {visibleMessages.map((message, index) => (
+          {messages.map((message, index) => (
             <ChatMessageItem
               key={message.id}
               message={message}

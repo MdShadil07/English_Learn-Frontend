@@ -1,98 +1,43 @@
-// AIChatSettingsSidebar — FULLY OPTIMIZED VERSION (Hybrid Mode C)
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Volume2, Crown, Zap, Settings as SettingsIcon, Mic, Save, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  Suspense,
-  lazy,
-  useMemo
-} from "react";
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
-import {
-  X,
-  Volume2,
-  Crown,
-  Zap,
-  Settings as SettingsIcon,
-  Mic,
-  Save,
-  Loader2
-} from "lucide-react";
+import { LANGUAGES } from './constants';
+import { SetSettings, UserSettings } from './types';
+import { VOICE_PRESETS } from '@/utils/AI Chat/voicePersonalities';
+import aiChatSettingsService from '@/services/AI Chat/aiChatSettingsService';
+import { EnhancedVoiceSettings } from './EnhancedVoiceSettings';
 
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-
-import { LANGUAGES } from "./constants";
-import { SetSettings, UserSettings } from "./types";
-
-import { VOICE_PRESETS } from "@/utils/AI Chat/voicePersonalities";
-import aiChatSettingsService from "@/services/AI Chat/aiChatSettingsService";
-
-import LiteSelect from "./LiteSelect.tsx"; // NEW ultra-fast custom Select
-import LiteRange from "./LiteRange.tsx";   // NEW ultra-fast native range slider
-import * as MemoSettingItemModule from "./MemoSettingItem.tsx";
-// runtime-safe resolution: ESM dev servers sometimes expose the component as a default
-// or as a named export. Prefer `.default`, fall back to the module object.
-// runtime-safe resolution: prefer `.default`, fall back to named exports or the module object.
-interface MemoSettingItemProps {
-  title: string;
-  description?: string;
-  checked: boolean;
-  onCheckedChange: (v: boolean) => void;
-  icon?: React.ReactNode;
-  locked?: boolean;
-  isPremiumFeature?: boolean;
-}
-
-const MemoSettingItem = (() => {
-  const m = MemoSettingItemModule as unknown as Record<string, unknown>;
-  // Common shapes we may encounter in dev/hmr environments
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const candidateAny = ((m as any).default ?? (m as any).MemoSettingItem ?? m) as any;
-  return candidateAny as React.ComponentType<MemoSettingItemProps>;
-})();
-
-const EnhancedVoiceSettings = lazy(() => import("./EnhancedVoiceSettings"));
-
-
-
-interface Props {
+interface AIChatSettingsSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   settings: UserSettings;
   setSettings: SetSettings;
-
   isRecording: boolean;
-  onToggleRecording: (c: boolean) => void;
-
+  onToggleRecording: (checked: boolean) => void;
   voices?: SpeechSynthesisVoice[];
   selectedVoice?: SpeechSynthesisVoice | null;
   onVoiceSelect?: (voice: SpeechSynthesisVoice) => void;
-
   onTestVoice?: () => void;
-
   speechRate?: number;
   onSpeechRateChange?: (rate: number) => void;
-  speechPitch?: number;
-  onSpeechPitchChange?: (pitch: number) => void;
-  speechVolume?: number;
-  onSpeechVolumeChange?: (volume: number) => void;
-
-  userTier?: "free" | "pro" | "premium";
+  userTier?: 'free' | 'pro' | 'premium';
   currentPersonalityId?: string;
-
   inline?: boolean;
 }
 
-export default function AIChatSettingsSidebar({
+const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
   isOpen,
   onClose,
   settings,
@@ -105,354 +50,697 @@ export default function AIChatSettingsSidebar({
   onTestVoice,
   speechRate = 1,
   onSpeechRateChange,
-  speechPitch = 1,
-  onSpeechPitchChange,
-  speechVolume = 1,
-  onSpeechVolumeChange,
-  userTier = "free",
+  userTier = 'free',
   currentPersonalityId,
   inline = false
-}: Props) {
+}) => {
+  // Precise tier checking: Premium users have all Pro features
+  const isPremium = userTier === 'premium';
+  const isPro = userTier === 'pro' || userTier === 'premium';
+  const isFree = userTier === 'free';
   const { toast } = useToast();
 
-  const isPremium = userTier === "premium";
-  const isPro = userTier === "premium" || userTier === "pro";
-
-  // ⚡ Local mirror to avoid expensive parent re-renders
-  const [localSettings, setLocalSettings] = useState(settings);
-
+  // Debug: Log tier information
   useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings]);
+    console.log('🎛️ Settings Sidebar - Tier Info:', {
+      userTier,
+      isPremium,
+      isPro,
+      isFree,
+      currentPersonalityId
+    });
+  }, [userTier, isPremium, isPro, isFree, currentPersonalityId]);
 
-  const [mountVoice, setMountVoice] = useState(false);
-  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+  // Loading and saving states
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
 
-  // ⚡ Load language settings only when idle
+  // Advanced voice controls (premium features)
+  const [speechPitch, setSpeechPitch] = useState(1.0);
+  const [speechVolume, setSpeechVolume] = useState(1.0);
+
+  // Load settings from backend when component mounts
   useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-
-    const load = async () => {
+    const loadSettings = async () => {
       setIsLoadingSettings(true);
       try {
         const data = await aiChatSettingsService.getSettings();
-        if (!cancelled) {
-          setLocalSettings((prev) => ({
-            ...prev,
-            language: data.responseLanguage || "english"
-          }));
-        }
+        // Map backend language format to frontend format
+        setSettings(prev => ({
+          ...prev,
+          language: data.responseLanguage || 'english'
+        }));
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') console.debug('aiChatSettings load failed', error);
-      }
-      finally {
-        if (!cancelled) setIsLoadingSettings(false);
-      }
-    };
-
-    const id = "requestIdleCallback" in window
-      ? window.requestIdleCallback(load, { timeout: 400 })
-      : setTimeout(load, 150);
-
-    return () => {
-      cancelled = true;
-      if ("cancelIdleCallback" in window) window.cancelIdleCallback(id as number);
-      else clearTimeout(id as number);
-    };
-  }, [isOpen]);
-
-  // Save language → backend
-  const saveLanguage = useCallback(async () => {
-    // mark saving state immediately so UI shows feedback fast
-    setIsSavingLanguage(true);
-
-    const deferWork = (fn: () => void) => {
-      if (typeof window !== 'undefined') {
-        if ('requestIdleCallback' in window) {
-          // `requestIdleCallback` typing isn't present in some lib targets — use a safe cast
-          (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number })
-            .requestIdleCallback?.(fn, { timeout: 500 });
-        } else if ('requestAnimationFrame' in window) {
-          requestAnimationFrame(fn);
-        } else {
-          setTimeout(fn, 0);
-        }
-      } else {
-        // server-side fallback
-        setTimeout(fn, 0);
-      }
-    };
-
-    // Defer the heavy network call so the pointerdown event finishes quickly
-    deferWork(async () => {
-      try {
-        const backendCode = aiChatSettingsService.mapToBackendCode(localSettings.language);
-        await aiChatSettingsService.updateLanguage(backendCode);
-        toast({ title: 'Saved', description: 'Language saved successfully.' });
-      } catch (e) {
-        toast({ title: 'Error', description: 'Failed to save language.', variant: 'destructive' });
+        console.error('Failed to load AI chat settings:', error);
+        // Continue with default settings - no need to show error to user
       } finally {
-        // update UI on next frame to avoid layout jank
-        requestAnimationFrame(() => setIsSavingLanguage(false));
+        setIsLoadingSettings(false);
       }
-    });
-  }, [localSettings.language, toast]);
-
-  // Apply local → global when closing
-  const handleClose = useCallback(() => {
-    // Defer applying local settings to parent to avoid blocking pointer handlers
-    if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
-      requestAnimationFrame(() => {
-        setSettings(localSettings);
-        onClose();
-      });
-    } else {
-      setTimeout(() => {
-        setSettings(localSettings);
-        onClose();
-      }, 0);
-    }
-  }, [localSettings, setSettings, onClose]);
-
-  // Settings handlers (local only)
-  const toggle = useCallback((key: keyof UserSettings, value: boolean) => {
-    setLocalSettings((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const changeLanguage = useCallback((v: string) => {
-    setLocalSettings((prev) => ({ ...prev, language: v }));
-  }, []);
-
-  // Lazy-load voice settings minimal impact
-  useEffect(() => {
-    if (!isOpen || !localSettings.voiceEnabled) return;
-    const id = "requestIdleCallback" in window
-      ? window.requestIdleCallback(() => setMountVoice(true), { timeout: 800 })
-      : setTimeout(() => setMountVoice(true), 300);
-
-    return () => {
-      if ("cancelIdleCallback" in window) window.cancelIdleCallback(id as number);
-      else clearTimeout(id as number);
     };
-  }, [localSettings.voiceEnabled, isOpen]);
+
+    if (isOpen) {
+      loadSettings();
+    }
+  }, [isOpen, setSettings]);
+
+  // Save language preference to backend
+  const handleSaveLanguage = async () => {
+    setIsSavingLanguage(true);
+    try {
+      // Map frontend code to backend code before updating
+      const backendLanguage = aiChatSettingsService.mapToBackendCode(settings.language);
+      await aiChatSettingsService.updateLanguage(backendLanguage);
+      toast({
+        title: "Success",
+        description: "Language preference saved successfully!",
+      });
+    } catch (error) {
+      console.error('Failed to save language:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save language preference. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingLanguage(false);
+    }
+  };
 
   return (
-    <>
+    <AnimatePresence>
       {isOpen && (
         <>
-          {!inline && (
-            <div className="fixed inset-0 bg-black/30 z-40" onClick={handleClose} />
-          )}
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className={inline ? 'hidden' : 'fixed inset-0 bg-black/30 backdrop-blur-sm z-40'}
+            onClick={onClose}
+          />
 
-          <aside
-            className={cn(
-              inline
-                ? "relative w-full"
-                : "fixed left-0 top-0 bottom-0 w-full sm:w-80 lg:w-96 bg-white dark:bg-slate-950 border-r z-50 shadow-lg",
-              "flex flex-col"
-            )}
-          >
-            {/* HEADER */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <div className="flex items-center gap-2">
-                <SettingsIcon className="h-5 w-5 text-emerald-500" />
-                <span className="text-lg font-semibold">Settings</span>
-              </div>
-
-              <Button variant="ghost" size="icon" onClick={handleClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* PRO/PREMIUM BADGE */}
-            {(isPro || isPremium) && (
-              <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-amber-50">
+          {/* Settings Sidebar */}
+          {inline ? (
+            <div className="w-full h-full bg-transparent flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-emerald-200/40 dark:border-emerald-900/30">
                 <div className="flex items-center gap-2">
-                  {isPremium ? (
-                    <Crown className="w-4 h-4 text-amber-600" />
-                  ) : (
-                    <Zap className="w-4 h-4 text-emerald-600" />
-                  )}
-                  <span className="font-medium text-sm">
-                    {isPremium ? "Premium" : "Pro"} Member
-                  </span>
-                  <Badge className="ml-auto" variant="secondary">Active</Badge>
+                  <SettingsIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Settings</h2>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            )}
 
-            {/* MAIN CONTENT */}
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                <Tabs defaultValue="general">
-                  <TabsList className="grid grid-cols-3 w-full mb-4">
-                    <TabsTrigger value="general">General</TabsTrigger>
-                    <TabsTrigger value="voice">Voice</TabsTrigger>
-                    <TabsTrigger value="advanced">Advanced</TabsTrigger>
-                  </TabsList>
+              {/* Subscription Badge */}
+              {(isPro || isPremium) && (
+                <div className="px-4 sm:px-5 py-3 bg-gradient-to-r from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 border-b border-amber-200/40 dark:border-amber-900/30">
+                  <div className="flex items-center gap-2">
+                    {isPremium ? (
+                      <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {isPremium ? 'Premium' : 'Pro'} Member
+                    </span>
+                    <Badge variant="secondary" className="ml-auto">
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+              )}
 
-                  {/* ----------------- GENERAL ---------------- */}
-                  <TabsContent value="general" className="space-y-6">
-                    <SectionTitle>Display Settings</SectionTitle>
+              {/* Settings Content */}
+              <ScrollArea className="flex-1 w-full">
+                <div className="w-full px-4 sm:px-5 py-4 box-border">
+                  <Tabs defaultValue="general" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 gap-2 mb-6">
+                      <TabsTrigger value="general">General</TabsTrigger>
+                      <TabsTrigger value="voice">Voice</TabsTrigger>
+                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                    </TabsList>
 
-                    <MemoSettingItem
-                      title="Show Accuracy"
-                      description="Real-time accuracy scores"
-                      checked={localSettings.showAccuracy}
-                      onCheckedChange={(c) => toggle("showAccuracy", c)}
-                    />
+                    {/* General Settings */}
+                    <TabsContent value="general" className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                        Display Settings
+                      </h3>
 
-                    <MemoSettingItem
-                      title="Auto Translate"
-                      description="Translate AI responses automatically"
-                      checked={localSettings.autoTranslate}
-                      onCheckedChange={(c) => toggle("autoTranslate", c)}
-                      locked={!isPro}
-                      isPremiumFeature={!isPro}
-                    />
+                      <SettingItem
+                        title="Show Accuracy"
+                        description="Display real-time accuracy feedback"
+                        checked={settings.showAccuracy}
+                        onCheckedChange={(checked) =>
+                          setSettings((prev) => ({ ...prev, showAccuracy: checked }))
+                        }
+                      />
+
+                      <SettingItem
+                        title="Auto Translate"
+                        description="Translate responses automatically"
+                        checked={settings.autoTranslate}
+                        onCheckedChange={(checked) =>
+                          setSettings((prev) => ({ ...prev, autoTranslate: checked }))
+                        }
+                        isPremiumFeature={!isPro}
+                        locked={!isPro}
+                      />
+                    </div>
 
                     <Separator />
 
-                    <SectionTitle>Language</SectionTitle>
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                        Language
+                      </h3>
 
-                    {isLoadingSettings ? (
-                      <LoadingRow />
-                    ) : (
-                      <>
-                        <LiteSelect
-                          value={localSettings.language}
-                          onChange={changeLanguage}
-                          options={LANGUAGES}
-                        />
-
-                        <Button
-                          onClick={saveLanguage}
-                          className="w-full mt-2 bg-gradient-to-r from-blue-500 to-indigo-600"
-                          disabled={isSavingLanguage}
-                        >
-                          {isSavingLanguage && (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          )}
-                          Save Language
-                        </Button>
-                      </>
-                    )}
-                  </TabsContent>
-
-                  {/* ----------------- VOICE ---------------- */}
-                  <TabsContent value="voice" className="space-y-6">
-                    <SectionTitle>Voice Output</SectionTitle>
-
-                    <MemoSettingItem
-                      title="Enable Voice Output"
-                      description="AI will speak responses"
-                      checked={localSettings.voiceEnabled}
-                      onCheckedChange={(c) => toggle("voiceEnabled", c)}
-                    />
-
-                    {localSettings.voiceEnabled && (
-                      <>
-                        <Separator />
-
-                        {mountVoice ? (
-                          <Suspense fallback={<LoadingRow label="Loading voice settings..." />}>
-                            <EnhancedVoiceSettings
-                              voices={voices}
-                              selectedVoice={selectedVoice}
-                              onVoiceSelect={onVoiceSelect}
-                              speechRate={speechRate}
-                              speechPitch={speechPitch}
-                              speechVolume={speechVolume}
-                              onSpeechRateChange={onSpeechRateChange}
-                              onSpeechPitchChange={onSpeechPitchChange}
-                              onSpeechVolumeChange={onSpeechVolumeChange}
-                              onTestVoice={onTestVoice}
-                              userTier={userTier}
-                            />
-                          </Suspense>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          AI Response Language
+                        </label>
+                        {isLoadingSettings ? (
+                          <div className="flex items-center justify-center p-4 text-sm text-slate-500">
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Loading settings...
+                          </div>
                         ) : (
-                          <LoadingRow label="Preparing voice options..." />
+                          <>
+                            <Select
+                              value={settings.language}
+                              onValueChange={(value) =>
+                                setSettings((prev) => ({ ...prev, language: value }))
+                              }
+                              disabled={isSavingLanguage}
+                            >
+                              <SelectTrigger className="w-full max-w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {LANGUAGES.map((lang) => (
+                                  <SelectItem key={lang.code} value={lang.code}>
+                                    {lang.flag} {lang.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={handleSaveLanguage}
+                              disabled={isSavingLanguage}
+                              className="w-full mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                            >
+                              {isSavingLanguage ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="w-4 h-4 mr-2" />
+                                  Save Language Preference
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                              The AI will respond to you in the selected language. This preference will be saved for future conversations.
+                            </p>
+                          </>
                         )}
+                      </div>
+                    </div>
+                  </TabsContent>
 
+                  {/* Voice Settings */}
+                  <TabsContent value="voice" className="space-y-6">
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                        Voice Output
+                      </h3>
+
+                      <SettingItem
+                        title="Voice Responses"
+                        description="AI speaks responses aloud"
+                        checked={settings.voiceEnabled}
+                        onCheckedChange={(checked) =>
+                          setSettings((prev) => ({ ...prev, voiceEnabled: checked }))
+                        }
+                      />
+                    </div>
+
+                    {settings.voiceEnabled && (
+                      <>
                         <Separator />
 
-                        <SectionTitle>Voice Input</SectionTitle>
-
-                        <MemoSettingItem
-                          title="Enable Microphone"
-                          description="Use voice as input"
-                          checked={isRecording}
-                          onCheckedChange={onToggleRecording}
-                          icon={<Mic className="w-4 h-4" />}
+                        <EnhancedVoiceSettings
+                          voices={voices}
+                          selectedVoice={selectedVoice || null}
+                          speechRate={speechRate}
+                          speechPitch={speechPitch}
+                          speechVolume={speechVolume}
+                          userTier={userTier}
+                          currentPersonalityId={currentPersonalityId}
+                          onVoiceSelect={onVoiceSelect || (() => {})}
+                          onSpeechRateChange={onSpeechRateChange || (() => {})}
+                          onSpeechPitchChange={setSpeechPitch}
+                          onSpeechVolumeChange={setSpeechVolume}
+                          onTestVoice={onTestVoice || (() => {})}
                         />
                       </>
                     )}
+
+                    <Separator />
+
+                      <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                        Voice Input
+                      </h3>
+
+                      <SettingItem
+                        title="Voice Input"
+                        description="Use microphone for text input"
+                        checked={isRecording}
+                        onCheckedChange={onToggleRecording}
+                        icon={<Mic className="h-4 w-4" />}
+                      />
+                    </div>
                   </TabsContent>
 
-                  {/* ----------------- ADVANCED ---------------- */}
+                  {/* Advanced Settings */}
                   <TabsContent value="advanced" className="space-y-6">
-                    <SectionTitle>Advanced Features</SectionTitle>
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                        Advanced Features
+                      </h3>
 
-                    <LockedSetting title="Advanced Grammar Analysis" locked={!isPremium} />
-                    <LockedSetting title="Pronunciation Coach" locked={!isPro} />
-                    <LockedSetting title="Context-Aware Suggestions" locked={!isPro} />
-                    <LockedSetting title="Offline Mode" locked={!isPremium} />
+                      <SettingItem
+                        title="Advanced Grammar Analysis"
+                        description="Detailed grammar breakdown and suggestions"
+                        checked={false}
+                        onCheckedChange={() => {}}
+                        isPremiumFeature={!isPremium}
+                        locked={!isPremium}
+                      />
 
-                    {userTier === "free" && (
-                      <UpgradeCard />
+                      <SettingItem
+                        title="Pronunciation Coach"
+                        description="Real-time pronunciation feedback"
+                        checked={false}
+                        onCheckedChange={() => {}}
+                        isPremiumFeature={!isPro}
+                        locked={!isPro}
+                      />
+
+                      <SettingItem
+                        title="Context-Aware Suggestions"
+                        description="AI learns from your conversation patterns"
+                        checked={false}
+                        onCheckedChange={() => {}}
+                        isPremiumFeature={!isPro}
+                        locked={!isPro}
+                      />
+
+                      <SettingItem
+                        title="Offline Mode"
+                        description="Download conversations for offline access"
+                        checked={false}
+                        onCheckedChange={() => {}}
+                        isPremiumFeature={!isPremium}
+                        locked={!isPremium}
+                      />
+                    </div>
+
+                    {isFree && (
+                      <>
+                        <Separator />
+                        <div className="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 border border-amber-200/40 dark:border-amber-900/30">
+                          <div className="flex items-start gap-3">
+                            <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                                Upgrade to Premium
+                              </h4>
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                                Unlock all advanced features, premium voices, and unlimited conversations.
+                              </p>
+                              <Button size="sm" className="w-full bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-600 hover:to-emerald-600">
+                                <Crown className="h-4 w-4 mr-2" />
+                                Upgrade Now
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </TabsContent>
                 </Tabs>
               </div>
             </ScrollArea>
-          </aside>
+            </div>
+          ) : (
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed left-0 top-0 bottom-0 w-full sm:w-80 lg:w-96 max-w-full bg-white/95 dark:bg-slate-950/95 sm:backdrop-blur-xl border-r border-emerald-200/40 dark:border-emerald-900/30 z-50 flex flex-col shadow-2xl overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-emerald-200/40 dark:border-emerald-900/30">
+                <div className="flex items-center gap-2">
+                  <SettingsIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Settings</h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Subscription Badge */}
+              {(isPro || isPremium) && (
+                <div className="px-4 sm:px-5 py-3 bg-gradient-to-r from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 border-b border-amber-200/40 dark:border-amber-900/30">
+                  <div className="flex items-center gap-2">
+                    {isPremium ? (
+                      <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    ) : (
+                      <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {isPremium ? 'Premium' : 'Pro'} Member
+                    </span>
+                    <Badge variant="secondary" className="ml-auto">
+                      Active
+                    </Badge>
+                  </div>
+                </div>
+              )}
+
+              {/* Settings Content */}
+              <ScrollArea className="flex-1 w-full">
+                <div className="w-full px-4 sm:px-5 py-4 box-border">
+                  <Tabs defaultValue="general" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 gap-2 mb-6">
+                      <TabsTrigger value="general">General</TabsTrigger>
+                      <TabsTrigger value="voice">Voice</TabsTrigger>
+                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                    </TabsList>
+
+                    {/* General Settings */}
+                    <TabsContent value="general" className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Display Settings
+                        </h3>
+
+                        <SettingItem
+                          title="Show Accuracy"
+                          description="Display real-time accuracy feedback"
+                          checked={settings.showAccuracy}
+                          onCheckedChange={(checked) =>
+                            setSettings((prev) => ({ ...prev, showAccuracy: checked }))
+                          }
+                        />
+
+                        <SettingItem
+                          title="Auto Translate"
+                          description="Translate responses automatically"
+                          checked={settings.autoTranslate}
+                          onCheckedChange={(checked) =>
+                            setSettings((prev) => ({ ...prev, autoTranslate: checked }))
+                          }
+                          isPremiumFeature={!isPro}
+                          locked={!isPro}
+                        />
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Language
+                        </h3>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            AI Response Language
+                          </label>
+                          {isLoadingSettings ? (
+                            <div className="flex items-center justify-center p-4 text-sm text-slate-500">
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Loading settings...
+                            </div>
+                          ) : (
+                            <>
+                              <Select
+                                value={settings.language}
+                                onValueChange={(value) =>
+                                  setSettings((prev) => ({ ...prev, language: value }))
+                                }
+                                disabled={isSavingLanguage}
+                              >
+                                <SelectTrigger className="w-full max-w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {LANGUAGES.map((lang) => (
+                                    <SelectItem key={lang.code} value={lang.code}>
+                                      {lang.flag} {lang.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                onClick={handleSaveLanguage}
+                                disabled={isSavingLanguage}
+                                className="w-full mt-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                              >
+                                {isSavingLanguage ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    Save Language Preference
+                                  </>
+                                )}
+                              </Button>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                The AI will respond to you in the selected language. This preference will be saved for future conversations.
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    {/* Voice Settings */}
+                    <TabsContent value="voice" className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Voice Output
+                        </h3>
+
+                        <SettingItem
+                          title="Voice Responses"
+                          description="AI speaks responses aloud"
+                          checked={settings.voiceEnabled}
+                          onCheckedChange={(checked) =>
+                            setSettings((prev) => ({ ...prev, voiceEnabled: checked }))
+                          }
+                        />
+                      </div>
+
+                      {settings.voiceEnabled && (
+                        <>
+                          <Separator />
+
+                          <EnhancedVoiceSettings
+                            voices={voices}
+                            selectedVoice={selectedVoice || null}
+                            speechRate={speechRate}
+                            speechPitch={speechPitch}
+                            speechVolume={speechVolume}
+                            userTier={userTier}
+                            currentPersonalityId={currentPersonalityId}
+                            onVoiceSelect={onVoiceSelect || (() => {})}
+                            onSpeechRateChange={onSpeechRateChange || (() => {})}
+                            onSpeechPitchChange={setSpeechPitch}
+                            onSpeechVolumeChange={setSpeechVolume}
+                            onTestVoice={onTestVoice || (() => {})}
+                          />
+                        </>
+                      )}
+
+                      <Separator />
+
+                        <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Voice Input
+                        </h3>
+
+                        <SettingItem
+                          title="Voice Input"
+                          description="Use microphone for text input"
+                          checked={isRecording}
+                          onCheckedChange={onToggleRecording}
+                          icon={<Mic className="h-4 w-4" />}
+                        />
+                      </div>
+                    </TabsContent>
+
+                    {/* Advanced Settings */}
+                    <TabsContent value="advanced" className="space-y-6">
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Advanced Features
+                        </h3>
+
+                        <SettingItem
+                          title="Advanced Grammar Analysis"
+                          description="Detailed grammar breakdown and suggestions"
+                          checked={false}
+                          onCheckedChange={() => {}}
+                          isPremiumFeature={!isPremium}
+                          locked={!isPremium}
+                        />
+
+                        <SettingItem
+                          title="Pronunciation Coach"
+                          description="Real-time pronunciation feedback"
+                          checked={false}
+                          onCheckedChange={() => {}}
+                          isPremiumFeature={!isPro}
+                          locked={!isPro}
+                        />
+
+                        <SettingItem
+                          title="Context-Aware Suggestions"
+                          description="AI learns from your conversation patterns"
+                          checked={false}
+                          onCheckedChange={() => {}}
+                          isPremiumFeature={!isPro}
+                          locked={!isPro}
+                        />
+
+                        <SettingItem
+                          title="Offline Mode"
+                          description="Download conversations for offline access"
+                          checked={false}
+                          onCheckedChange={() => {}}
+                          isPremiumFeature={!isPremium}
+                          locked={!isPremium}
+                        />
+                      </div>
+
+                      {isFree && (
+                        <>
+                          <Separator />
+                          <div className="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 border border-amber-200/40 dark:border-amber-900/30">
+                            <div className="flex items-start gap-3">
+                              <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                                  Upgrade to Premium
+                                </h4>
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                                  Unlock all advanced features, premium voices, and unlimited conversations.
+                                </p>
+                                <Button size="sm" className="w-full bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-600 hover:to-emerald-600">
+                                  <Crown className="h-4 w-4 mr-2" />
+                                  Upgrade Now
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </ScrollArea>
+            </motion.aside>
+          )}
         </>
       )}
-    </>
+    </AnimatePresence>
   );
+};
+
+// Setting Item Component
+interface SettingItemProps {
+  title: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  isPremiumFeature?: boolean;
+  locked?: boolean;
+  icon?: React.ReactNode;
 }
 
-/* ----------------- SMALL OPTIMIZED SUBCOMPONENTS ---------------- */
-
-const SectionTitle = React.memo(({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-300">
-    {children}
-  </h3>
-));
-
-const LoadingRow = ({ label = "Loading..." }) => (
-  <div className="flex items-center p-4 text-sm text-slate-500">
-    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-    {label}
-  </div>
-);
-
-const LockedSetting = ({ title, locked }: { title: string; locked: boolean }) => (
-  <MemoSettingItem
-    title={title}
-    description=""
-    checked={false}
-    onCheckedChange={() => {}}
-    locked={locked}
-    isPremiumFeature={locked}
-  />
-);
-
-
-
-const UpgradeCard = () => (
-  <div className="p-4 rounded-lg border border-slate-100 bg-white dark:bg-slate-900 text-sm">
-    <div className="flex items-start gap-3">
-      <div className="flex-1">
-        <div className="font-semibold">Upgrade to Pro</div>
-        <div className="text-xs text-slate-500 mt-1">Unlock advanced features like pronunciation coach and offline mode.</div>
+const SettingItem: React.FC<SettingItemProps> = ({
+  title,
+  description,
+  checked,
+  onCheckedChange,
+  isPremiumFeature = false,
+  locked = false,
+  icon
+}) => {
+  return (
+    <div className={cn(
+      "flex items-center justify-between p-3 rounded-lg border",
+      locked ? "bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800" : "border-transparent"
+    )}>
+      <div className="flex items-start gap-3 flex-1">
+        {icon && (
+          <div className="text-emerald-600 dark:text-emerald-400 mt-0.5">
+            {icon}
+          </div>
+        )}
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <label className={cn(
+              "text-sm font-medium",
+              locked ? "text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"
+            )}>
+              {title}
+            </label>
+            {isPremiumFeature && (
+              <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-400">
+                <Crown className="h-3 w-3 mr-1" />
+                {locked ? 'Premium' : 'Pro'}
+              </Badge>
+            )}
+          </div>
+          <p className={cn(
+            "text-xs mt-0.5",
+            locked ? "text-slate-400 dark:text-slate-500" : "text-slate-500 dark:text-slate-400"
+          )}>
+            {description}
+          </p>
+        </div>
       </div>
-      <div>
-        <Button size="sm" className="bg-emerald-600 text-white">Upgrade</Button>
-      </div>
+      <Switch
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        disabled={locked}
+      />
     </div>
-  </div>
-);
+  );
+};
+
+export default AIChatSettingsSidebar;

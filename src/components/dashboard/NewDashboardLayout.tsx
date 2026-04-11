@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Calendar, Sun, Moon } from 'lucide-react';
+import { Bell, Search, Calendar, Settings } from 'lucide-react';
+import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '../ui/sidebar';
@@ -13,7 +14,6 @@ import { AppSidebar } from '../ui/sidebar/app-sidebar';
 // Update the path below to the correct relative location of AuthContext
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../integrations/supabase/client';
-import { EnhancedSearchBar } from './EnhancedSearchBar';
 
 interface NewDashboardLayoutProps {
   children: ReactNode;
@@ -25,22 +25,6 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
   const { user } = useAuth();
   const [userStats, setUserStats] = useState({ streak: 12, coins: 240, level: 15 });
   const [mounted, setMounted] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    try {
-      const saved = localStorage.getItem('theme');
-      return (saved as 'light' | 'dark') || 'light';
-    } catch {
-      return 'light';
-    }
-  });
-
-  useEffect(() => {
-    if (theme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-    try { localStorage.setItem('theme', theme); } catch (err) { void err; }
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   useEffect(() => {
     setMounted(true);
@@ -81,7 +65,13 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
             <SidebarTrigger className="text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-200 hover:shadow-md hover:rounded-2xl" />
           </div>
           <div className="flex items-center gap-3 flex-1">
-            <EnhancedSearchBar />
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search lessons, words, notes..."
+                className="pl-9 h-10 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 focus:bg-background focus:border-emerald-300"
+              />
+            </div>
           </div>
 
           {/* User info and actions */}
@@ -104,7 +94,7 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
             </div>
 
             {/* Right side actions */}
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <button className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 relative transition-transform duration-200 hover:shadow-md hover:rounded-2xl w-full">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -114,12 +104,8 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
                 <Calendar className="h-5 w-5" />
               </button>
 
-              <button
-                aria-label="Toggle theme"
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-transform duration-200 hover:shadow-md hover:rounded-2xl w-full"
-              >
-                {theme === 'dark' ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-500" />}
+              <button className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-transform duration-200 hover:shadow-md hover:rounded-2xl w-full">
+                <Settings className="h-5 w-5" />
               </button>
             </div>
           </div>

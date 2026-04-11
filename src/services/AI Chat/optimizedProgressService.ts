@@ -674,33 +674,13 @@ class OptimizedProgressService {
     }
 
     console.log('🌐 Fetching realtime progress from server');
-      // Try with retries on transient network/timeouts to improve resilience
-      const MAX_RETRIES = 3;
-      let attempt = 0;
-      let lastError: Error | null = null;
-      while (attempt < MAX_RETRIES) {
-        try {
-          const data = await fetchRealtimeProgress();
-          // Update cache
-          this.realtimeCache = data;
-          this.realtimeCacheTime = now;
-          return data;
-        } catch (err) {
-          attempt += 1;
-          lastError = err as Error;
-          // If it's the last attempt, break and rethrow below
-          if (attempt >= MAX_RETRIES) break;
-          // Small exponential backoff (500ms, 1000ms, ...)
-          const backoff = 500 * Math.pow(2, attempt - 1);
-          console.warn(`⏳ Realtime progress fetch failed (attempt ${attempt}), retrying in ${backoff}ms`, err);
-          await new Promise(res => setTimeout(res, backoff));
-          continue;
-        }
-      }
+    const data = await fetchRealtimeProgress();
 
-      // If we reached here, all retries failed
-      if (lastError) throw lastError;
-      throw new Error('Failed to fetch realtime progress');
+    // Update cache
+    this.realtimeCache = data;
+    this.realtimeCacheTime = now;
+
+    return data;
   }
 
   /**

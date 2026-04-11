@@ -32,13 +32,15 @@ interface EditProfileHeroProps {
   onUpdate: (field: string, value: any) => void;
   onSave: () => Promise<void>;
   isSaving: boolean;
+  onAvatarUpdate?: () => void;
 }
 
 const EditProfileHero: React.FC<EditProfileHeroProps> = ({
   formData,
   onUpdate,
   onSave,
-  isSaving
+  isSaving,
+  onAvatarUpdate
 }) => {
   const { user } = useAuth();
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -141,6 +143,9 @@ const EditProfileHero: React.FC<EditProfileHeroProps> = ({
 
       // Update local state with the new URL
       onUpdate('avatar_url', avatarUrl);
+
+      // Invalidate caches to reflect changes across the app
+      onAvatarUpdate?.();
 
       // Close modal and cleanup
       setShowCropModal(false);

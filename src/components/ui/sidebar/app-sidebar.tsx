@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Bot,
@@ -62,7 +61,6 @@ export function AppSidebar({
   userStats,
   ...props
 }) {
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { state: sidebarState } = useSidebar();
   const isCollapsed = sidebarState === "collapsed";
@@ -81,14 +79,6 @@ export function AppSidebar({
 
   const handleLogout = async () => {
     await signOut();
-  };
-
-  const handleProfileNavigation = () => {
-    navigate("/profile");
-  };
-
-  const handleEditProfileNavigation = () => {
-    navigate("/edit-profile");
   };
 
   const getInitials = (nameOrEmail?: string) => {
@@ -295,19 +285,10 @@ export function AppSidebar({
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleProfileNavigation}>
-                <User className="mr-2 h-4 w-4" /> Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleEditProfileNavigation}>
-                <Edit3 className="mr-2 h-4 w-4" /> Edit Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
-                <Settings className="mr-2 h-4 w-4" /> Settings
-              </DropdownMenuItem>
+              <DropdownMenuItem><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
+              <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600">
-                <LogOut className="mr-2 h-4 w-4" /> Log out
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="mr-2 h-4 w-4" /> Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (

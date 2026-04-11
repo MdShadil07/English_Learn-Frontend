@@ -1254,6 +1254,11 @@ const EditProfile: React.FC = () => {
                   onUpdate={updateFormData}
                   onSave={handleSave}
                   isSaving={isSaving}
+                  onAvatarUpdate={() => {
+                    // Invalidate caches to reflect avatar changes across the app
+                    queryClient.invalidateQueries({ queryKey: queryKeys.profile.get() });
+                    queryClient.invalidateQueries({ queryKey: queryKeys.global.currentUser() });
+                  }}
                 />
               )}
 

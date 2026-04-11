@@ -35,8 +35,6 @@ import {
   DashboardCTACard
 } from './cards';
 
-import LazySection from './LazySection';
-
 import { getActivityStyle } from './cards/ActivityCard';
 import Footer from '@/components/layout/Footer';
 import NewsletterSubscription from '@/components/layout/NewsletterSubscription';
@@ -301,8 +299,7 @@ const NewDashboardHome = () => {
       {/* RECENT ACTIVITY + PRACTICE ROOMS */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
 
-        {/* LEFT — RECENT ACTIVITY (lazy) */}
-        <LazySection placeholder={<div className="h-48 rounded-2xl bg-slate-50 dark:bg-slate-800 animate-pulse" />}>
+        {/* LEFT — RECENT ACTIVITY */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }} className="mt-6 xl:mt-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -357,10 +354,8 @@ const NewDashboardHome = () => {
             })}
           </div>
         </motion.div>
-        </LazySection>
 
-        {/* RIGHT — PRACTICE ROOMS (lazy) */}
-        <LazySection placeholder={<div className="h-48 rounded-2xl bg-slate-50 dark:bg-slate-800 animate-pulse" />}>
+        {/* RIGHT — PRACTICE ROOMS */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -386,7 +381,6 @@ const NewDashboardHome = () => {
 
           <CommunityRoomCard rooms={practiceRooms} />
         </motion.div>
-        </LazySection>
       </div>
 
       {/* CTA */}

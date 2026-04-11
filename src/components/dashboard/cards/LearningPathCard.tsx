@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, ArrowRight, CheckCircle2, Trophy, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -182,4 +182,4 @@ const LearningPathCard = ({ path, index = 0, onContinue }) => {
   );
 };
 
-export default memo(LearningPathCard);
+export default LearningPathCard;

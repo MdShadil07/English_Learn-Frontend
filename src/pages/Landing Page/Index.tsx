@@ -1,10 +1,10 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
-import useThemeLocal from '@/hooks/useThemeLocal';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sun, Moon, Menu, X, LogIn } from 'lucide-react';
 
-const HeroLite = lazy(() => import('../../components/landing/HeroLite'));
+import Hero from '../../components/Landing Page Component/Hero';
 import Features from '../../components/Landing Page Component/Features';
 import HowItWorks from '../../components/Landing Page Component/HowItWorks';
 import Testimonials from '../../components/Landing Page Component/Testimonials';
@@ -14,7 +14,7 @@ import CTA from '../../components/Landing Page Component/CTA';
 import Footer from '../../components/Landing Page Component/Footer';
 
 const LandingPage = () => {
-  const { theme, setTheme } = useThemeLocal();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -25,26 +25,6 @@ const LandingPage = () => {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
-  };
-
-  const navigate = useNavigate();
-
-  const navigateWithFallback = (path: string) => {
-    // Close the menu immediately for mobile UX
-    setIsMenuOpen(false);
-    try {
-      // Try client-side navigation first
-      navigate(path);
-      // In case navigate doesn't work due to environment, fallback to full navigation after a short delay
-      setTimeout(() => {
-        if (window.location.pathname !== path) {
-          window.location.href = path;
-        }
-      }, 300);
-    } catch (err) {
-      // Fallback to full navigation
-      window.location.href = path;
-    }
   };
 
   const navItems = [
@@ -74,7 +54,7 @@ const LandingPage = () => {
 
       {/* Navbar */}
       <header className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-950/10 dark:via-transparent dark:to-teal-950/10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-950/10 dark:via-transparent dark:to-teal-950/10"></div>
         <div className="container mx-auto px-4 relative">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -180,18 +160,20 @@ const LandingPage = () => {
                 </a>
               ))}
               <div className="pt-2 flex flex-col space-y-3">
-                <button
-                  onClick={() => navigateWithFallback('/login')}
+                <Link 
+                  to="/login" 
                   className="py-2 px-4 rounded-md border border-slate-300 dark:border-slate-700 text-center text-slate-800 dark:text-slate-200 font-medium hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Sign In
-                </button>
-                <button
-                  onClick={() => navigateWithFallback('/signup')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium rounded-md py-2 px-4"
+                </Link>
+                <Link 
+                  to="/signup" 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Sign Up Free
-                </button>
+                </Link>
               </div>
             </nav>
           </div>
@@ -200,9 +182,7 @@ const LandingPage = () => {
 
       {/* Main content */}
       <main className="flex-grow pt-16">
-        <Suspense fallback={<div className="h-[380px] flex items-center justify-center">Loading…</div>}>
-          <HeroLite />
-        </Suspense>
+        <Hero />
         <Features />
         <HowItWorks />
         <Testimonials />
