@@ -251,6 +251,13 @@ const PracticeRoomPage = () => {
     const initializeRealtimeMedia = async () => {
       try {
         setIsMediaInitializing(true);
+        const stream = await roomService.initializeMedia(true, false);
+        
+        if (!isMounted) return;
+
+        setLocalStream(stream);
+        setIsMicOn(stream.getAudioTracks().some((track) => track.enabled));
+        setIsVideoOn(stream.getVideoTracks().some((track) => track.enabled));
         console.log('[Room] Starting SFU connection...');
         
         await roomService.joinCall(roomId);

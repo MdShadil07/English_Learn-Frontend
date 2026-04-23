@@ -371,6 +371,10 @@ class RoomService {
       return;
     }
 
+    if (this.socket?.connected || this.socket?.active) {
+      return;
+    }
+
     this.socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
       auth: {
         token,
@@ -614,8 +618,12 @@ class RoomService {
    */
   private async initializeDevice(rtpCapabilities: any): Promise<void> {
     try {
+      if (!rtpCapabilities || typeof rtpCapabilities !== 'object' || Array.isArray(rtpCapabilities)) {
+        throw new Error(`Invalid router RTP capabilities payload: ${JSON.stringify(rtpCapabilities)}`);
+      }
+
       this.device = new mediasoup.Device();
-      await this.device.load({ rtpCapabilities });
+      await this.device.load({ routerRtpCapabilities: rtpCapabilities });
     } catch (error) {
       console.error('Failed to initialize mediasoup device:', error);
       throw error;
@@ -729,8 +737,12 @@ class RoomService {
       // SFU Pause/Resume
       const producer = this.producers.get('audio');
       if (producer) {
-        if (audioTrack.enabled) producer.resume().catch(console.error);
-        else producer.pause().catch(console.error);
+        try {
+          if (audioTrack.enabled) producer.resume();
+          else producer.pause();
+        } catch (error) {
+          console.error('Failed to toggle audio producer state:', error);
+        }
       }
       
       return audioTrack.enabled;
@@ -760,8 +772,12 @@ class RoomService {
       // SFU Pause/Resume
       const producer = this.producers.get('video');
       if (producer) {
-        if (videoTrack.enabled) producer.resume().catch(console.error);
-        else producer.pause().catch(console.error);
+        try {
+          if (videoTrack.enabled) producer.resume();
+          else producer.pause();
+        } catch (error) {
+          console.error('Failed to toggle video producer state:', error);
+        }
       }
     }
 
@@ -776,11 +792,19 @@ class RoomService {
     this.currentRoomId = roomId;
 
     return new Promise((resolve, reject) => {
+      const negotiationTimeout = window.setTimeout(() => {
+        reject(new Error('Timed out while starting the SFU connection'));
+      }, 10000);
+
       this.socket!.emit('sfu:getRouterRtpCapabilities', { roomId }, async (data: any) => {
-        if (data.error) return reject(new Error(data.error));
+        if (data.error) {
+          window.clearTimeout(negotiationTimeout);
+          return reject(new Error(data.error));
+        }
 
         try {
-          await this.initializeDevice(data.rtpCapabilities);
+          const rtpCapabilities = data?.rtpCapabilities ?? data?.data?.rtpCapabilities ?? data?.data ?? data;
+          await this.initializeDevice(rtpCapabilities);
           await this.createSendTransport(roomId);
           await this.createRecvTransport(roomId);
 
@@ -805,8 +829,10 @@ class RoomService {
             }
           }
 
+          window.clearTimeout(negotiationTimeout);
           resolve();
         } catch (error) {
+          window.clearTimeout(negotiationTimeout);
           reject(error);
         }
       });

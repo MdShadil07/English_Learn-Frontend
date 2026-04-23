@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 // Supabase configuration from environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -9,32 +9,6 @@ const supabaseProjectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 if (!supabaseUrl || !supabaseKey || !supabaseProjectId) {
   throw new Error('Missing Supabase environment variables');
 }
-
-// Create Supabase client with optimized configuration for high concurrency
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce'
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 1000 // High event throughput for real-time updates
-    },
-    heartbeatIntervalMs: 30000,
-    reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 30000)
-  },
-  global: {
-    headers: {
-      'x-client-info': 'english-practice-app',
-      'x-client-version': '1.0.0'
-    }
-  },
-  db: {
-    schema: 'public'
-  }
-});
 
 // Profile picture upload utility with concurrency handling
 export class ProfilePictureService {
