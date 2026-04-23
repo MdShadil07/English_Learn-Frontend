@@ -27,32 +27,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // Build optimizations: manual chunking to create predictable bundles for heavy libs
-  build: {
-    commonjsOptions: {
-      include: [/node_modules/],
-    },
-    rollupOptions: {
-      output: {
-        manualChunks(id: string) {
-          if (id.includes('node_modules')) {
-            // Keep some very large or special-case libs in their own chunk
-            if (id.includes('framer-motion')) return 'vendor_framer';
-            if (id.includes('recharts')) return 'vendor_charts';
-            if (id.includes('@tanstack') || id.includes('react-query')) return 'vendor_query';
-            if (id.includes('@supabase') || id.includes('supabase')) return 'vendor_supabase';
-            if (id.includes('lucide-react')) return 'vendor_icons';
-            // Bundle React and most other node_modules into a single `vendor` chunk
-            // This avoids circular cross-chunk initialization issues seen in production
-            return 'vendor';
-          }
-        }
-      }
-    }
-  },
-  optimizeDeps: {
-    include: [],
-    // prevent Vite from pre-bundling these CJS/dual packages that can cause hoisting issues
-    exclude: ["lucide-react", "framer-motion"],
-  },
 }));

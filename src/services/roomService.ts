@@ -5,6 +5,8 @@
 
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
+import * as mediasoup from 'mediasoup-client';
+import { Device, Transport, Producer, Consumer } from 'mediasoup-client/lib/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -87,6 +89,15 @@ class RoomService {
   private isInCall = false;
   private currentRoomId: string | null = null;
   private pendingIceCandidates: Map<string, RTCIceCandidateInit[]> = new Map();
+
+  // Mediasoup SFU related
+  private device: Device | null = null;
+  private sendTransport: Transport | null = null;
+  private recvTransport: Transport | null = null;
+  private producers: Map<string, Producer> = new Map();
+  private consumers: Map<string, Consumer> = new Map();
+  private remoteStreams: Map<string, MediaStream> = new Map();
+  private consumedProducerIds: Set<string> = new Set();
 
   // WebRTC event callbacks
   private webrtcUserJoinedCallCallbacks: ((data: { roomId: string; userId: string; existingParticipants?: string[] }) => void)[] = [];
@@ -467,6 +478,12 @@ class RoomService {
     this.socket.on('webrtc:error', (error: any) => {
       console.error('WebRTC error:', error);
     });
+
+    // Mediasoup SFU events
+    this.socket.on('sfu:new-producer', async (data: { producerId: string; producerUserId: string; kind: 'audio' | 'video' }) => {
+      console.log('📡 New producer in room:', data);
+      await this.consumeProducer(data.producerId, data.producerUserId);
+    });
   }
 
   /**
@@ -559,16 +576,26 @@ class RoomService {
         } : false,
       };
 
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Add timeout to prevent hanging on permission prompt
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Media access timeout - please check permissions')), 5000);
+      });
 
-      if (this.isInCall) {
-        await this.synchronizeLocalStreamToPeers();
+      this.localStream = await Promise.race([
+        navigator.mediaDevices.getUserMedia(constraints),
+        timeoutPromise
+      ]);
+
+      if (this.isInCall && this.sendTransport) {
+        for (const track of this.localStream.getTracks()) {
+          await this.produceTrack(track);
+        }
       }
 
       return this.localStream;
     } catch (error) {
       console.error('Failed to initialize media:', error);
-      throw new Error('Could not access camera or microphone');
+      throw new Error('Could not access camera or microphone. Please check permissions and try again.');
     }
   }
 
@@ -583,15 +610,130 @@ class RoomService {
   }
 
   /**
-   * Toggle audio
+   * Mediasoup SFU Methods
    */
-  toggleAudio(): boolean {
-    if (this.localStream) {
-      const audioTrack = this.localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        return audioTrack.enabled;
+  private async initializeDevice(rtpCapabilities: any): Promise<void> {
+    try {
+      this.device = new mediasoup.Device();
+      await this.device.load({ rtpCapabilities });
+    } catch (error) {
+      console.error('Failed to initialize mediasoup device:', error);
+      throw error;
+    }
+  }
+
+  private async createSendTransport(roomId: string): Promise<void> {
+    if (!this.socket || !this.device) return;
+
+    return new Promise((resolve, reject) => {
+      this.socket!.emit('sfu:createWebRtcTransport', { roomId }, async (data: any) => {
+        if (data.error) return reject(new Error(data.error));
+
+        this.sendTransport = this.device!.createSendTransport(data);
+
+        this.sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+          this.socket!.emit('sfu:connectWebRtcTransport', { roomId, transportId: this.sendTransport!.id, dtlsParameters }, (res: any) => {
+            if (res.error) errback(res.error);
+            else callback();
+          });
+        });
+
+        this.sendTransport.on('produce', ({ kind, rtpParameters, appData }, callback, errback) => {
+          this.socket!.emit('sfu:produce', { roomId, transportId: this.sendTransport!.id, kind, rtpParameters }, (res: any) => {
+            if (res.error) errback(res.error);
+            else callback({ id: res.id });
+          });
+        });
+
+        resolve();
+      });
+    });
+  }
+
+  private async createRecvTransport(roomId: string): Promise<void> {
+    if (!this.socket || !this.device) return;
+
+    return new Promise((resolve, reject) => {
+      this.socket!.emit('sfu:createWebRtcTransport', { roomId }, async (data: any) => {
+        if (data.error) return reject(new Error(data.error));
+
+        this.recvTransport = this.device!.createRecvTransport(data);
+
+        this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+          this.socket!.emit('sfu:connectWebRtcTransport', { roomId, transportId: this.recvTransport!.id, dtlsParameters }, (res: any) => {
+            if (res.error) errback(res.error);
+            else callback();
+          });
+        });
+
+        resolve();
+      });
+    });
+  }
+
+  private async consumeProducer(producerId: string, producerUserId: string): Promise<void> {
+    if (!this.socket || !this.recvTransport || !this.device || !this.currentRoomId) return;
+    if (this.consumedProducerIds.has(producerId)) return;
+
+    this.socket.emit('sfu:consume', {
+      roomId: this.currentRoomId,
+      transportId: this.recvTransport.id,
+      producerId,
+      rtpCapabilities: this.device.rtpCapabilities
+    }, async (data: any) => {
+      if (data.error) return console.error('Consume error:', data.error);
+
+      const consumer = await this.recvTransport!.consume(data);
+      this.consumers.set(consumer.id, consumer);
+      this.consumedProducerIds.add(producerId);
+
+      consumer.on('transportclose', () => {
+        this.consumedProducerIds.delete(producerId);
+      });
+      consumer.on('producerclose', () => {
+        this.consumedProducerIds.delete(producerId);
+      });
+
+      const existingStream = this.remoteStreams.get(producerUserId);
+      const stream = existingStream || new MediaStream();
+      stream.addTrack(consumer.track);
+      this.remoteStreams.set(producerUserId, stream);
+
+      const existingPeer = this.peerConnections.get(producerUserId);
+      this.peerConnections.set(producerUserId, {
+        userId: producerUserId,
+        connection: existingPeer?.connection || ({} as RTCPeerConnection),
+        stream,
+        isConnected: true
+      });
+
+      this.notifyPeerConnectionsUpdated();
+      this.socket!.emit('sfu:resumeConsumer', { roomId: this.currentRoomId!, consumerId: consumer.id });
+    });
+  }
+  async toggleAudio(): Promise<boolean> {
+    if (!this.localStream) {
+      // Try to initialize media if not already done
+      try {
+        await this.initializeMedia(true, false);
+      } catch (error) {
+        console.error('Failed to initialize media for audio:', error);
+        return false;
       }
+    }
+
+    const audioTrack = this.localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      
+      // SFU Pause/Resume
+      const producer = this.producers.get('audio');
+      if (producer) {
+        if (audioTrack.enabled) producer.resume().catch(console.error);
+        else producer.pause().catch(console.error);
+      }
+      
+      return audioTrack.enabled;
     }
     return false;
   }
@@ -605,32 +747,25 @@ class RoomService {
       return true;
     }
 
-    const videoTrack = this.localStream.getVideoTracks()[0];
-    if (videoTrack) {
+    let videoTrack = this.localStream.getVideoTracks()[0];
+    if (!videoTrack) {
+      // Try to get a new video track
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoTrack = stream.getVideoTracks()[0];
+      this.localStream.addTrack(videoTrack);
+      if (this.isInCall) await this.produceTrack(videoTrack);
+    } else {
       videoTrack.enabled = !videoTrack.enabled;
-      return videoTrack.enabled;
-    }
-
-    try {
-      const screen = await navigator.mediaDevices.getUserMedia({ video: true });
-      const newVideoTrack = screen.getVideoTracks()[0];
-      if (newVideoTrack) {
-        this.localStream.addTrack(newVideoTrack);
-        await this.synchronizeLocalStreamToPeers();
-
-        if (this.currentRoomId) {
-          for (const userId of this.peerConnections.keys()) {
-            await this.renegotiatePeerConnection(userId);
-          }
-        }
-
-        return true;
+      
+      // SFU Pause/Resume
+      const producer = this.producers.get('video');
+      if (producer) {
+        if (videoTrack.enabled) producer.resume().catch(console.error);
+        else producer.pause().catch(console.error);
       }
-    } catch (error) {
-      console.error('Failed to add video track:', error);
     }
 
-    return false;
+    return videoTrack?.enabled || false;
   }
 
   /**
@@ -638,9 +773,55 @@ class RoomService {
    */
   async joinCall(roomId: string): Promise<void> {
     if (!this.socket) throw new Error('WebSocket not connected');
-
     this.currentRoomId = roomId;
-    this.socket.emit('webrtc:join-call', { roomId });
+
+    return new Promise((resolve, reject) => {
+      this.socket!.emit('sfu:getRouterRtpCapabilities', { roomId }, async (data: any) => {
+        if (data.error) return reject(new Error(data.error));
+
+        try {
+          await this.initializeDevice(data.rtpCapabilities);
+          await this.createSendTransport(roomId);
+          await this.createRecvTransport(roomId);
+
+          this.isInCall = true;
+          this.socket!.emit('webrtc:join-call', { roomId });
+
+          // Discover and consume existing producers for late joiner
+          this.socket!.emit('sfu:getProducers', { roomId }, async (res: any) => {
+            if (res.producers && Array.isArray(res.producers)) {
+              for (const producer of res.producers) {
+                if (producer.userId !== this.getCurrentUserId()) {
+                  await this.consumeProducer(producer.id, producer.userId);
+                }
+              }
+            }
+          });
+
+          // Produce existing tracks if any
+          if (this.localStream) {
+            for (const track of this.localStream.getTracks()) {
+              await this.produceTrack(track);
+            }
+          }
+
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  private async produceTrack(track: MediaStreamTrack): Promise<void> {
+    if (!this.sendTransport || track.readyState === 'ended') return;
+
+    try {
+      const producer = await this.sendTransport.produce({ track });
+      this.producers.set(track.kind, producer);
+    } catch (error) {
+      console.error(`Failed to produce ${track.kind} track:`, error);
+    }
   }
 
   /**
@@ -649,9 +830,26 @@ class RoomService {
   async leaveCall(roomId: string): Promise<void> {
     if (!this.socket) throw new Error('WebSocket not connected');
 
-    // Close all peer connections
+    // Close Mediasoup transports
+    if (this.sendTransport) {
+      this.sendTransport.close();
+      this.sendTransport = null;
+    }
+    if (this.recvTransport) {
+      this.recvTransport.close();
+      this.recvTransport = null;
+    }
+
+    // Clear state
+    this.producers.clear();
+    this.consumers.clear();
+    this.consumedProducerIds.clear();
+    this.remoteStreams.clear();
+    this.device = null;
+
+    // Close all peer connections (legacy for P2P cleanup)
     this.peerConnections.forEach(peer => {
-      peer.connection.close();
+      if (peer.connection?.close) peer.connection.close();
     });
     this.peerConnections.clear();
     this.pendingIceCandidates.clear();

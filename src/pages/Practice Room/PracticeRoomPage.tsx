@@ -65,6 +65,20 @@ const PracticeRoomPage = () => {
   // Derived values
   const isHost = room?.hostId === user?.id;
   const isParticipant = room?.participants.some(p => p.userId === user?.id);
+  const activeRemoteParticipants = participants.filter((participant) => {
+    if (participant.userId === user?.id) return false;
+    const stream = peerConnections.get(participant.userId)?.stream;
+    return Boolean(stream?.getTracks().some((track) => track.readyState === 'live'));
+  }).length;
+  const connectionBadgeLabel = isMediaInitializing
+    ? 'Connecting media...'
+    : isInCall
+      ? activeRemoteParticipants > 0
+        ? `Connected to ${activeRemoteParticipants} peer${activeRemoteParticipants === 1 ? '' : 's'}`
+        : 'Connected'
+      : localStream
+        ? 'Media Ready'
+        : 'Not connected';
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -237,32 +251,26 @@ const PracticeRoomPage = () => {
     const initializeRealtimeMedia = async () => {
       try {
         setIsMediaInitializing(true);
-        const stream = await roomService.initializeMedia(true, true);
-
-        // Request permission on room join, but start with mic/video off for privacy.
-        stream.getAudioTracks().forEach((track) => {
-          track.enabled = false;
-        });
-        stream.getVideoTracks().forEach((track) => {
-          track.enabled = false;
-        });
-
-        if (!isMounted) return;
-
-        setLocalStream(stream);
-        setIsMicOn(false);
-        setIsVideoOn(false);
-
+        console.log('[Room] Starting SFU connection...');
+        
         await roomService.joinCall(roomId);
+        
         if (!isMounted) return;
+        
+        console.log('[Room] SFU connection successful');
         setIsInCall(true);
+        setLocalStream(roomService.getLocalStream());
+        
+        // Get existing peer connections
+        const connections = roomService.getAllPeerConnections();
+        setPeerConnections(new Map(connections));
       } catch (error: any) {
-        console.error('Failed to initialize room media:', error);
+        console.error('[Room] Failed to join call:', error);
         hasInitializedRealtimeRef.current = false;
         if (isMounted) {
           toast({
-            title: "Camera/Mic permission required",
-            description: "Please allow microphone and camera access to use realtime room controls.",
+            title: "Failed to join call",
+            description: "Unable to connect to the room. Please try refreshing the page.",
             variant: "destructive",
           });
         }
@@ -384,14 +392,44 @@ const PracticeRoomPage = () => {
     }
   };
 
-  const handleToggleMic = () => {
-    const nextState = roomService.toggleAudio();
-    setIsMicOn(nextState);
+  const handleToggleMic = async () => {
+    try {
+      const nextState = await roomService.toggleAudio();
+      setIsMicOn(nextState);
+      
+      // Update local stream if it was initialized
+      const stream = roomService.getLocalStream();
+      if (stream && !localStream) {
+        setLocalStream(stream);
+      }
+    } catch (error) {
+      console.error('Failed to toggle mic:', error);
+      toast({
+        title: "Microphone Error",
+        description: "Failed to toggle microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleToggleVideo = () => {
-    const nextState = roomService.toggleVideo();
-    setIsVideoOn(nextState);
+  const handleToggleVideo = async () => {
+    try {
+      const nextState = await roomService.toggleVideo();
+      setIsVideoOn(nextState);
+      
+      // Update local stream if it was initialized
+      const stream = roomService.getLocalStream();
+      if (stream && !localStream) {
+        setLocalStream(stream);
+      }
+    } catch (error) {
+      console.error('Failed to toggle video:', error);
+      toast({
+        title: "Camera Error",
+        description: "Failed to toggle camera. Please check permissions.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleToggleSpeaker = () => {
@@ -502,7 +540,7 @@ const PracticeRoomPage = () => {
                 isInCall ? "bg-emerald-600/20 text-emerald-200 border-emerald-500/30" : "bg-amber-600/20 text-amber-200 border-amber-500/30"
               )}
             >
-              {isMediaInitializing ? "Connecting media..." : isInCall ? "Realtime Ready" : "Not Connected"}
+              {connectionBadgeLabel}
             </Badge>
           )}
 
@@ -598,6 +636,20 @@ const PracticeRoomPage = () => {
                           </AvatarFallback>
                         </Avatar>
                       </div>
+                    )}
+
+                    {!isLocalParticipant && stream && (
+                      <audio
+                        ref={(element) => {
+                          if (element && element.srcObject !== stream) {
+                            element.srcObject = stream;
+                          }
+                        }}
+                        autoPlay
+                        playsInline
+                        muted={!isSpeakerOn}
+                        className="hidden"
+                      />
                     )}
 
                     {/* Speaking Indicator */}
@@ -696,7 +748,7 @@ const PracticeRoomPage = () => {
             variant={isMicOn ? "default" : "destructive"}
             size="lg"
             onClick={handleToggleMic}
-            disabled={!isInCall || isMediaInitializing}
+            disabled={isMediaInitializing}
             className="rounded-full h-12 w-12 p-0"
           >
             {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
@@ -707,7 +759,7 @@ const PracticeRoomPage = () => {
             variant={isVideoOn ? "default" : "destructive"}
             size="lg"
             onClick={handleToggleVideo}
-            disabled={!isInCall || isMediaInitializing}
+            disabled={isMediaInitializing}
             className="rounded-full h-12 w-12 p-0"
           >
             {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
