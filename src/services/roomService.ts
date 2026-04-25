@@ -1,6 +1,7 @@
 /**
  * Practice Room Service
- * Handles API calls to the backend for room management
+ * Handles API calls to the backend for room management.
+ * Media is exclusively handled via Mediasoup SFU.
  */
 
 import axios from 'axios';
@@ -10,8 +11,14 @@ import { Device, Transport, Producer, Consumer } from 'mediasoup-client/lib/type
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Industry-standard: SFU URL from env, never hardcoded
+const SFU_URL = import.meta.env.VITE_SFU_URL || 'http://localhost:3001';
+
+// ─── Public Interfaces ──────────────────────────────────────────────────────
+
 export interface RoomDetails {
   roomId: string;
+  roomCode?: string;     // Only visible to host for private rooms
   topic: string;
   description?: string;
   hostId: string;
@@ -22,6 +29,7 @@ export interface RoomDetails {
   createdAt: string;
   participantCount: number;
   isFull: boolean;
+  sfuUrl?: string;
 }
 
 export interface CreateRoomData {
@@ -51,606 +59,411 @@ export interface RoomParticipant {
   isHandRaised?: boolean;
 }
 
-export interface WebRTCOffer {
-  roomId: string;
-  targetUserId: string;
-  offer: RTCSessionDescriptionInit;
-}
-
-export interface WebRTCAnswer {
-  roomId: string;
-  targetUserId: string;
-  answer: RTCSessionDescriptionInit;
-}
-
-export interface WebRTCIceCandidate {
-  roomId: string;
-  targetUserId: string;
-  candidate: RTCIceCandidateInit;
-}
-
+/**
+ * Represents a remote peer in the SFU room.
+ * `stream` holds all MediaStreamTracks consumed from the SFU for that user.
+ */
 export interface PeerConnection {
   userId: string;
-  connection: RTCPeerConnection;
-  stream?: MediaStream;
+  stream: MediaStream;
   isConnected: boolean;
 }
 
+// ─── RoomService Class ───────────────────────────────────────────────────────
+
 class RoomService {
+  // ── Signaling sockets ──
+  /** Backend signaling socket (room events, chat, presence) */
   private socket: Socket | null = null;
-  private roomMessageCallbacks: ((message: RoomMessage) => void)[] = [];
+  /** Dedicated SFU signaling socket (WebRTC negotiation) */
+  private sfuSocket: Socket | null = null;
+
+  // ── Room event callbacks ──
+  private roomMessageCallbacks: ((msg: RoomMessage) => void)[] = [];
   private roomUserJoinedCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
   private roomUserLeftCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
   private roomClosedCallbacks: ((data: { roomId: string }) => void)[] = [];
 
-  // WebRTC related
-  private peerConnections: Map<string, PeerConnection> = new Map();
-  private localStream: MediaStream | null = null;
-  private isInCall = false;
-  private currentRoomId: string | null = null;
-  private pendingIceCandidates: Map<string, RTCIceCandidateInit[]> = new Map();
-
-  // Mediasoup SFU related
+  // ── SFU / media state ──
   private device: Device | null = null;
   private sendTransport: Transport | null = null;
   private recvTransport: Transport | null = null;
-  private producers: Map<string, Producer> = new Map();
-  private consumers: Map<string, Consumer> = new Map();
-  private remoteStreams: Map<string, MediaStream> = new Map();
+  private producers: Map<string, Producer> = new Map(); // keyed by track.kind
+  private consumers: Map<string, Consumer> = new Map(); // keyed by consumer.id
   private consumedProducerIds: Set<string> = new Set();
 
-  // WebRTC event callbacks
-  private webrtcUserJoinedCallCallbacks: ((data: { roomId: string; userId: string; existingParticipants?: string[] }) => void)[] = [];
-  private webrtcUserLeftCallCallbacks: ((data: { roomId: string; userId: string; reason?: string }) => void)[] = [];
-  private webrtcOfferCallbacks: ((data: { roomId: string; fromUserId: string; offer: RTCSessionDescriptionInit }) => void)[] = [];
-  private webrtcAnswerCallbacks: ((data: { roomId: string; fromUserId: string; answer: RTCSessionDescriptionInit }) => void)[] = [];
-  private webrtcIceCandidateCallbacks: ((data: { roomId: string; fromUserId: string; candidate: RTCIceCandidateInit }) => void)[] = [];
-  private webrtcCallStartedCallbacks: ((data: { roomId: string; initiatorUserId: string }) => void)[] = [];
-  private webrtcCallEndedCallbacks: ((data: { roomId: string; endedByUserId: string }) => void)[] = [];
-  private peerConnectionUpdatedCallbacks: ((connections: Map<string, PeerConnection>) => void)[] = [];
+  private localStream: MediaStream | null = null;
+  private isInCall = false;
+  private currentRoomId: string | null = null;
+  private dynamicSfuUrl: string | null = null;
 
   /**
-   * Get authorization token
+   * Remote peers: userId → { userId, stream, isConnected }
+   * The stream is always a NEW MediaStream object when tracks change so that
+   * React / HTMLVideoElement srcObject ref-checks fire correctly.
    */
+  private peerConnections: Map<string, PeerConnection> = new Map();
+
+  // ── Peer connection update callbacks ──
+  private peerConnectionUpdatedCallbacks: ((connections: Map<string, PeerConnection>) => void)[] = [];
+
+  // ── WebRTC user-joined/left call callbacks (for UI participant badges) ──
+  private webrtcUserJoinedCallCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
+  private webrtcUserLeftCallCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Utilities
+  // ────────────────────────────────────────────────────────────────────────────
+
   private getAuthToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return localStorage.getItem('accessToken') || localStorage.getItem('token');
   }
 
   getCurrentUserId(): string | null {
     const token = this.getAuthToken();
     if (!token) return null;
-
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.userId || payload.id || payload.sub || null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
 
-  private normalizeSocketPayload<T>(payload: any): T {
-    if (payload && typeof payload === 'object' && 'data' in payload) {
-      return payload.data as T;
-    }
-    return payload as T;
-  }
-
   private notifyPeerConnectionsUpdated(): void {
-    this.peerConnectionUpdatedCallbacks.forEach((callback) => callback(this.peerConnections));
+    this.peerConnectionUpdatedCallbacks.forEach(cb => cb(this.peerConnections));
   }
 
-  private getRtcConfiguration(): RTCConfiguration {
-    const customIceServers = import.meta.env.VITE_WEBRTC_ICE_SERVERS;
-    let iceServers: RTCIceServer[] = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-    ];
+  // ────────────────────────────────────────────────────────────────────────────
+  // Backend REST API
+  // ────────────────────────────────────────────────────────────────────────────
 
-    if (customIceServers) {
-      try {
-        const parsedServers = JSON.parse(customIceServers);
-        if (Array.isArray(parsedServers) && parsedServers.length > 0) {
-          iceServers = parsedServers;
-        }
-      } catch (error) {
-        console.warn('Invalid VITE_WEBRTC_ICE_SERVERS format. Using default STUN servers.');
-      }
-    }
-
-    return {
-      iceServers,
-      iceCandidatePoolSize: 10,
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-    };
-  }
-
-  private queuePendingIceCandidate(userId: string, candidate: RTCIceCandidateInit): void {
-    const queue = this.pendingIceCandidates.get(userId) || [];
-    queue.push(candidate);
-    this.pendingIceCandidates.set(userId, queue);
-  }
-
-  private async flushPendingIceCandidates(userId: string): Promise<void> {
-    const peer = this.peerConnections.get(userId);
-    if (!peer || !peer.connection.remoteDescription) return;
-
-    const queue = this.pendingIceCandidates.get(userId);
-    if (!queue || queue.length === 0) return;
-
-    for (const candidate of queue) {
-      try {
-        await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (error) {
-        console.error('Failed to flush ICE candidate:', error);
-      }
-    }
-
-    this.pendingIceCandidates.delete(userId);
-  }
-
-  private isPeerConnectionClosed(peer: PeerConnection): boolean {
-    return peer.connection.signalingState === 'closed' || peer.connection.iceConnectionState === 'closed';
-  }
-
-  private async updatePeerConnectionTracks(peer: PeerConnection): Promise<void> {
-    if (!this.localStream || this.isPeerConnectionClosed(peer)) return;
-
-    const tracks = this.localStream.getTracks();
-    for (const track of tracks) {
-      const sender = peer.connection.getSenders().find(s => s.track?.kind === track.kind);
-      try {
-        if (sender) {
-          await sender.replaceTrack(track);
-        } else {
-          peer.connection.addTrack(track, this.localStream);
-        }
-      } catch (error) {
-        console.error('Failed to update peer track:', error);
-      }
-    }
-  }
-
-  private async synchronizeLocalStreamToPeers(): Promise<void> {
-    if (!this.localStream) return;
-
-    for (const peer of this.peerConnections.values()) {
-      await this.updatePeerConnectionTracks(peer);
-    }
-  }
-
-  private async renegotiatePeerConnection(userId: string): Promise<void> {
-    const peer = this.peerConnections.get(userId);
-    if (!peer || !this.socket || !this.currentRoomId || this.isPeerConnectionClosed(peer)) return;
-
-    try {
-      const offer = await peer.connection.createOffer();
-      await peer.connection.setLocalDescription(offer);
-
-      this.socket.emit('webrtc:offer', {
-        roomId: this.currentRoomId,
-        targetUserId: userId,
-        offer,
-      });
-    } catch (error) {
-      console.error('Failed to renegotiate peer connection:', error);
-    }
-  }
-
-  /**
-   * Create a new practice room
-   */
   async createRoom(data: CreateRoomData = {}): Promise<RoomDetails> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await axios.post(`${API_URL}/rooms`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    if (!token) throw new Error('Authentication required');
+    const res = await axios.post(`${API_URL}/rooms`, data, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-
-    return response.data.data;
+    if (res.data.data?.sfuUrl) this.dynamicSfuUrl = res.data.data.sfuUrl;
+    return res.data.data;
   }
 
-  /**
-   * Join an existing room
-   */
-  async joinRoom(roomId: string): Promise<RoomDetails> {
+  async joinRoom(roomId: string, roomCode?: string): Promise<RoomDetails> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await axios.post(`${API_URL}/rooms/${roomId}/join`, {}, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    return response.data.data;
+    if (!token) throw new Error('Authentication required');
+    const res = await axios.post(`${API_URL}/rooms/${roomId}/join`,
+      roomCode ? { roomCode } : {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.data.data?.sfuUrl) this.dynamicSfuUrl = res.data.data.sfuUrl;
+    return res.data.data;
   }
 
-  /**
-   * Leave a room
-   */
   async leaveRoom(roomId: string): Promise<RoomDetails> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await axios.post(`${API_URL}/rooms/${roomId}/leave`, {}, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    if (!token) throw new Error('Authentication required');
+    const res = await axios.post(`${API_URL}/rooms/${roomId}/leave`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-
-    return response.data.data;
+    return res.data.data;
   }
 
-  /**
-   * Get room details
-   */
   async getRoomDetails(roomId: string): Promise<RoomDetails | null> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
+    if (!token) throw new Error('Authentication required');
     try {
-      const response = await axios.get(`${API_URL}/rooms/${roomId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await axios.get(`${API_URL}/rooms/${roomId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      return response.data.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        return null;
-      }
-      throw error;
+      if (res.data.data?.sfuUrl) this.dynamicSfuUrl = res.data.data.sfuUrl;
+      return res.data.data;
+    } catch (err: any) {
+      if (err.response?.status === 404) return null;
+      throw err;
     }
   }
 
-  /**
-   * Get user's rooms
-   */
   async getUserRooms(): Promise<RoomDetails[]> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await axios.get(`${API_URL}/rooms/my-rooms`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    if (!token) throw new Error('Authentication required');
+    const res = await axios.get(`${API_URL}/rooms/my-rooms`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-
-    return response.data.data;
+    return res.data.data;
   }
 
-  /**
-   * Get all active non-private rooms
-   */
   async getActiveRooms(): Promise<RoomDetails[]> {
-    const response = await axios.get(`${API_URL}/rooms/active`);
-
-    return response.data.data;
+    const res = await axios.get(`${API_URL}/rooms/active`);
+    return res.data.data;
   }
 
-  /**
-   * Close a room (host only)
-   */
   async closeRoom(roomId: string): Promise<RoomDetails> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await axios.post(`${API_URL}/rooms/${roomId}/close`, {}, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    if (!token) throw new Error('Authentication required');
+    const res = await axios.post(`${API_URL}/rooms/${roomId}/close`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
     });
-
-    return response.data.data;
+    return res.data.data;
   }
 
-  /**
-   * Initialize WebSocket connection
-   */
+  async startCall(roomId: string): Promise<void> {
+    const token = this.getAuthToken();
+    if (!token) throw new Error('Authentication required');
+    await axios.post(`${API_URL}/rooms/${roomId}/start-call`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async endCall(roomId: string): Promise<void> {
+    const token = this.getAuthToken();
+    if (!token) throw new Error('Authentication required');
+    await axios.post(`${API_URL}/rooms/${roomId}/end-call`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getCallParticipants(roomId: string): Promise<string[]> {
+    const token = this.getAuthToken();
+    if (!token) throw new Error('Authentication required');
+    const res = await axios.get(`${API_URL}/rooms/${roomId}/call-participants`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.data.data;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Backend Signaling Socket (room events, chat, presence)
+  // ────────────────────────────────────────────────────────────────────────────
+
   initializeSocket(): void {
     const token = this.getAuthToken();
     if (!token) {
-      console.warn('No auth token available for WebSocket connection');
+      console.warn('[roomService] No auth token — skipping socket init');
       return;
     }
+    if (this.socket?.connected || this.socket?.active) return;
 
-    if (this.socket?.connected || this.socket?.active) {
-      return;
-    }
+    this.socket = io(
+      import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+      { auth: { token }, transports: ['websocket', 'polling'] }
+    );
 
-    this.socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
-      auth: {
-        token,
-      },
-      transports: ['websocket', 'polling'],
-    });
-
-    this.setupSocketEventHandlers();
+    this.setupBackendSocketHandlers();
   }
 
-  /**
-   * Disconnect WebSocket
-   */
   disconnectSocket(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
+    this.socket?.disconnect();
+    this.socket = null;
   }
 
-  /**
-   * Setup WebSocket event handlers
-   */
-  private setupSocketEventHandlers(): void {
+  private setupBackendSocketHandlers(): void {
     if (!this.socket) return;
 
-    this.socket.on('connect', () => {
-      console.log('Connected to room WebSocket');
-    });
+    this.socket.on('connect', () => console.log('[roomService] Backend socket connected'));
+    this.socket.on('disconnect', () => console.log('[roomService] Backend socket disconnected'));
 
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from room WebSocket');
-    });
-
-    // Room events
     this.socket.on('room:user-joined', (data: { roomId: string; userId: string }) => {
-      this.roomUserJoinedCallbacks.forEach(callback => callback(data));
+      this.roomUserJoinedCallbacks.forEach(cb => cb(data));
     });
-
     this.socket.on('room:user-left', (data: { roomId: string; userId: string }) => {
-      this.roomUserLeftCallbacks.forEach(callback => callback(data));
+      this.roomUserLeftCallbacks.forEach(cb => cb(data));
     });
-
-    this.socket.on('room:message', (message: RoomMessage) => {
-      this.roomMessageCallbacks.forEach(callback => callback(message));
+    this.socket.on('room:message', (msg: RoomMessage) => {
+      this.roomMessageCallbacks.forEach(cb => cb(msg));
     });
-
     this.socket.on('room:closed', (data: { roomId: string }) => {
-      this.roomClosedCallbacks.forEach(callback => callback(data));
+      this.roomClosedCallbacks.forEach(cb => cb(data));
+    });
+    this.socket.on('room:error', (err: any) => {
+      console.error('[roomService] Room error:', err);
     });
 
-    this.socket.on('room:error', (error: any) => {
-      console.error('Room WebSocket error:', error);
+    // Participant call presence updates (for UI badges only)
+    this.socket.on('webrtc:user-joined-call', (data: { roomId: string; userId: string }) => {
+      this.webrtcUserJoinedCallCallbacks.forEach(cb => cb(data));
     });
-
-    // WebRTC events
-    this.socket.on('webrtc:offer', (payload: any) => {
-      const data = this.normalizeSocketPayload<{ roomId: string; fromUserId: string; offer: RTCSessionDescriptionInit }>(payload);
-      this.webrtcOfferCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:answer', (payload: any) => {
-      const data = this.normalizeSocketPayload<{ roomId: string; fromUserId: string; answer: RTCSessionDescriptionInit }>(payload);
-      this.webrtcAnswerCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:ice-candidate', (payload: any) => {
-      const data = this.normalizeSocketPayload<{ roomId: string; fromUserId: string; candidate: RTCIceCandidateInit }>(payload);
-      this.webrtcIceCandidateCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:user-joined-call', (data: { roomId: string; userId: string; existingParticipants?: string[] }) => {
-      this.webrtcUserJoinedCallCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:user-left-call', (data: { roomId: string; userId: string; reason?: string }) => {
-      this.webrtcUserLeftCallCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:call-started', (data: { roomId: string; initiatorUserId: string }) => {
-      this.webrtcCallStartedCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:call-ended', (data: { roomId: string; endedByUserId: string }) => {
-      this.webrtcCallEndedCallbacks.forEach(callback => callback(data));
-    });
-
-    this.socket.on('webrtc:call-joined', (data: { roomId: string; userId: string; existingParticipants?: string[] }) => {
-      this.isInCall = true;
-      // Existing participants will initiate offer via `webrtc:user-joined-call`
-      // The joiner does not need to create duplicate offers.
-    });
-
-    this.socket.on('webrtc:call-left', (data: { roomId: string; userId: string }) => {
-      // Close peer connection for this user
-      const peer = this.peerConnections.get(data.userId);
-      if (peer) {
-        peer.connection.close();
-        this.peerConnections.delete(data.userId);
-        this.pendingIceCandidates.delete(data.userId);
-        this.notifyPeerConnectionsUpdated();
-      }
-    });
-
-    this.socket.on('webrtc:error', (error: any) => {
-      console.error('WebRTC error:', error);
-    });
-
-    // Mediasoup SFU events
-    this.socket.on('sfu:new-producer', async (data: { producerId: string; producerUserId: string; kind: 'audio' | 'video' }) => {
-      console.log('📡 New producer in room:', data);
-      await this.consumeProducer(data.producerId, data.producerUserId);
+    this.socket.on('webrtc:user-left-call', (data: { roomId: string; userId: string }) => {
+      this.webrtcUserLeftCallCallbacks.forEach(cb => cb(data));
     });
   }
 
-  /**
-   * Join room via WebSocket
-   */
   joinRoomSocket(roomId: string): void {
-    if (this.socket) {
-      this.socket.emit('room:join', { roomId });
-    }
+    this.socket?.emit('room:join', { roomId });
   }
 
-  /**
-   * Leave room via WebSocket
-   */
   leaveRoomSocket(roomId: string): void {
-    if (this.socket) {
-      this.socket.emit('room:leave', { roomId });
-    }
+    this.socket?.emit('room:leave', { roomId });
   }
 
-  /**
-   * Send message to room via WebSocket
-   */
   sendRoomMessage(roomId: string, message: any): void {
-    if (this.socket) {
-      this.socket.emit('room:message', { roomId, message });
-    }
+    this.socket?.emit('room:message', { roomId, message });
   }
 
-  /**
-   * Event subscription methods
-   */
-  onRoomMessage(callback: (message: RoomMessage) => void): () => void {
-    this.roomMessageCallbacks.push(callback);
-    return () => {
-      const index = this.roomMessageCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.roomMessageCallbacks.splice(index, 1);
-      }
-    };
-  }
+  // ────────────────────────────────────────────────────────────────────────────
+  // SFU Socket (Mediasoup negotiation — dedicated connection to SFU server)
+  // ────────────────────────────────────────────────────────────────────────────
 
-  onRoomUserJoined(callback: (data: { roomId: string; userId: string }) => void): () => void {
-    this.roomUserJoinedCallbacks.push(callback);
-    return () => {
-      const index = this.roomUserJoinedCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.roomUserJoinedCallbacks.splice(index, 1);
-      }
-    };
-  }
+  private connectToSFU(): Promise<void> {
+    if (this.sfuSocket?.connected) return Promise.resolve();
 
-  onRoomUserLeft(callback: (data: { roomId: string; userId: string }) => void): () => void {
-    this.roomUserLeftCallbacks.push(callback);
-    return () => {
-      const index = this.roomUserLeftCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.roomUserLeftCallbacks.splice(index, 1);
-      }
-    };
-  }
+    const token = this.getAuthToken();
+    if (!token) return Promise.reject(new Error('Authentication required for SFU'));
 
-  onRoomClosed(callback: (data: { roomId: string }) => void): () => void {
-    this.roomClosedCallbacks.push(callback);
-    return () => {
-      const index = this.roomClosedCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.roomClosedCallbacks.splice(index, 1);
-      }
-    };
-  }
+    this.sfuSocket?.disconnect();
 
-  // ============ WebRTC Methods ============
+    const targetSfuUrl = this.dynamicSfuUrl || SFU_URL;
 
-  /**
-   * Initialize user media (camera/microphone)
-   */
-  async initializeMedia(audio: boolean = true, video: boolean = false): Promise<MediaStream> {
-    try {
-      const constraints: MediaStreamConstraints = {
-        audio: audio ? {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        } : false,
-        video: video ? {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
-        } : false,
-      };
+    this.sfuSocket = io(targetSfuUrl, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      forceNew: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
-      // Add timeout to prevent hanging on permission prompt
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Media access timeout - please check permissions')), 5000);
+    this.setupSFUSocketHandlers();
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`SFU connection timeout. Is SFU running at ${targetSfuUrl}?`));
+      }, 12000);
+
+      this.sfuSocket!.once('connect', () => {
+        clearTimeout(timeout);
+        console.log(`[roomService] SFU socket connected: ${targetSfuUrl}`);
+        resolve();
       });
 
-      this.localStream = await Promise.race([
-        navigator.mediaDevices.getUserMedia(constraints),
-        timeoutPromise
-      ]);
+      this.sfuSocket!.once('connect_error', (err) => {
+        clearTimeout(timeout);
+        console.error('[roomService] SFU connect_error:', err.message);
+        reject(new Error(`SFU connection failed: ${err.message}`));
+      });
+    });
+  }
 
-      if (this.isInCall && this.sendTransport) {
-        for (const track of this.localStream.getTracks()) {
-          await this.produceTrack(track);
+  disconnectSFU(): void {
+    this.sfuSocket?.disconnect();
+    this.sfuSocket = null;
+  }
+
+  private setupSFUSocketHandlers(): void {
+    if (!this.sfuSocket) return;
+
+    this.sfuSocket.off('sfu:new-producer');
+    this.sfuSocket.off('sfu:producer-closed');
+
+    this.sfuSocket.on(
+      'sfu:new-producer',
+      (data: { producerId: string; producerUserId: string; kind: string }) => {
+        console.log('[SFU] new-producer:', data);
+        if (data.producerUserId !== this.getCurrentUserId()) {
+          this.consumeProducer(data.producerId, data.producerUserId).catch(err =>
+            console.error('[SFU] consumeProducer error:', err)
+          );
         }
       }
+    );
 
-      return this.localStream;
-    } catch (error) {
-      console.error('Failed to initialize media:', error);
-      throw new Error('Could not access camera or microphone. Please check permissions and try again.');
-    }
-  }
-
-  /**
-   * Stop user media
-   */
-  stopMedia(): void {
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
-      this.localStream = null;
-    }
-  }
-
-  /**
-   * Mediasoup SFU Methods
-   */
-  private async initializeDevice(rtpCapabilities: any): Promise<void> {
-    try {
-      if (!rtpCapabilities || typeof rtpCapabilities !== 'object' || Array.isArray(rtpCapabilities)) {
-        throw new Error(`Invalid router RTP capabilities payload: ${JSON.stringify(rtpCapabilities)}`);
+    this.sfuSocket.on(
+      'sfu:producer-closed',
+      (data: { producerId: string; producerUserId: string }) => {
+        console.log('[SFU] producer-closed:', data);
+        this.handleRemoteProducerClosed(data.producerId, data.producerUserId);
       }
+    );
+  }
 
-      this.device = new mediasoup.Device();
-      await this.device.load({ routerRtpCapabilities: rtpCapabilities });
-    } catch (error) {
-      console.error('Failed to initialize mediasoup device:', error);
-      throw error;
+  // ────────────────────────────────────────────────────────────────────────────
+  // Media Capture
+  // ────────────────────────────────────────────────────────────────────────────
+
+  async initializeMedia(audio = true, video = false): Promise<MediaStream> {
+    const constraints: MediaStreamConstraints = {
+      audio: audio
+        ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        : false,
+      video: video
+        ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+        : false,
+    };
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Media access timeout — check permissions')), 10000)
+    );
+
+    this.localStream = await Promise.race([
+      navigator.mediaDevices.getUserMedia(constraints),
+      timeout,
+    ]);
+
+    if (this.isInCall && this.sendTransport) {
+      for (const track of this.localStream.getTracks()) {
+        await this.produceTrack(track);
+      }
     }
+
+    return this.localStream;
+  }
+
+  stopMedia(): void {
+    this.localStream?.getTracks().forEach(t => t.stop());
+    this.localStream = null;
+  }
+
+  getLocalStream(): MediaStream | null {
+    return this.localStream;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Mediasoup Device + Transport creation
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private async initializeDevice(rtpCapabilities: any): Promise<void> {
+    if (!rtpCapabilities || typeof rtpCapabilities !== 'object' || Array.isArray(rtpCapabilities)) {
+      throw new Error(`Invalid routerRtpCapabilities: ${JSON.stringify(rtpCapabilities)}`);
+    }
+    this.device = new mediasoup.Device();
+    await this.device.load({ routerRtpCapabilities: rtpCapabilities });
+    console.log('[Mediasoup] Device loaded');
   }
 
   private async createSendTransport(roomId: string): Promise<void> {
-    if (!this.socket || !this.device) return;
+    if (!this.sfuSocket || !this.device) throw new Error('SFU socket or device not ready');
 
     return new Promise((resolve, reject) => {
-      this.socket!.emit('sfu:createWebRtcTransport', { roomId }, async (data: any) => {
-        if (data.error) return reject(new Error(data.error));
+      this.sfuSocket!.emit('sfu:createWebRtcTransport', { roomId }, (data: any) => {
+        if (data?.error) return reject(new Error(data.error));
+        try {
+          this.sendTransport = this.device!.createSendTransport(data);
+        } catch (err) {
+          return reject(err);
+        }
 
-        this.sendTransport = this.device!.createSendTransport(data);
-
-        this.sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-          this.socket!.emit('sfu:connectWebRtcTransport', { roomId, transportId: this.sendTransport!.id, dtlsParameters }, (res: any) => {
-            if (res.error) errback(res.error);
-            else callback();
-          });
+        this.sendTransport!.on('connect', ({ dtlsParameters }, callback, errback) => {
+          this.sfuSocket!.emit(
+            'sfu:connectWebRtcTransport',
+            { roomId, transportId: this.sendTransport!.id, dtlsParameters },
+            (res: any) => {
+              if (res?.error) errback(new Error(res.error));
+              else callback();
+            }
+          );
         });
 
-        this.sendTransport.on('produce', ({ kind, rtpParameters, appData }, callback, errback) => {
-          this.socket!.emit('sfu:produce', { roomId, transportId: this.sendTransport!.id, kind, rtpParameters }, (res: any) => {
-            if (res.error) errback(res.error);
-            else callback({ id: res.id });
-          });
+        this.sendTransport!.on('produce', ({ kind, rtpParameters }, callback, errback) => {
+          this.sfuSocket!.emit(
+            'sfu:produce',
+            { roomId, transportId: this.sendTransport!.id, kind, rtpParameters },
+            (res: any) => {
+              if (res?.error) errback(new Error(res.error));
+              else callback({ id: res.id });
+            }
+          );
+        });
+
+        this.sendTransport!.on('connectionstatechange', state => {
+          console.log(`[Mediasoup] Send transport: ${state}`);
         });
 
         resolve();
@@ -659,19 +472,30 @@ class RoomService {
   }
 
   private async createRecvTransport(roomId: string): Promise<void> {
-    if (!this.socket || !this.device) return;
+    if (!this.sfuSocket || !this.device) throw new Error('SFU socket or device not ready');
 
     return new Promise((resolve, reject) => {
-      this.socket!.emit('sfu:createWebRtcTransport', { roomId }, async (data: any) => {
-        if (data.error) return reject(new Error(data.error));
+      this.sfuSocket!.emit('sfu:createWebRtcTransport', { roomId }, (data: any) => {
+        if (data?.error) return reject(new Error(data.error));
+        try {
+          this.recvTransport = this.device!.createRecvTransport(data);
+        } catch (err) {
+          return reject(err);
+        }
 
-        this.recvTransport = this.device!.createRecvTransport(data);
+        this.recvTransport!.on('connect', ({ dtlsParameters }, callback, errback) => {
+          this.sfuSocket!.emit(
+            'sfu:connectWebRtcTransport',
+            { roomId, transportId: this.recvTransport!.id, dtlsParameters },
+            (res: any) => {
+              if (res?.error) errback(new Error(res.error));
+              else callback();
+            }
+          );
+        });
 
-        this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
-          this.socket!.emit('sfu:connectWebRtcTransport', { roomId, transportId: this.recvTransport!.id, dtlsParameters }, (res: any) => {
-            if (res.error) errback(res.error);
-            else callback();
-          });
+        this.recvTransport!.on('connectionstatechange', state => {
+          console.log(`[Mediasoup] Recv transport: ${state}`);
         });
 
         resolve();
@@ -679,536 +503,301 @@ class RoomService {
     });
   }
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Produce local tracks
+  // ────────────────────────────────────────────────────────────────────────────
+
+  private async produceTrack(track: MediaStreamTrack): Promise<void> {
+    if (!this.sendTransport || track.readyState === 'ended') return;
+    if (this.producers.has(track.kind)) return; // avoid duplicate producers
+
+    try {
+      const producer = await this.sendTransport.produce({ track });
+      this.producers.set(track.kind, producer);
+      console.log(`[Mediasoup] Producing ${track.kind}: ${producer.id}`);
+
+      producer.on('transportclose', () => this.producers.delete(track.kind));
+      producer.on('trackended', () => {
+        producer.close();
+        this.producers.delete(track.kind);
+      });
+    } catch (err) {
+      console.error(`[Mediasoup] Failed to produce ${track.kind}:`, err);
+      throw err;
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Consume remote tracks
+  // ────────────────────────────────────────────────────────────────────────────
+
   private async consumeProducer(producerId: string, producerUserId: string): Promise<void> {
-    if (!this.socket || !this.recvTransport || !this.device || !this.currentRoomId) return;
+    if (!this.sfuSocket || !this.recvTransport || !this.device || !this.currentRoomId) return;
     if (this.consumedProducerIds.has(producerId)) return;
 
-    this.socket.emit('sfu:consume', {
-      roomId: this.currentRoomId,
-      transportId: this.recvTransport.id,
-      producerId,
-      rtpCapabilities: this.device.rtpCapabilities
-    }, async (data: any) => {
-      if (data.error) return console.error('Consume error:', data.error);
+    return new Promise<void>((resolve) => {
+      this.sfuSocket!.emit(
+        'sfu:consume',
+        {
+          roomId: this.currentRoomId,
+          transportId: this.recvTransport!.id,
+          producerId,
+          rtpCapabilities: this.device!.rtpCapabilities,
+        },
+        async (data: any) => {
+          if (data?.error) {
+            console.error('[Mediasoup] Consume error:', data.error);
+            return resolve();
+          }
 
-      const consumer = await this.recvTransport!.consume(data);
-      this.consumers.set(consumer.id, consumer);
-      this.consumedProducerIds.add(producerId);
+          try {
+            const consumer: Consumer = await this.recvTransport!.consume(data);
+            this.consumers.set(consumer.id, consumer);
+            this.consumedProducerIds.add(producerId);
+            console.log(`[Mediasoup] Consumer: ${consumer.id} (${consumer.kind}) ← ${producerUserId}`);
 
-      consumer.on('transportclose', () => {
-        this.consumedProducerIds.delete(producerId);
-      });
-      consumer.on('producerclose', () => {
-        this.consumedProducerIds.delete(producerId);
-      });
+            consumer.on('transportclose', () => {
+              this.consumedProducerIds.delete(producerId);
+              this.consumers.delete(consumer.id);
+            });
+            consumer.on('producerclose', () => {
+              this.handleRemoteProducerClosed(producerId, producerUserId);
+            });
 
-      const existingStream = this.remoteStreams.get(producerUserId);
-      const stream = existingStream || new MediaStream();
-      stream.addTrack(consumer.track);
-      this.remoteStreams.set(producerUserId, stream);
+            // CRITICAL: always create a NEW MediaStream so React re-renders
+            const existingPeer = this.peerConnections.get(producerUserId);
+            const existingTracks = existingPeer ? existingPeer.stream.getTracks() : [];
+            const newStream = new MediaStream([...existingTracks, consumer.track]);
 
-      const existingPeer = this.peerConnections.get(producerUserId);
-      this.peerConnections.set(producerUserId, {
-        userId: producerUserId,
-        connection: existingPeer?.connection || ({} as RTCPeerConnection),
-        stream,
-        isConnected: true
-      });
+            this.peerConnections.set(producerUserId, {
+              userId: producerUserId,
+              stream: newStream,
+              isConnected: true,
+            });
+            this.notifyPeerConnectionsUpdated();
 
-      this.notifyPeerConnectionsUpdated();
-      this.socket!.emit('sfu:resumeConsumer', { roomId: this.currentRoomId!, consumerId: consumer.id });
+            // Resume consumer via SFU socket
+            this.sfuSocket!.emit(
+              'sfu:resumeConsumer',
+              { roomId: this.currentRoomId!, consumerId: consumer.id },
+              (res: any) => {
+                if (res?.error) console.error('[Mediasoup] Resume error:', res.error);
+                else console.log(`[Mediasoup] Consumer resumed: ${consumer.id}`);
+              }
+            );
+          } catch (err) {
+            console.error('[Mediasoup] Error setting up consumer:', err);
+          }
+          resolve();
+        }
+      );
     });
   }
-  async toggleAudio(): Promise<boolean> {
-    if (!this.localStream) {
-      // Try to initialize media if not already done
-      try {
-        await this.initializeMedia(true, false);
-      } catch (error) {
-        console.error('Failed to initialize media for audio:', error);
-        return false;
+
+  private handleRemoteProducerClosed(producerId: string, producerUserId: string): void {
+    this.consumedProducerIds.delete(producerId);
+
+    for (const [consumerId, consumer] of this.consumers.entries()) {
+      if ((consumer as any).producerId === producerId) {
+        consumer.close();
+        this.consumers.delete(consumerId);
+        break;
       }
     }
 
-    const audioTrack = this.localStream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      
-      // SFU Pause/Resume
-      const producer = this.producers.get('audio');
-      if (producer) {
-        try {
-          if (audioTrack.enabled) producer.resume();
-          else producer.pause();
-        } catch (error) {
-          console.error('Failed to toggle audio producer state:', error);
-        }
-      }
-      
-      return audioTrack.enabled;
-    }
-    return false;
-  }
+    const peer = this.peerConnections.get(producerUserId);
+    if (!peer) return;
 
-  /**
-   * Toggle video
-   */
-  async toggleVideo(): Promise<boolean> {
-    if (!this.localStream) {
-      await this.initializeMedia(true, true);
-      return true;
-    }
-
-    let videoTrack = this.localStream.getVideoTracks()[0];
-    if (!videoTrack) {
-      // Try to get a new video track
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoTrack = stream.getVideoTracks()[0];
-      this.localStream.addTrack(videoTrack);
-      if (this.isInCall) await this.produceTrack(videoTrack);
+    const remainingTracks = peer.stream.getTracks().filter(t => t.readyState === 'live');
+    if (remainingTracks.length === 0) {
+      this.peerConnections.delete(producerUserId);
     } else {
-      videoTrack.enabled = !videoTrack.enabled;
-      
-      // SFU Pause/Resume
-      const producer = this.producers.get('video');
-      if (producer) {
-        try {
-          if (videoTrack.enabled) producer.resume();
-          else producer.pause();
-        } catch (error) {
-          console.error('Failed to toggle video producer state:', error);
-        }
-      }
+      this.peerConnections.set(producerUserId, {
+        ...peer,
+        stream: new MediaStream(remainingTracks),
+      });
     }
-
-    return videoTrack?.enabled || false;
+    this.notifyPeerConnectionsUpdated();
   }
 
-  /**
-   * Join WebRTC call
-   */
+  // ────────────────────────────────────────────────────────────────────────────
+  // Join / Leave Call
+  // ────────────────────────────────────────────────────────────────────────────
+
   async joinCall(roomId: string): Promise<void> {
-    if (!this.socket) throw new Error('WebSocket not connected');
     this.currentRoomId = roomId;
 
+    // Step 1: Connect dedicated SFU socket (VITE_SFU_URL)
+    await this.connectToSFU();
+
     return new Promise((resolve, reject) => {
-      const negotiationTimeout = window.setTimeout(() => {
-        reject(new Error('Timed out while starting the SFU connection'));
-      }, 10000);
+      const timeout = setTimeout(() => reject(new Error('Timed out negotiating with SFU')), 15000);
 
-      this.socket!.emit('sfu:getRouterRtpCapabilities', { roomId }, async (data: any) => {
-        if (data.error) {
-          window.clearTimeout(negotiationTimeout);
-          return reject(new Error(data.error));
-        }
-
+      this.sfuSocket!.emit('sfu:getRouterRtpCapabilities', { roomId }, async (data: any) => {
         try {
-          const rtpCapabilities = data?.rtpCapabilities ?? data?.data?.rtpCapabilities ?? data?.data ?? data;
-          await this.initializeDevice(rtpCapabilities);
+          if (data?.error) throw new Error(data.error);
+
+          const rtpCaps =
+            data?.rtpCapabilities ?? data?.data?.rtpCapabilities ?? data?.data ?? data;
+
+          await this.initializeDevice(rtpCaps);
           await this.createSendTransport(roomId);
           await this.createRecvTransport(roomId);
 
           this.isInCall = true;
-          this.socket!.emit('webrtc:join-call', { roomId });
+          this.socket?.emit('webrtc:join-call', { roomId });
 
-          // Discover and consume existing producers for late joiner
-          this.socket!.emit('sfu:getProducers', { roomId }, async (res: any) => {
-            if (res.producers && Array.isArray(res.producers)) {
-              for (const producer of res.producers) {
-                if (producer.userId !== this.getCurrentUserId()) {
-                  await this.consumeProducer(producer.id, producer.userId);
+          // Consume existing producers (late joiner)
+          await new Promise<void>((res) => {
+            this.sfuSocket!.emit('sfu:getProducers', { roomId }, async (producerRes: any) => {
+              if (producerRes?.producers && Array.isArray(producerRes.producers)) {
+                const myId = this.getCurrentUserId();
+                for (const p of producerRes.producers) {
+                  if (p.userId !== myId) {
+                    await this.consumeProducer(p.id, p.userId);
+                  }
                 }
               }
-            }
+              res();
+            });
           });
 
-          // Produce existing tracks if any
+          // Produce local tracks
           if (this.localStream) {
             for (const track of this.localStream.getTracks()) {
               await this.produceTrack(track);
             }
           }
 
-          window.clearTimeout(negotiationTimeout);
+          clearTimeout(timeout);
+          console.log('[roomService] joinCall complete');
           resolve();
-        } catch (error) {
-          window.clearTimeout(negotiationTimeout);
-          reject(error);
+        } catch (err) {
+          clearTimeout(timeout);
+          reject(err);
         }
       });
     });
   }
 
-  private async produceTrack(track: MediaStreamTrack): Promise<void> {
-    if (!this.sendTransport || track.readyState === 'ended') return;
-
-    try {
-      const producer = await this.sendTransport.produce({ track });
-      this.producers.set(track.kind, producer);
-    } catch (error) {
-      console.error(`Failed to produce ${track.kind} track:`, error);
-    }
-  }
-
-  /**
-   * Leave WebRTC call
-   */
   async leaveCall(roomId: string): Promise<void> {
-    if (!this.socket) throw new Error('WebSocket not connected');
-
-    // Close Mediasoup transports
-    if (this.sendTransport) {
-      this.sendTransport.close();
-      this.sendTransport = null;
-    }
-    if (this.recvTransport) {
-      this.recvTransport.close();
-      this.recvTransport = null;
-    }
-
-    // Clear state
+    this.producers.forEach(p => p.close());
     this.producers.clear();
+    this.consumers.forEach(c => c.close());
     this.consumers.clear();
     this.consumedProducerIds.clear();
-    this.remoteStreams.clear();
+
+    this.sendTransport?.close();
+    this.sendTransport = null;
+    this.recvTransport?.close();
+    this.recvTransport = null;
     this.device = null;
 
-    // Close all peer connections (legacy for P2P cleanup)
-    this.peerConnections.forEach(peer => {
-      if (peer.connection?.close) peer.connection.close();
-    });
+    this.socket?.emit('webrtc:leave-call', { roomId });
+    this.disconnectSFU();
+
     this.peerConnections.clear();
-    this.pendingIceCandidates.clear();
     this.notifyPeerConnectionsUpdated();
 
-    this.socket.emit('webrtc:leave-call', { roomId });
     this.isInCall = false;
     this.currentRoomId = null;
   }
 
-  /**
-   * Start call (API call)
-   */
-  async startCall(roomId: string): Promise<void> {
-    const token = this.getAuthToken();
-    if (!token) throw new Error('Authentication required');
+  // ────────────────────────────────────────────────────────────────────────────
+  // Toggle Audio / Video
+  // ────────────────────────────────────────────────────────────────────────────
 
-    await axios.post(`${API_URL}/rooms/${roomId}/start-call`, {}, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async toggleAudio(): Promise<boolean> {
+    if (!this.localStream) await this.initializeMedia(true, false);
+    const track = this.localStream!.getAudioTracks()[0];
+    if (!track) return false;
+
+    track.enabled = !track.enabled;
+    const producer = this.producers.get('audio');
+    if (producer) {
+      try { track.enabled ? await producer.resume() : await producer.pause(); }
+      catch (err) { console.error('[Mediasoup] Audio toggle error:', err); }
+    }
+    return track.enabled;
   }
 
-  /**
-   * End call (API call)
-   */
-  async endCall(roomId: string): Promise<void> {
-    const token = this.getAuthToken();
-    if (!token) throw new Error('Authentication required');
-
-    await axios.post(`${API_URL}/rooms/${roomId}/end-call`, {}, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
-
-  /**
-   * Get call participants
-   */
-  async getCallParticipants(roomId: string): Promise<string[]> {
-    const token = this.getAuthToken();
-    if (!token) throw new Error('Authentication required');
-
-    const response = await axios.get(`${API_URL}/rooms/${roomId}/call-participants`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    return response.data.data;
-  }
-
-  /**
-   * Create peer connection for a user
-   */
-  private createPeerConnection(userId: string): RTCPeerConnection {
-    const existingPeer = this.peerConnections.get(userId);
-    if (existingPeer && existingPeer.connection.signalingState !== 'closed') {
-      return existingPeer.connection;
+  async toggleVideo(): Promise<boolean> {
+    if (!this.localStream) {
+      await this.initializeMedia(true, true);
+      const t = this.localStream!.getVideoTracks()[0];
+      if (this.isInCall && t) await this.produceTrack(t);
+      return true;
     }
 
-    const peerConnection = new RTCPeerConnection(this.getRtcConfiguration());
-
-    // Add local stream tracks to peer connection
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, this.localStream!);
-      });
+    let videoTrack = this.localStream.getVideoTracks()[0];
+    if (!videoTrack) {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoTrack = stream.getVideoTracks()[0];
+      this.localStream.addTrack(videoTrack);
+      if (this.isInCall) await this.produceTrack(videoTrack);
+      return true;
     }
 
-    // Handle ICE candidates
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate && this.socket && this.currentRoomId) {
-        this.socket.emit('webrtc:ice-candidate', {
-          roomId: this.currentRoomId,
-          targetUserId: userId,
-          candidate: event.candidate,
-        });
-      }
-    };
-
-    // Handle connection state changes
-    peerConnection.onconnectionstatechange = () => {
-      const peer = this.peerConnections.get(userId);
-      if (peer) {
-        peer.isConnected = peerConnection.connectionState === 'connected';
-        if (peerConnection.connectionState === 'failed') {
-          peerConnection.restartIce();
-        }
-        if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'closed') {
-          this.pendingIceCandidates.delete(userId);
-        }
-        this.notifyPeerConnectionsUpdated();
-      }
-    };
-
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, this.localStream!);
-      });
+    videoTrack.enabled = !videoTrack.enabled;
+    const producer = this.producers.get('video');
+    if (producer) {
+      try { videoTrack.enabled ? await producer.resume() : await producer.pause(); }
+      catch (err) { console.error('[Mediasoup] Video toggle error:', err); }
     }
-
-    // Handle remote stream
-    peerConnection.ontrack = (event) => {
-      const peer = this.peerConnections.get(userId);
-      if (peer) {
-        peer.stream = event.streams[0] || new MediaStream([event.track]);
-        this.notifyPeerConnectionsUpdated();
-      }
-    };
-
-    return peerConnection;
+    return videoTrack.enabled;
   }
 
-  /**
-   * Send WebRTC offer to user
-   */
-  async sendOffer(userId: string, roomId: string): Promise<void> {
-    if (!this.socket) throw new Error('WebSocket not connected');
+  // ────────────────────────────────────────────────────────────────────────────
+  // Accessors
+  // ────────────────────────────────────────────────────────────────────────────
 
-    const existingPeer = this.peerConnections.get(userId);
-    const peerConnection = this.createPeerConnection(userId);
-    if (!existingPeer) {
-      this.peerConnections.set(userId, {
-        userId,
-        connection: peerConnection,
-        isConnected: false,
-      });
-      this.notifyPeerConnectionsUpdated();
-    }
+  isUserInCall(): boolean { return this.isInCall; }
+  getAllPeerConnections(): Map<string, PeerConnection> { return this.peerConnections; }
+  isConnected(): boolean { return this.socket?.connected ?? false; }
 
-    try {
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+  // ────────────────────────────────────────────────────────────────────────────
+  // Event Subscriptions
+  // ────────────────────────────────────────────────────────────────────────────
 
-      this.socket.emit('webrtc:offer', {
-        roomId,
-        targetUserId: userId,
-        offer,
-      });
-    } catch (error) {
-      console.error('Failed to send offer:', error);
-      throw error;
-    }
+  onRoomMessage(cb: (msg: RoomMessage) => void): () => void {
+    this.roomMessageCallbacks.push(cb);
+    return () => { this.roomMessageCallbacks = this.roomMessageCallbacks.filter(x => x !== cb); };
   }
 
-  /**
-   * Handle incoming WebRTC offer
-   */
-  async handleOffer(data: { roomId: string; fromUserId: string; offer: RTCSessionDescriptionInit }): Promise<void> {
-    const existingPeer = this.peerConnections.get(data.fromUserId);
-    const peerConnection = this.createPeerConnection(data.fromUserId);
-    if (!existingPeer) {
-      this.peerConnections.set(data.fromUserId, {
-        userId: data.fromUserId,
-        connection: peerConnection,
-        isConnected: false,
-      });
-      this.notifyPeerConnectionsUpdated();
-    }
-
-    try {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-      await this.flushPendingIceCandidates(data.fromUserId);
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-
-      if (this.socket) {
-        this.socket.emit('webrtc:answer', {
-          roomId: data.roomId,
-          targetUserId: data.fromUserId,
-          answer,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to handle offer:', error);
-      throw error;
-    }
+  onRoomUserJoined(cb: (data: { roomId: string; userId: string }) => void): () => void {
+    this.roomUserJoinedCallbacks.push(cb);
+    return () => { this.roomUserJoinedCallbacks = this.roomUserJoinedCallbacks.filter(x => x !== cb); };
   }
 
-  /**
-   * Handle incoming WebRTC answer
-   */
-  async handleAnswer(data: { roomId: string; fromUserId: string; answer: RTCSessionDescriptionInit }): Promise<void> {
-    const peer = this.peerConnections.get(data.fromUserId);
-    if (!peer) return;
-
-    try {
-      await peer.connection.setRemoteDescription(new RTCSessionDescription(data.answer));
-      await this.flushPendingIceCandidates(data.fromUserId);
-    } catch (error) {
-      console.error('Failed to handle answer:', error);
-      throw error;
-    }
+  onRoomUserLeft(cb: (data: { roomId: string; userId: string }) => void): () => void {
+    this.roomUserLeftCallbacks.push(cb);
+    return () => { this.roomUserLeftCallbacks = this.roomUserLeftCallbacks.filter(x => x !== cb); };
   }
 
-  /**
-   * Handle incoming ICE candidate
-   */
-  async handleIceCandidate(data: { roomId: string; fromUserId: string; candidate: RTCIceCandidateInit }): Promise<void> {
-    const peer = this.peerConnections.get(data.fromUserId);
-    if (!peer) {
-      this.queuePendingIceCandidate(data.fromUserId, data.candidate);
-      return;
-    }
-
-    if (!peer.connection.remoteDescription) {
-      this.queuePendingIceCandidate(data.fromUserId, data.candidate);
-      return;
-    }
-
-    try {
-      await peer.connection.addIceCandidate(new RTCIceCandidate(data.candidate));
-    } catch (error) {
-      console.error('Failed to handle ICE candidate:', error);
-    }
+  onRoomClosed(cb: (data: { roomId: string }) => void): () => void {
+    this.roomClosedCallbacks.push(cb);
+    return () => { this.roomClosedCallbacks = this.roomClosedCallbacks.filter(x => x !== cb); };
   }
 
-  /**
-   * Get peer connection for user
-   */
-  getPeerConnection(userId: string): PeerConnection | undefined {
-    return this.peerConnections.get(userId);
+  onWebRTCUserJoinedCall(cb: (data: { roomId: string; userId: string }) => void): () => void {
+    this.webrtcUserJoinedCallCallbacks.push(cb);
+    return () => { this.webrtcUserJoinedCallCallbacks = this.webrtcUserJoinedCallCallbacks.filter(x => x !== cb); };
   }
 
-  /**
-   * Get all peer connections
-   */
-  getAllPeerConnections(): Map<string, PeerConnection> {
-    return this.peerConnections;
+  onWebRTCUserLeftCall(cb: (data: { roomId: string; userId: string }) => void): () => void {
+    this.webrtcUserLeftCallCallbacks.push(cb);
+    return () => { this.webrtcUserLeftCallCallbacks = this.webrtcUserLeftCallCallbacks.filter(x => x !== cb); };
   }
 
-  /**
-   * Check if user is in call
-   */
-  isUserInCall(): boolean {
-    return this.isInCall;
-  }
-
-  /**
-   * Get local media stream
-   */
-  getLocalStream(): MediaStream | null {
-    return this.localStream;
-  }
-
-  // ============ WebRTC Event Callbacks ============
-
-  onWebRTCUserJoinedCall(callback: (data: { roomId: string; userId: string; existingParticipants?: string[] }) => void): () => void {
-    this.webrtcUserJoinedCallCallbacks.push(callback);
+  onPeerConnectionsUpdated(cb: (connections: Map<string, PeerConnection>) => void): () => void {
+    this.peerConnectionUpdatedCallbacks.push(cb);
+    cb(this.peerConnections);
     return () => {
-      const index = this.webrtcUserJoinedCallCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcUserJoinedCallCallbacks.splice(index, 1);
-      }
+      this.peerConnectionUpdatedCallbacks = this.peerConnectionUpdatedCallbacks.filter(x => x !== cb);
     };
-  }
-
-  onWebRTCUserLeftCall(callback: (data: { roomId: string; userId: string; reason?: string }) => void): () => void {
-    this.webrtcUserLeftCallCallbacks.push(callback);
-    return () => {
-      const index = this.webrtcUserLeftCallCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcUserLeftCallCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  onWebRTCOffer(callback: (data: { roomId: string; fromUserId: string; offer: RTCSessionDescriptionInit }) => void): () => void {
-    this.webrtcOfferCallbacks.push(callback);
-    return () => {
-      const index = this.webrtcOfferCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcOfferCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  onWebRTCAnswer(callback: (data: { roomId: string; fromUserId: string; answer: RTCSessionDescriptionInit }) => void): () => void {
-    this.webrtcAnswerCallbacks.push(callback);
-    return () => {
-      const index = this.webrtcAnswerCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcAnswerCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  onWebRTCIceCandidate(callback: (data: { roomId: string; fromUserId: string; candidate: RTCIceCandidateInit }) => void): () => void {
-    this.webrtcIceCandidateCallbacks.push(callback);
-    return () => {
-      const index = this.webrtcIceCandidateCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcIceCandidateCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  onWebRTCCallStarted(callback: (data: { roomId: string; initiatorUserId: string }) => void): () => void {
-    this.webrtcCallStartedCallbacks.push(callback);
-    return () => {
-      const index = this.webrtcCallStartedCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcCallStartedCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  onWebRTCCallEnded(callback: (data: { roomId: string; endedByUserId: string }) => void): () => void {
-    this.webrtcCallEndedCallbacks.push(callback);
-    return () => {
-      const index = this.webrtcCallEndedCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.webrtcCallEndedCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  onPeerConnectionsUpdated(callback: (connections: Map<string, PeerConnection>) => void): () => void {
-    this.peerConnectionUpdatedCallbacks.push(callback);
-    callback(this.peerConnections);
-
-    return () => {
-      const index = this.peerConnectionUpdatedCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.peerConnectionUpdatedCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  /**
-   * Check if WebSocket is connected
-   */
-  isConnected(): boolean {
-    return this.socket?.connected || false;
   }
 }
 
+// ─── Singleton export ────────────────────────────────────────────────────────
 export const roomService = new RoomService();
 export default roomService;

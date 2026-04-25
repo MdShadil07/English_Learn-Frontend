@@ -373,3 +373,24 @@ All colors MUST be HSL.
       rgba(245, 158, 11, 0.1) 75%,
       rgba(251, 191, 36, 0.1) 100%);
 }
+
+/* ── Practice Room Utilities ───────────────────────────── */
+
+/* Emerald speaking ring — matches app's emerald-400 brand color */
+@keyframes speaking-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  50%       { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.0); }
+}
+
+.speaking-ring {
+  animation: speaking-ring 1.2s ease-in-out infinite;
+}
+
+/* Scrollbar completely hidden on thumbnail strip */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -2,7 +2,6 @@
  * API Configuration
  * Frontend API client for backend integration with comprehensive profile features
  */
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
