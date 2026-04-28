@@ -24,6 +24,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { roomService, RoomDetails } from '@/services/roomService';
+import { useSidebar } from '@/components/ui/sidebar';
 
 import WordOfTheDay from './WordOfTheDay';
 import DashboardHero from './DashboardHero';
@@ -80,7 +82,10 @@ interface RecentActivity {
 // ---------------------- //
 const NewDashboardHome = () => {
   const { user } = useAuth();
+  const { state: sidebarState } = useSidebar();
   const [greeting, setGreeting] = useState('');
+  const [rooms, setRooms] = useState<RoomDetails[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -90,6 +95,22 @@ const NewDashboardHome = () => {
       'Good Evening'
     );
   }, []);
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  const fetchRooms = async () => {
+    try {
+      setIsLoadingRooms(true);
+      const activeRooms = await roomService.getActiveRooms();
+      setRooms(activeRooms);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+    } finally {
+      setIsLoadingRooms(false);
+    }
+  };
 
 
   // Learning Paths
@@ -214,13 +235,6 @@ const NewDashboardHome = () => {
     }
   ];
 
-  // Practice Rooms
-  const practiceRooms = [
-    { name: 'Business English Hub', members: 12, level: 'Intermediate', status: 'live' as const },
-    { name: 'Pronunciation Practice', members: 8, level: 'All Levels', status: 'live' as const },
-    { name: 'Grammar Discussion', members: 15, level: 'Advanced', status: 'scheduled' as const }
-  ];
-
   // Stats
   const stats = [
     { label: 'Current Streak', value: '12', icon: Flame, color: 'text-orange-500', bgColor: 'bg-orange-100 dark:bg-orange-900/20' },
@@ -237,7 +251,7 @@ const NewDashboardHome = () => {
     <div className="min-h-screen w-full max-w-full p-4 sm:p-6 space-y-6 sm:space-y-8 overflow-x-hidden">
       
       {/* HERO */}
-      <DashboardHero user={user} greeting={greeting} stats={stats} />
+      <DashboardHero user={user} greeting={greeting} />
 
       {/* Wrap the rest of the page in overflow-x-hidden to avoid horizontal scroll
           while allowing the HERO to overflow for decorative elements */}
@@ -297,10 +311,10 @@ const NewDashboardHome = () => {
       </motion.div>
 
       {/* RECENT ACTIVITY + PRACTICE ROOMS */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="flex flex-col xl:flex-row gap-8 transition-all duration-300">
 
         {/* LEFT — RECENT ACTIVITY */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }} className="mt-6 xl:mt-0">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.7 }} className="flex-1 mt-6 xl:mt-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
@@ -356,7 +370,7 @@ const NewDashboardHome = () => {
         </motion.div>
 
         {/* RIGHT — PRACTICE ROOMS */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.8 }} className="flex-1">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white">
@@ -370,16 +384,25 @@ const NewDashboardHome = () => {
               </div>
             </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-purple-200 text-purple-700"
-            >
-              Browse All
-              <ArrowRight className="h-4 w-4" />
-            </motion.button>
+            <Link to="/dashboard?view=rooms">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-purple-200 text-purple-700"
+              >
+                Browse All
+                <ArrowRight className="h-4 w-4" />
+              </motion.button>
+            </Link>
           </div>
 
-          <CommunityRoomCard rooms={practiceRooms} />
+          <CommunityRoomCard rooms={rooms.map(room => ({
+            name: room.topic || 'Practice Room',
+            members: room.participantCount,
+            level: 'All Levels',
+            status: room.status === 'active' ? 'live' as const : 'scheduled' as const,
+            banner: room.banner,
+            description: room.description
+          }))} />
         </motion.div>
       </div>
 

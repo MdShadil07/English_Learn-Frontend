@@ -22,7 +22,19 @@ import AnalyticsDashboard from '../../pages/Analytic Page/AnalyticsDashboard';
 
 const NewDashboard = () => {
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<string>('home');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialView = queryParams.get('view') || 'home';
+  const [activeView, setActiveView] = useState<string>(initialView);
+
+  // Update activeView when URL search params change
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const viewParam = queryParams.get('view');
+    if (viewParam) {
+      setActiveView(viewParam);
+    }
+  }, [location.search]);
   // Compute premium status and render reusable toast component near top-level so it shows on dashboard
   const subscriptionTier = (user?.tier || 'free').toString().toLowerCase();
   const isPremiumUser = subscriptionTier === 'premium' || subscriptionTier === 'pro';
@@ -30,7 +42,6 @@ const NewDashboard = () => {
   const _upgradeToast = <UpgradeToast isPremiumUser={isPremiumUser} />;
 
   // Show a celebratory toast/modal when redirected from payment return
-  const location = useLocation();
   const shownRef = useRef(false);
   const toastGlobal = (window as unknown as { toast?: (opts: { title?: string; description?: string }) => void }).toast;
 

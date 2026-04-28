@@ -21,15 +21,23 @@ export interface RoomDetails {
   roomCode?: string;     // Only visible to host for private rooms
   topic: string;
   description?: string;
+  banner?: string;
+  bannerText?: string;
+  bannerFontFamily?: string;
+  bannerIsBold?: boolean;
+  bannerIsItalic?: boolean;
+  bannerFontSize?: number;
   hostId: string;
   participants: RoomParticipant[];
   maxParticipants: number;
   isPrivate: boolean;
+  isLocked: boolean;
   status: 'active' | 'closed';
   createdAt: string;
   participantCount: number;
   isFull: boolean;
   sfuUrl?: string;
+  blockedUsers?: RoomParticipant[];
 }
 
 export interface CreateRoomData {
@@ -38,6 +46,12 @@ export interface CreateRoomData {
   allowRecording?: boolean;
   topic?: string;
   description?: string;
+  banner?: string;
+  bannerText?: string;
+  bannerFontFamily?: string;
+  bannerIsBold?: boolean;
+  bannerIsItalic?: boolean;
+  bannerFontSize?: number;
 }
 
 export interface RoomMessage {
@@ -83,6 +97,12 @@ class RoomService {
   private roomUserJoinedCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
   private roomUserLeftCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
   private roomClosedCallbacks: ((data: { roomId: string }) => void)[] = [];
+  private onHandToggledCallbacks: ((data: { userId: string; isRaised: boolean }) => void)[] = [];
+  private roomHistoryCallbacks: ((data: { roomId: string; messages: any[] }) => void)[] = [];
+  private roomReactionCallbacks: ((data: { userId: string; reaction: string }) => void)[] = [];
+  private forceKickCallbacks: ((data: { roomId: string }) => void)[] = [];
+  private forceMuteCallbacks: ((data: { roomId: string }) => void)[] = [];
+  private lockUpdatedCallbacks: ((data: { isLocked: boolean; updatedBy: string }) => void)[] = [];
 
   // ── SFU / media state ──
   private device: Device | null = null;
@@ -109,7 +129,10 @@ class RoomService {
 
   // ── WebRTC user-joined/left call callbacks (for UI participant badges) ──
   private webrtcUserJoinedCallCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
-  private webrtcUserLeftCallCallbacks: ((data: { roomId: string; userId: string }) => void)[] = [];
+  private webrtcUserLeftCallCallbacks:  ((data: { roomId: string; userId: string }) => void)[] = [];
+
+  // ── Active speaker callbacks (for grid UI) ──
+  private activeSpeakerCallbacks: ((data: { roomId: string; activeSpeakerIds: string[] }) => void)[] = [];
 
   // ────────────────────────────────────────────────────────────────────────────
   // Utilities
@@ -146,6 +169,23 @@ class RoomService {
     });
     if (res.data.data?.sfuUrl) this.dynamicSfuUrl = res.data.data.sfuUrl;
     return res.data.data;
+  }
+
+  async uploadBanner(file: File): Promise<string> {
+    const token = this.getAuthToken();
+    if (!token) throw new Error('Authentication required');
+    
+    const formData = new FormData();
+    formData.append('banner', file);
+
+    const res = await axios.post(`${API_URL}/rooms/upload-banner`, formData, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      },
+    });
+    
+    return res.data.data.bannerUrl;
   }
 
   async joinRoom(roomId: string, roomCode?: string): Promise<RoomDetails> {
@@ -251,6 +291,15 @@ class RoomService {
     this.setupBackendSocketHandlers();
   }
 
+  getSocket(): Socket | null {
+    return this.socket;
+  }
+
+  connect(): Socket {
+    this.initializeSocket();
+    return this.socket!;
+  }
+
   disconnectSocket(): void {
     this.socket?.disconnect();
     this.socket = null;
@@ -284,6 +333,30 @@ class RoomService {
     });
     this.socket.on('webrtc:user-left-call', (data: { roomId: string; userId: string }) => {
       this.webrtcUserLeftCallCallbacks.forEach(cb => cb(data));
+    });
+
+    this.socket.on('room:force-kick', (data: { roomId: string }) => {
+      this.forceKickCallbacks.forEach(cb => cb(data));
+    });
+
+    this.socket.on('room:force-mute', (data: { roomId: string }) => {
+      this.forceMuteCallbacks.forEach(cb => cb(data));
+    });
+
+    this.socket.on('room:lock-updated', (data: { isLocked: boolean; updatedBy: string }) => {
+      this.lockUpdatedCallbacks.forEach(cb => cb(data));
+    });
+
+    this.socket.on('room:hand-toggled', (data: { userId: string; isRaised: boolean }) => {
+      this.onHandToggledCallbacks.forEach(cb => cb(data));
+    });
+
+    this.socket.on('room:history', (data: { roomId: string; messages: any[] }) => {
+      this.roomHistoryCallbacks.forEach(cb => cb(data));
+    });
+
+    this.socket.on('room:reaction', (data: { userId: string; reaction: string }) => {
+      this.roomReactionCallbacks.forEach(cb => cb(data));
     });
   }
 
@@ -352,13 +425,14 @@ class RoomService {
 
     this.sfuSocket.off('sfu:new-producer');
     this.sfuSocket.off('sfu:producer-closed');
+    this.sfuSocket.off('sfu:active-speakers');
 
+    // New producer from a peer — attempt to consume (audio always, video gated)
     this.sfuSocket.on(
       'sfu:new-producer',
       (data: { producerId: string; producerUserId: string; kind: string }) => {
-        console.log('[SFU] new-producer:', data);
         if (data.producerUserId !== this.getCurrentUserId()) {
-          this.consumeProducer(data.producerId, data.producerUserId).catch(err =>
+          this.consumeProducer(data.producerId, data.producerUserId, 'thumb').catch(err =>
             console.error('[SFU] consumeProducer error:', err)
           );
         }
@@ -368,8 +442,31 @@ class RoomService {
     this.sfuSocket.on(
       'sfu:producer-closed',
       (data: { producerId: string; producerUserId: string }) => {
-        console.log('[SFU] producer-closed:', data);
         this.handleRemoteProducerClosed(data.producerId, data.producerUserId);
+      }
+    );
+
+    // BLOCKER-1 (client): Active speaker updates from AudioLevelObserver VAD.
+    // When the SFU reports new active speakers, automatically request their video
+    // consumers (if not already consuming) and close video for users who went silent.
+    this.sfuSocket.on(
+      'sfu:active-speakers',
+      async (data: { roomId: string; activeSpeakerIds: string[] }) => {
+        this.activeSpeakerCallbacks.forEach(cb => cb(data));
+
+        if (!this.recvTransport || !this.device || !this.currentRoomId) return;
+        const myId = this.getCurrentUserId();
+
+        // Request video consumers for newly active speakers
+        for (const speakerId of data.activeSpeakerIds) {
+          if (speakerId === myId) continue;
+          // Find their video producer from room state
+          const rs = this.getRoomProducers();
+          const videoProducer = rs.find(p => p.userId === speakerId && p.kind === 'video');
+          if (videoProducer && !this.consumedProducerIds.has(videoProducer.id)) {
+            await this.consumeProducer(videoProducer.id, speakerId, 'thumb').catch(() => {});
+          }
+        }
       }
     );
   }
@@ -512,9 +609,26 @@ class RoomService {
     if (this.producers.has(track.kind)) return; // avoid duplicate producers
 
     try {
-      const producer = await this.sendTransport.produce({ track });
+      // For video tracks, send 3 simulcast layers so the SFU can selectively
+      // forward the appropriate resolution per-consumer:
+      //   r0 → 180p @ ≤100kbps (thumbnail viewers)
+      //   r1 → 360p @ ≤300kbps (standard grid)
+      //   r2 → 720p @ ≤900kbps (featured/pinned speaker)
+      const isVideo = track.kind === 'video';
+      const produceOptions: any = { track };
+
+      if (isVideo) {
+        produceOptions.encodings = [
+          { rid: 'r0', maxBitrate: 100_000, scaleResolutionDownBy: 4 },
+          { rid: 'r1', maxBitrate: 300_000, scaleResolutionDownBy: 2 },
+          { rid: 'r2', maxBitrate: 900_000, scaleResolutionDownBy: 1 },
+        ];
+        produceOptions.codecOptions = { videoGoogleStartBitrate: 1000 };
+      }
+
+      const producer = await this.sendTransport.produce(produceOptions);
       this.producers.set(track.kind, producer);
-      console.log(`[Mediasoup] Producing ${track.kind}: ${producer.id}`);
+      console.log(`[Mediasoup] Producing ${track.kind}: ${producer.id}${isVideo ? ' (simulcast 3 layers)' : ''}`);
 
       producer.on('transportclose', () => this.producers.delete(track.kind));
       producer.on('trackended', () => {
@@ -531,7 +645,16 @@ class RoomService {
   // Consume remote tracks
   // ────────────────────────────────────────────────────────────────────────────
 
-  private async consumeProducer(producerId: string, producerUserId: string): Promise<void> {
+  /** Cache of known room producers keyed by producerId (populated on getProducers) */
+  private knownRoomProducers: Array<{ id: string; userId: string; kind: string }> = [];
+
+  private getRoomProducers() { return this.knownRoomProducers; }
+
+  private async consumeProducer(
+    producerId: string,
+    producerUserId: string,
+    viewContext: 'featured' | 'thumb' = 'thumb'
+  ): Promise<void> {
     if (!this.sfuSocket || !this.recvTransport || !this.device || !this.currentRoomId) return;
     if (this.consumedProducerIds.has(producerId)) return;
 
@@ -539,14 +662,18 @@ class RoomService {
       this.sfuSocket!.emit(
         'sfu:consume',
         {
-          roomId: this.currentRoomId,
-          transportId: this.recvTransport!.id,
+          roomId:          this.currentRoomId,
+          transportId:     this.recvTransport!.id,
           producerId,
           rtpCapabilities: this.device!.rtpCapabilities,
+          viewContext,
+          kind:            undefined, // SFU infers kind from producerId
         },
         async (data: any) => {
-          if (data?.error) {
-            console.error('[Mediasoup] Consume error:', data.error);
+          // BLOCKER-1 (client): Server gated this video consumer — not an active speaker.
+          // Show avatar fallback. No crash, no error toast — this is the happy path.
+          if (data?.gated) {
+            console.log(`[SFU] Video gated for producer ${producerId} (${data.reason}) — showing avatar`);
             return resolve();
           }
 
@@ -588,6 +715,53 @@ class RoomService {
           } catch (err) {
             console.error('[Mediasoup] Error setting up consumer:', err);
           }
+          resolve();
+        }
+      );
+    });
+  }
+
+  /**
+   * Request HD video for a pinned user (bypasses active-speaker gate).
+   * Call when user pins someone in the UI.
+   */
+  async requestPinnedVideo(
+    producerId: string,
+    producerUserId: string,
+  ): Promise<void> {
+    if (!this.sfuSocket || !this.recvTransport || !this.device || !this.currentRoomId) return;
+    if (this.consumedProducerIds.has(producerId)) return;
+
+    return new Promise<void>((resolve) => {
+      this.sfuSocket!.emit(
+        'sfu:requestProducerVideo',
+        {
+          roomId:          this.currentRoomId,
+          producerId,
+          transportId:     this.recvTransport!.id,
+          rtpCapabilities: this.device!.rtpCapabilities,
+        },
+        async (data: any) => {
+          if (data?.error) { console.error('[SFU] requestPinnedVideo error:', data.error); return resolve(); }
+          try {
+            const consumer: Consumer = await this.recvTransport!.consume(data);
+            this.consumers.set(consumer.id, consumer);
+            this.consumedProducerIds.add(producerId);
+
+            consumer.on('transportclose', () => { this.consumedProducerIds.delete(producerId); this.consumers.delete(consumer.id); });
+            consumer.on('producerclose',  () => { this.handleRemoteProducerClosed(producerId, producerUserId); });
+
+            const existingPeer = this.peerConnections.get(producerUserId);
+            const existingTracks = existingPeer ? existingPeer.stream.getTracks() : [];
+            this.peerConnections.set(producerUserId, {
+              userId: producerUserId,
+              stream: new MediaStream([...existingTracks, consumer.track]),
+              isConnected: true,
+            });
+            this.notifyPeerConnectionsUpdated();
+
+            this.sfuSocket!.emit('sfu:resumeConsumer', { roomId: this.currentRoomId!, consumerId: consumer.id }, () => {});
+          } catch (err) { console.error('[SFU] requestPinnedVideo setup error:', err); }
           resolve();
         }
       );
@@ -651,10 +825,14 @@ class RoomService {
           await new Promise<void>((res) => {
             this.sfuSocket!.emit('sfu:getProducers', { roomId }, async (producerRes: any) => {
               if (producerRes?.producers && Array.isArray(producerRes.producers)) {
+                // Cache for active-speaker handler
+                this.knownRoomProducers = producerRes.producers;
                 const myId = this.getCurrentUserId();
                 for (const p of producerRes.producers) {
                   if (p.userId !== myId) {
-                    await this.consumeProducer(p.id, p.userId);
+                    // Audio always: consume immediately
+                    // Video: gated by server — consume only for active speakers
+                    await this.consumeProducer(p.id, p.userId, 'thumb');
                   }
                 }
               }
@@ -686,6 +864,7 @@ class RoomService {
     this.consumers.forEach(c => c.close());
     this.consumers.clear();
     this.consumedProducerIds.clear();
+    this.knownRoomProducers = [];
 
     this.sendTransport?.close();
     this.sendTransport = null;
@@ -707,18 +886,104 @@ class RoomService {
   // Toggle Audio / Video
   // ────────────────────────────────────────────────────────────────────────────
 
-  async toggleAudio(): Promise<boolean> {
-    if (!this.localStream) await this.initializeMedia(true, false);
+  async toggleAudio(forceState?: boolean): Promise<boolean> {
+    console.log('[roomService.toggleAudio] Called with forceState:', forceState);
+    console.log('[roomService.toggleAudio] localStream exists:', !!this.localStream);
+    
+    if (!this.localStream) {
+      console.log('[roomService.toggleAudio] Initializing media...');
+      await this.initializeMedia(true, false);
+    }
+    
     const track = this.localStream!.getAudioTracks()[0];
-    if (!track) return false;
+    console.log('[roomService.toggleAudio] Audio track found:', !!track);
+    if (!track) {
+      console.error('[roomService.toggleAudio] No audio track found!');
+      return false;
+    }
 
-    track.enabled = !track.enabled;
+    const newState = forceState !== undefined ? forceState : !track.enabled;
+    console.log('[roomService.toggleAudio] Setting track.enabled from', track.enabled, 'to', newState);
+    track.enabled = newState;
+    
     const producer = this.producers.get('audio');
+    console.log('[roomService.toggleAudio] Audio producer found:', !!producer);
     if (producer) {
-      try { track.enabled ? await producer.resume() : await producer.pause(); }
+      try { 
+        console.log('[roomService.toggleAudio] Producer state change:', newState ? 'resume' : 'pause');
+        track.enabled ? await producer.resume() : await producer.pause(); 
+      }
       catch (err) { console.error('[Mediasoup] Audio toggle error:', err); }
     }
+    
+    console.log('[roomService.toggleAudio] Returning track.enabled:', track.enabled);
     return track.enabled;
+  }
+
+  async toggleHand(roomId: string, isRaised: boolean): Promise<void> {
+    this.socket?.emit('room:hand-toggle', { roomId, isRaised });
+  }
+
+  toggleModerator(roomId: string, targetUserId: string, isModerator: boolean): void {
+    this.socket?.emit('room:toggle-moderator', { roomId, targetUserId, isModerator });
+  }
+
+  muteAllParticipants(roomId: string): void {
+    this.socket?.emit('room:mute-all', { roomId });
+  }
+
+  clearRoomChat(roomId: string): void {
+    this.socket?.emit('room:clear-chat', { roomId });
+  }
+
+  onHandToggled(cb: (data: { userId: string; isRaised: boolean }) => void): () => void {
+    this.onHandToggledCallbacks.push(cb);
+    return () => { this.onHandToggledCallbacks = this.onHandToggledCallbacks.filter(x => x !== cb); };
+  }
+
+  onRoomHistory(cb: (data: { roomId: string; messages: any[] }) => void): () => void {
+    this.roomHistoryCallbacks.push(cb);
+    return () => { this.roomHistoryCallbacks = this.roomHistoryCallbacks.filter(x => x !== cb); };
+  }
+
+  onReaction(cb: (data: { userId: string; reaction: string }) => void): () => void {
+    this.roomReactionCallbacks.push(cb);
+    return () => { this.roomReactionCallbacks = this.roomReactionCallbacks.filter(x => x !== cb); };
+  }
+
+  onForceKick(cb: (data: { roomId: string }) => void): () => void {
+    this.forceKickCallbacks.push(cb);
+    return () => { this.forceKickCallbacks = this.forceKickCallbacks.filter(x => x !== cb); };
+  }
+
+  onForceMute(cb: (data: { roomId: string }) => void): () => void {
+    this.forceMuteCallbacks.push(cb);
+    return () => { this.forceMuteCallbacks = this.forceMuteCallbacks.filter(x => x !== cb); };
+  }
+
+  onLockUpdated(cb: (data: { isLocked: boolean; updatedBy: string }) => void): () => void {
+    this.lockUpdatedCallbacks.push(cb);
+    return () => { this.lockUpdatedCallbacks = this.lockUpdatedCallbacks.filter(x => x !== cb); };
+  }
+
+  sendReaction(roomId: string, reaction: string): void {
+    this.socket?.emit('room:reaction', { roomId, reaction });
+  }
+
+  kickUser(roomId: string, targetUserId: string, isBlock = false): void {
+    this.socket?.emit('room:kick-user', { roomId, targetUserId, isBlock });
+  }
+
+  muteUser(roomId: string, targetUserId: string): void {
+    this.socket?.emit('room:mute-user', { roomId, targetUserId });
+  }
+
+  toggleRoomLock(roomId: string, isLocked: boolean): void {
+    this.socket?.emit('room:toggle-lock', { roomId, isLocked });
+  }
+
+  unblockUser(roomId: string, targetUserId: string): void {
+    this.socket?.emit('room:unblock-user', { roomId, targetUserId });
   }
 
   async toggleVideo(): Promise<boolean> {
@@ -787,6 +1052,11 @@ class RoomService {
   onWebRTCUserLeftCall(cb: (data: { roomId: string; userId: string }) => void): () => void {
     this.webrtcUserLeftCallCallbacks.push(cb);
     return () => { this.webrtcUserLeftCallCallbacks = this.webrtcUserLeftCallCallbacks.filter(x => x !== cb); };
+  }
+
+  onActiveSpeakers(cb: (data: { roomId: string; activeSpeakerIds: string[] }) => void): () => void {
+    this.activeSpeakerCallbacks.push(cb);
+    return () => { this.activeSpeakerCallbacks = this.activeSpeakerCallbacks.filter(x => x !== cb); };
   }
 
   onPeerConnectionsUpdated(cb: (connections: Map<string, PeerConnection>) => void): () => void {

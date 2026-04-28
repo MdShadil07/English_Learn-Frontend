@@ -20,46 +20,46 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ profile }) => {
       <div className="absolute -top-10 -right-10 w-16 h-16 rounded-full bg-gradient-to-br from-orange-300/20 to-amber-300/20 dark:from-orange-700/20 dark:to-amber-700/20 blur-xl group-hover:scale-150 transition-transform duration-700"></div>
       <div className="absolute -bottom-8 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-300/20 to-orange-300/20 dark:from-yellow-700/20 dark:to-orange-700/20 blur-lg group-hover:scale-125 transition-transform duration-500"></div>
 
-      <div className="relative p-6">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="relative p-4 sm:p-5 md:p-6">
+        <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
           <motion.div
-            className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"
+            className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"
             animate={{ rotate: [0, -8, 8, 0] }}
             transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
           >
-            <Activity className="h-5 w-5 text-white" />
+            <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Activity</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Latest learning sessions</p>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Recent Activity</h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Latest learning sessions</p>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {profile.recentActivity && profile.recentActivity.length > 0 ? (
             profile.recentActivity.slice(0, 3).map((activity, index) => (
               <motion.div
                 key={activity.id}
-                className="flex items-center gap-3 p-2 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-orange-200/30 dark:border-orange-800/30"
+                className="flex items-center gap-2 sm:gap-3 p-2 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-orange-200/30 dark:border-orange-800/30"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
                 whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
               >
                 <motion.div
-                  className="w-8 h-8 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-lg flex items-center justify-center flex-shrink-0"
+                  className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-lg flex items-center justify-center flex-shrink-0"
                   animate={{ rotate: [0, 5, -5, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: index * 0.5 }}
                 >
-                  <span className="text-sm">{activity.icon}</span>
+                  <span className="text-xs sm:text-sm">{activity.icon}</span>
                 </motion.div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{activity.title}</p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">{activity.description}</p>
+                  <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{activity.title}</p>
+                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 truncate">{activity.description}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium text-orange-600 dark:text-orange-400">+{activity.xpGained} XP</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">
+                <div className="text-right flex-shrink-0">
+                  <p className="text-[10px] sm:text-xs font-medium text-orange-600 dark:text-orange-400">+{activity.xpGained} XP</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 hidden sm:block">
                     {new Date(activity.timestamp).toLocaleDateString()}
                   </p>
                 </div>
@@ -70,20 +70,20 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ profile }) => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="text-center py-8"
+              className="text-center py-4 sm:py-6 md:py-8"
             >
               <motion.div
-                className="w-16 h-16 bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-700/50 dark:to-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-slate-100/80 to-slate-200/80 dark:from-slate-700/50 dark:to-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
                 animate={{
                   scale: [1, 1.05, 1],
                   rotate: [0, 5, -5, 0]
                 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Lock className="h-8 w-8 text-slate-400 dark:text-slate-500" />
+                <Lock className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-slate-400 dark:text-slate-500" />
               </motion.div>
-              <h4 className="text-slate-900 dark:text-slate-100 font-semibold mb-2">No Recent Activity</h4>
-              <p className="text-sm text-slate-600 dark:text-slate-400">Start learning to see your progress and achievements here!</p>
+              <h4 className="text-sm sm:text-base text-slate-900 dark:text-slate-100 font-semibold mb-1 sm:mb-2">No Recent Activity</h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Start learning to see your progress and achievements here!</p>
             </motion.div>
           )}
         </div>

@@ -23,9 +23,9 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative mt-16"
+      className="relative mt-8 sm:mt-12 md:mt-16 w-full overflow-hidden"
     >
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50/90 via-teal-50/90 to-cyan-50/90 dark:from-emerald-900/20 dark:via-teal-900/20 dark:to-cyan-900/20 backdrop-blur-xl shadow-2xl border border-emerald-200/30 dark:border-emerald-700/30">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50/90 via-teal-50/90 to-cyan-50/90 dark:from-emerald-900/20 dark:via-teal-900/20 dark:to-cyan-900/20 backdrop-blur-xl shadow-2xl border border-emerald-200/30 dark:border-emerald-700/30 w-full">
         {/* Enhanced Background decorative elements */}
         <div className="absolute inset-0 -z-10">
           {/* Large animated gradient orbs */}
@@ -102,22 +102,22 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
           <div className="absolute -top-10 -right-10 sm:-top-20 sm:-right-20 w-48 h-48 sm:w-96 sm:h-96 rounded-full bg-gradient-to-br from-emerald-200/20 to-teal-200/20 dark:from-emerald-800/10 dark:to-teal-800/10 blur-3xl animate-pulse hidden sm:block"></div>
           <div className="absolute -bottom-10 -left-10 sm:-bottom-20 sm:-left-20 w-40 h-40 sm:w-80 sm:h-80 rounded-full bg-gradient-to-tr from-cyan-200/20 to-emerald-200/20 dark:from-cyan-800/10 dark:to-emerald-800/10 blur-3xl animate-pulse delay-1000 hidden sm:block"></div>
 
-          <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-12 lg:px-12 lg:py-16">
-            <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
+          <div className="relative z-10 px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 w-full overflow-hidden">
+            <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6 lg:flex-row lg:items-start lg:gap-8 w-full max-w-full">
 
               {/* Left Section - Centered Rectangular Avatar */}
-              <div className="flex flex-col items-center justify-center flex-shrink-0">
+              <div className="flex flex-col items-center justify-center flex-shrink-0 w-full lg:w-auto">
                 {/* Rectangular Profile Avatar - Centered */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.2, duration: 0.5 }}
-                  className="relative group mb-4"
+                  className="relative group mb-2 sm:mb-3 md:mb-4"
                 >
-                  <div className="relative w-32 h-32 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
-                    {profile.avatar_url ? (
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                    {profile.avatar ? (
                       <img
-                        src={profile.avatar_url}
+                        src={profile.avatar}
                         alt={profile.fullName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -126,7 +126,7 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
-                        <span className="text-3xl font-bold text-slate-600 dark:text-slate-400">
+                        <span className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-600 dark:text-slate-400">
                           {profile.fullName?.charAt(0) || 'U'}
                         </span>
                       </div>
@@ -135,7 +135,7 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
                   {/* Subscription indicator */}
                   {profile.subscriptionStatus === 'premium' && (
                     <div className="absolute -top-1 -right-1 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full p-1 shadow-lg">
-                      <Star className="h-3 w-3 text-white" />
+                      <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
                     </div>
                   )}
                 </motion.div>
@@ -147,10 +147,10 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
                   transition={{ delay: 0.4, duration: 0.5 }}
                   className="text-center"
                 >
-                  <p className="text-sm text-slate-500 dark:text-slate-400 font-normal">{profile.email}</p>
-                  <div className="flex items-center justify-center gap-1 mt-1">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Active</span>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-normal truncate max-w-[150px] sm:max-w-[200px]">{profile.email}</p>
+                  <div className="flex items-center justify-center gap-1 mt-0.5 sm:mt-1">
+                    <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-[10px] sm:text-xs font-medium text-green-600 dark:text-green-400">Active</span>
                   </div>
                 </motion.div>
               </div>
@@ -160,22 +160,22 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="flex-1 space-y-4"
+                className="flex-1 space-y-2 sm:space-y-3 md:space-y-4 w-full min-w-0 overflow-hidden"
               >
                 {/* User Name, Role, and Plan */}
-                <div>
-                  <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-2">
+                <div className="text-center lg:text-left">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-1.5 sm:mb-2">
                     {profile.fullName}
                   </h1>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 sm:gap-2 md:gap-3">
+                    <span className={`px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${
                       profile.role === 'student'
                         ? 'bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300'
                         : 'bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300'
                     }`}>
                       {profile.role}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    <span className={`px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${
                       profile.subscriptionStatus === 'premium'
                         ? 'bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 border border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-300'
                         : profile.subscriptionStatus === 'basic'
@@ -189,51 +189,39 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
 
                 {/* Bio/About Section - Minimal Card Design */}
                 {profile.bio && (
-                  <div className="max-w-2xl">
-                    <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-sm min-h-[120px]">
-                      <div className="border-l-4 border-slate-300 dark:border-slate-600 pl-4">
-                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-sm">{profile.bio}</p>
+                  <div className="max-w-2xl mx-auto lg:mx-0 mr-4 sm:mr-6 md:mr-8 lg:mr-12 w-full">
+                    <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-2 sm:p-3 md:p-4 lg:p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-sm min-h-[60px] sm:min-h-[80px] md:min-h-[100px] lg:min-h-[120px] w-full overflow-hidden">
+                      <div className="border-l-4 border-slate-300 dark:border-slate-600 pl-2 sm:pl-3 md:pl-4">
+                        <p className="text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words">{profile.bio}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Profile Stats Cards */}
-                <div className="grid grid-cols-4 gap-3 w-full max-w-md">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 md:gap-6 w-full max-w-full mx-auto lg:mx-0 overflow-hidden">
                   {/* Current Streak */}
-                  <div className="bg-gradient-to-br from-orange-50/90 to-red-50/90 dark:from-orange-900/40 dark:to-red-900/40 backdrop-blur-sm rounded-xl p-3 border border-orange-200/50 dark:border-orange-800/50 shadow-lg w-full aspect-square flex flex-col items-center justify-center">
-                    <Flame className="h-5 w-5 text-orange-500 mb-2" />
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{profile.stats.currentStreak}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">Day Streak</p>
-                    </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Flame className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-orange-500" />
+                    <p className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">{profile.stats.currentStreak}</p>
                   </div>
 
                   {/* Total XP */}
-                  <div className="bg-gradient-to-br from-blue-50/90 to-indigo-50/90 dark:from-blue-900/40 dark:to-indigo-900/40 backdrop-blur-sm rounded-xl p-3 border border-blue-200/50 dark:border-blue-800/50 shadow-lg w-full aspect-square flex flex-col items-center justify-center">
-                    <Trophy className="h-5 w-5 text-blue-500 mb-2" />
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{profile.stats.totalXP.toLocaleString()}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">Total XP</p>
-                    </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Trophy className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-blue-500" />
+                    <p className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">{profile.stats.totalXP.toLocaleString()}</p>
                   </div>
 
                   {/* Level */}
-                  <div className="bg-gradient-to-br from-purple-50/90 to-pink-50/90 dark:from-purple-900/40 dark:to-pink-900/40 backdrop-blur-sm rounded-xl p-3 border border-purple-200/50 dark:border-purple-800/50 shadow-lg w-full aspect-square flex flex-col items-center justify-center">
-                    <Star className="h-5 w-5 text-purple-500 mb-2" />
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{profile.level}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">Level</p>
-                    </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Star className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-purple-500" />
+                    <p className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">{profile.level}</p>
                   </div>
 
                   {/* Weekly Progress */}
-                  <div className="bg-gradient-to-br from-cyan-50/90 to-teal-50/90 dark:from-cyan-900/40 dark:to-teal-900/40 backdrop-blur-sm rounded-xl p-3 border border-cyan-200/50 dark:border-cyan-800/50 shadow-lg w-full aspect-square flex flex-col items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-cyan-500 mb-2" />
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{profile.stats.totalSessions}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">Sessions</p>
-                    </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-cyan-500" />
+                    <p className="text-xs sm:text-sm md:text-base font-bold text-slate-900 dark:text-slate-100">{profile.stats.totalSessions}</p>
                   </div>
                 </div>
               </motion.div>

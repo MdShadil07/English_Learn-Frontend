@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Bot,
@@ -62,8 +63,14 @@ export function AppSidebar({
   ...props
 }) {
   const { user, signOut } = useAuth();
-  const { state: sidebarState } = useSidebar();
-  const isCollapsed = sidebarState === "collapsed";
+  const { state: sidebarState, isMobile } = useSidebar();
+  const isCollapsed = sidebarState === "collapsed" && !isMobile;
+  const navigate = useNavigate();
+
+  const handleNavigation = (viewId: string) => {
+    navigate(`/dashboard?view=${viewId}`);
+    onViewChange(viewId);
+  };
 
   // Theme state
   const [theme, setTheme] = React.useState("light");
@@ -165,10 +172,10 @@ export function AppSidebar({
       <SidebarHeader className="border-b border-slate-200 dark:border-slate-800 p-4 h-16 flex items-center">
         <div className="flex items-center justify-between gap-3 w-full overflow-hidden">
           <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white truncate">
-            <div className="min-w-[2rem] flex items-center justify-center">
-              <Logo size={isCollapsed ? 'sm' : 'xl'} sidebarState={isCollapsed ? 'collapsed' : 'expanded'} className={isCollapsed ? 'w-8 h-8' : 'w-10 h-10'} />
+            <div className="min-w-[1.75rem] flex items-center justify-center">
+              <Logo size={isCollapsed ? 'sm' : 'md'} sidebarState={isCollapsed ? 'collapsed' : 'expanded'} className={isCollapsed ? 'w-8 h-8' : 'w-8 h-8'} />
             </div>
-            {!isCollapsed && <span className="truncate">CognitoSpeak</span>}
+            {!isCollapsed && <span className="truncate font-black tracking-tight text-lg sm:text-xl">CognitoSpeak</span>}
           </div>
           
           {!isCollapsed && (
@@ -189,7 +196,7 @@ export function AppSidebar({
 
       <SidebarContent className="px-3 py-4">
         <div className="h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
             {/* Main Nav */}
             <div className="space-y-1 mb-6">
               {data.navMain.map((item) => {
@@ -197,7 +204,7 @@ export function AppSidebar({
                 return (
                   <button
                     key={item.title}
-                    onClick={() => onViewChange(item.id)}
+                    onClick={() => handleNavigation(item.id)}
                     className={cn(
                       "flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isCollapsed ? "justify-center" : "justify-start gap-3",
@@ -228,7 +235,7 @@ export function AppSidebar({
                     return (
                       <button
                         key={item.title}
-                        onClick={() => onViewChange(item.id)}
+                        onClick={() => handleNavigation(item.id)}
                         className={cn(
                           "relative flex items-center w-full rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
                           isCollapsed ? "justify-center" : "justify-start gap-3",
@@ -240,12 +247,12 @@ export function AppSidebar({
                         <Icon className={cn("h-4 w-4 shrink-0", item.isActive ? "text-emerald-500" : "")} />
                         {!isCollapsed && (
                           <>
-                            <span className="flex-1 text-left truncate">{item.title}</span>
+                            <span className="flex-1 text-left truncate text-xs sm:text-sm">{item.title}</span>
                             {item.badge && (
                               <Badge
                                 variant="secondary"
                                 className={cn(
-                                  "text-[10px] px-1.5 py-0 h-5",
+                                  "text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 h-4 sm:h-5",
                                   item.badge === "New" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
                                   item.badge === "Live" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
                                   item.badge === "Pro" && "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
@@ -285,8 +292,8 @@ export function AppSidebar({
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-              <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')}><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="mr-2 h-4 w-4" /> Log out</DropdownMenuItem>
             </DropdownMenuContent>

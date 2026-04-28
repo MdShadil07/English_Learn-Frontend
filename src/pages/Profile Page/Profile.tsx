@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, User } from '../../contexts/AuthContext';
@@ -38,6 +38,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/utils/api';
 import { queryKeys, queryOptions } from '@/utils/queryKeys';
 import { resolveUserTier, mapTierToStatus } from '@/utils/tierUtils';
+import { supabase } from '../../integrations/supabase/client';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -47,6 +48,41 @@ const Profile: React.FC = () => {
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>('');
   const [activeView, setActiveView] = useState<'overview' | 'achievements' | 'settings' | 'activity' | 'subscription'>('overview');
   const [sidebarActiveView, setSidebarActiveView] = useState<'overview' | 'achievements' | 'settings' | 'activity' | 'subscription'>('overview');
+  const [realTimeStats, setRealTimeStats] = useState({
+    currentStreak: 0,
+    totalXP: 0,
+    totalSessions: 0,
+    correctionCoins: 0
+  });
+
+  // Fetch real-time stats from database
+  useEffect(() => {
+    const fetchRealTimeStats = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('current_streak, longest_streak, correction_coins')
+          .eq('id', authUser.id)
+          .single();
+
+        if (profile) {
+          setRealTimeStats({
+            currentStreak: profile.current_streak || 0,
+            totalXP: profile.correction_coins || 0, // Using correction_coins as XP proxy
+            totalSessions: profile.current_streak || 0, // Using streak as sessions proxy
+            correctionCoins: profile.correction_coins || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching real-time stats:', error);
+      }
+    };
+
+    fetchRealTimeStats();
+  }, [user?.id]);
 
   // Fetch profile data using React Query - now unified with AuthContext
   const {
@@ -109,10 +145,10 @@ const Profile: React.FC = () => {
     weeklyGoal: 300, // Default weekly goal
     achievements: [], // Empty for now
     stats: {
-      currentStreak: 0,
+      currentStreak: realTimeStats.currentStreak,
       longestStreak: 0,
-      totalSessions: 0,
-      totalXP: 0,
+      totalSessions: realTimeStats.totalSessions,
+      totalXP: realTimeStats.totalXP,
       accuracy: 0,
       vocabulary: 0,
       grammar: 0,
@@ -250,7 +286,7 @@ const Profile: React.FC = () => {
         )}
 
         {/* Main Content */}
-        <div className={`flex-1 p-2 xs:p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 lg:space-y-8 transition-all duration-300 pt-14 xs:pt-16 sm:pt-20 ${
+        <div className={`flex-1 p-2 xs:p-3 sm:p-4 md:p-6 lg:p-8 pr-4 sm:pr-6 md:pr-8 lg:pr-12 space-y-3 sm:space-y-4 md:space-y-6 lg:space-y-8 transition-all duration-300 pt-14 xs:pt-16 sm:pt-20 overflow-x-hidden ${
           showSidebar ? 'lg:ml-80 xl:ml-96' : 'ml-0'
         }`}>
 
@@ -259,22 +295,24 @@ const Profile: React.FC = () => {
         {/* ================================================================== */}
 
         {/* Advanced Hero Welcome Section - Matching Dashboard Design */}
-        <ProfileHero profile={profile} sidebarOpen={showSidebar} />
+        <div className="w-full max-w-full overflow-hidden">
+          <ProfileHero profile={profile} />
+        </div>
 
 
         {/* Daily Progress, Skill Overview & Recent Activity - Below Hero */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 w-full">
           <DailyProgressCard profile={profile} />
           <SkillOverview profile={profile} />
           <RecentActivity profile={profile} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full">
           <PersonalInformationCard profile={profile} />
           <EducationJourneyCard profile={profile} />
         </div>
 
         {/* Badges & Achievements and Certificates - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full">
           <BadgesAndAchievementsCard profile={profile} />
           {profile.certificates && profile.certificates.length > 0 && (
             <CertificatesCard profile={profile} />
@@ -282,7 +320,9 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Learning Recommendations */}
-        <LearningRecommendations profile={profile} />
+        <div className="w-full overflow-hidden">
+          <LearningRecommendations profile={profile} />
+        </div>
 
         {/* ================================================================== */}
         {/* END OF REQUESTED LAYOUT. OTHER COMPONENTS FOLLOW.                */}
@@ -294,31 +334,31 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Subscription Plans */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full">
           <BasicPlanCard />
           {profile.isPremium !== undefined && (profile.isPremium || profile.subscriptionStatus === 'pro') && <PremiumPlanCard isPremium={profile.isPremium} />}
         </div>
 
         {/* Learning Goals & Achievements */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-8">
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">🎯 Learning Goals</h3>
-            <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6 md:mt-8 w-full">
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">🎯 Learning Goals</h3>
+            <div className="space-y-3 sm:space-y-4">
               {profile.learningGoals.map(goal => <LearningGoalCard key={goal.id} goal={goal} />)}
             </div>
           </div>
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">🏆 Recent Achievements</h3>
-            <div className="space-y-4">
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">🏆 Recent Achievements</h3>
+            <div className="space-y-3 sm:space-y-4">
               {profile.achievements && profile.achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} />)}
             </div>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">📈 Recent Activity</h3>
-          <div className="space-y-3 sm:space-y-4">
+        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50 w-full overflow-hidden">
+          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">📈 Recent Activity</h3>
+          <div className="space-y-2 sm:space-y-3 md:space-y-4">
             {profile.recentActivity && profile.recentActivity.slice(0, 5).map(activity => <ActivityCard key={activity.id} activity={activity} />)}
           </div>
         </div>

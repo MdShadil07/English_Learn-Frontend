@@ -151,7 +151,7 @@ export default function DashboardHero({ user = { fullName: 'Learner' }, greeting
           <div className="space-y-4">
             <motion.h1
               variants={itemVariants}
-              className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight"
+              className="text-3xl sm:text-5xl lg:text-7xl font-extrabold text-slate-900 dark:text-white leading-[1.1] tracking-tight"
             >
               {greeting}, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-blue-600 animate-gradient-x">

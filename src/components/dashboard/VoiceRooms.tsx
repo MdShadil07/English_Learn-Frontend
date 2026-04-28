@@ -14,22 +14,22 @@ const VoiceRooms = () => {
   ];
 
   return (
-    <div className="min-h-screen p-6 space-y-8">
+    <div className="min-h-screen p-3 sm:p-6 space-y-4 sm:space-y-8 overflow-x-hidden">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <Card className="relative overflow-hidden border-none shadow-lg">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-90" />
-          <CardContent className="relative p-8">
-            <div className="flex items-center justify-between">
+          <CardContent className="relative p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg">
-                  <Video className="h-8 w-8 text-white" />
+                <div className="p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-lg flex-shrink-0">
+                  <Video className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold text-white">Voice Rooms</h1>
-                  <p className="text-lg text-white/90">Practice speaking with others live</p>
+                  <h1 className="text-2xl sm:text-4xl font-bold text-white truncate max-w-[200px] xs:max-w-none">Voice Rooms</h1>
+                  <p className="text-sm sm:text-lg text-white/90 truncate">Practice speaking live</p>
                 </div>
               </div>
-              <Button className="bg-white text-indigo-600 hover:bg-white/90">
+              <Button className="w-full sm:w-auto bg-white text-indigo-600 hover:bg-white/90 font-semibold shadow-lg">
                 Create Room
               </Button>
             </div>
@@ -37,43 +37,43 @@ const VoiceRooms = () => {
         </Card>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card className="h-[600px]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="lg:col-span-2 min-w-0">
+          <Card className="h-auto lg:h-[600px] min-w-0">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-2xl">
                 <Video className="h-5 w-5 text-primary" />
                 Active Voice Room
               </CardTitle>
-              <CardDescription>Business English Discussion</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Business English Discussion</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Card key={i} className="p-4">
-                    <div className="flex flex-col items-center gap-2">
-                      <Avatar className="h-16 w-16">
-                        <AvatarFallback>U{i}</AvatarFallback>
+                  <Card key={i} className="p-2 sm:p-4 border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col items-center gap-1 sm:gap-2">
+                      <Avatar className="h-10 w-10 sm:h-16 sm:w-16 shadow-sm">
+                        <AvatarFallback className="bg-emerald-50 text-emerald-700 text-xs sm:text-base">U{i}</AvatarFallback>
                       </Avatar>
-                      <p className="text-sm font-medium">User {i}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        <Mic className="h-3 w-3 mr-1" />
-                        Speaking
+                      <p className="text-[10px] sm:text-sm font-medium truncate w-full text-center">User {i}</p>
+                      <Badge variant="secondary" className="text-[8px] sm:text-xs py-0 h-4 sm:h-5">
+                        <Mic className="h-2 w-2 sm:h-3 sm:w-3 mr-1" />
+                        Live
                       </Badge>
                     </div>
                   </Card>
                 ))}
               </div>
 
-              <div className="flex items-center justify-center gap-4 pt-6">
-                <Button size="lg" variant="outline" className="rounded-full h-14 w-14">
-                  <Mic className="h-6 w-6" />
+              <div className="flex items-center justify-center gap-2 sm:gap-4 pt-4 sm:pt-6">
+                <Button size="sm" variant="outline" className="rounded-full h-10 w-10 sm:h-14 sm:w-14">
+                  <Mic className="h-4 w-4 sm:h-6 sm:w-6" />
                 </Button>
-                <Button size="lg" variant="destructive" className="rounded-full h-16 w-16">
-                  <PhoneOff className="h-6 w-6" />
+                <Button size="lg" variant="destructive" className="rounded-full h-12 w-12 sm:h-16 sm:w-16 shadow-lg shadow-red-500/20">
+                  <PhoneOff className="h-5 w-5 sm:h-6 sm:w-6" />
                 </Button>
-                <Button size="lg" variant="outline" className="rounded-full h-14 w-14">
-                  <Settings className="h-6 w-6" />
+                <Button size="sm" variant="outline" className="rounded-full h-10 w-10 sm:h-14 sm:w-14">
+                  <Settings className="h-4 w-4 sm:h-6 sm:w-6" />
                 </Button>
               </div>
             </CardContent>

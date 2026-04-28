@@ -125,7 +125,8 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden w-screen max-w-full;
+    position: relative;
   }
 }
 
@@ -143,29 +144,6 @@ All colors MUST be HSL.
     -ms-overflow-style: none;
     /* Better cross-browser support */
     scrollbar-color: transparent transparent;
-  }
-
-  .scrollbar-hide:hover {
-    /* Allow scrollbar on hover for accessibility */
-    scrollbar-width: thin;
-
-    &::-webkit-scrollbar {
-      display: block;
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: rgba(156, 163, 175, 0.3);
-      border-radius: 3px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      background: rgba(156, 163, 175, 0.5);
-    }
   }
 
   /* Custom animations for modern UI */

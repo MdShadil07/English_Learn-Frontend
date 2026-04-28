@@ -62,16 +62,16 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
         <Calendar className="h-6 w-6 sm:h-9 sm:w-9 drop-shadow-lg" />
       </motion.div>
 
-      <div className="relative p-6 sm:p-8">
+      <div className="relative p-4 sm:p-6 md:p-8">
         {/* Enhanced Header */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="flex items-center gap-3 mb-6 sm:mb-8"
+          className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 md:mb-8"
         >
           <motion.div
-            className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"
+            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300"
             animate={{
               rotate: [0, 5, -5, 0],
               scale: [1, 1.05, 1]
@@ -82,20 +82,20 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
               transition: { duration: 0.5 }
             }}
           >
-            <User className="h-8 w-8 text-white drop-shadow-lg" />
+            <User className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-white drop-shadow-lg" />
           </motion.div>
           <div>
-            <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
+            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
               Profile Overview
             </h3>
-            <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+            <p className="text-[10px] sm:text-xs md:text-sm text-emerald-600 dark:text-emerald-400 font-medium">
               Your learning journey and achievements
             </p>
           </div>
         </motion.div>
 
         {/* Enhanced Profile Stats Cards */}
-        <div className="space-y-6 mb-8">
+        <div className="space-y-3 sm:space-y-4 md:space-y-6 mb-4 sm:mb-6 md:mb-8">
           {/* Member Since */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -104,22 +104,22 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
             whileHover={{ y: -2, scale: 1.02 }}
             className="group"
           >
-            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
-              <div className="flex items-center gap-4">
+            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <motion.div
-                  className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
                   animate={{
                     rotate: [0, 5, -5, 0]
                   }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
                 >
-                  <Calendar className="h-5 w-5 text-white" />
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </motion.div>
-                <div className="flex-1">
-                  <label className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
+                <div className="flex-1 min-w-0">
+                  <label className="text-[10px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
                     Member Since
                   </label>
-                  <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                  <p className="text-sm sm:text-base md:text-lg font-semibold text-emerald-900 dark:text-emerald-100 truncate">
                     {memberSince}
                   </p>
                 </div>
@@ -135,22 +135,22 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
             whileHover={{ y: -2, scale: 1.02 }}
             className="group"
           >
-            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
-              <div className="flex items-center gap-4">
+            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <motion.div
-                  className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
                   animate={{
                     scale: [1, 1.1, 1]
                   }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
                 >
-                  <Award className="h-5 w-5 text-white" />
+                  <Award className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </motion.div>
-                <div className="flex-1">
-                  <label className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
+                <div className="flex-1 min-w-0">
+                  <label className="text-[10px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
                     Achievements
                   </label>
-                  <p className="text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                  <p className="text-sm sm:text-base md:text-lg font-semibold text-emerald-900 dark:text-emerald-100 truncate">
                     {totalAchievements} Badges Earned
                   </p>
                 </div>
@@ -167,26 +167,26 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
               whileHover={{ y: -2, scale: 1.02 }}
               className="group"
             >
-              <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
-                <div className="flex items-center gap-4">
+              <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <motion.div
-                    className="w-10 h-10 bg-gradient-to-br from-teal-600 to-cyan-700 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-600 to-cyan-700 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
                     animate={{
                       rotate: [0, 8, -8, 0]
                     }}
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
                   >
-                    <MapPin className="h-5 w-5 text-white" />
+                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </motion.div>
-                  <div className="flex-1">
-                    <label className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
+                  <div className="flex-1 min-w-0">
+                    <label className="text-[10px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
                       Address
                     </label>
                     <div className="space-y-1">
-                      <p className="text-emerald-800 dark:text-emerald-200 font-medium">
+                      <p className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 font-medium truncate">
                         {profile.address || profile.location}
                       </p>
-                      <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                      <div className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 truncate">
                         {profile.address && (
                           <span>{profile.address}</span>
                         )}
@@ -232,7 +232,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
               </div>
             </motion.div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-3">
               {profile.socialHandles?.linkedin && (
                 <motion.a
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -243,7 +243,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   href={profile.socialHandles.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 p-3 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 backdrop-blur-xl rounded-2xl border border-blue-200/40 dark:border-blue-700/40 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="group flex items-center gap-2 p-2 sm:p-3 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 backdrop-blur-xl rounded-2xl border border-blue-200/40 dark:border-blue-700/40 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
                     className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300"
@@ -254,7 +254,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   >
                     <Linkedin className="h-3 w-3 text-white" />
                   </motion.div>
-                  <span className="text-xs font-medium text-blue-800 dark:text-blue-200">LinkedIn</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200">LinkedIn</span>
                 </motion.a>
               )}
 
@@ -268,7 +268,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   href={profile.socialHandles.twitter}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 p-3 bg-gradient-to-br from-sky-50/80 to-blue-50/80 dark:from-sky-900/30 dark:to-blue-900/30 backdrop-blur-xl rounded-2xl border border-sky-200/40 dark:border-sky-700/40 hover:bg-gradient-to-br hover:from-sky-100/90 hover:to-blue-100/90 dark:hover:from-sky-900/40 dark:hover:to-blue-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="group flex items-center gap-2 p-2 sm:p-3 bg-gradient-to-br from-sky-50/80 to-blue-50/80 dark:from-sky-900/30 dark:to-blue-900/30 backdrop-blur-xl rounded-2xl border border-sky-200/40 dark:border-sky-700/40 hover:bg-gradient-to-br hover:from-sky-100/90 hover:to-blue-100/90 dark:hover:from-sky-900/40 dark:hover:to-blue-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
                     className="w-6 h-6 bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300"
@@ -279,7 +279,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   >
                     <Twitter className="h-3 w-3 text-white" />
                   </motion.div>
-                  <span className="text-xs font-medium text-sky-800 dark:text-sky-200">Twitter</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-sky-800 dark:text-sky-200">Twitter</span>
                 </motion.a>
               )}
 
@@ -293,7 +293,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   href={profile.socialHandles.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 p-3 bg-gradient-to-br from-gray-50/80 to-slate-50/80 dark:from-gray-900/30 dark:to-slate-900/30 backdrop-blur-xl rounded-2xl border border-gray-200/40 dark:border-gray-700/40 hover:bg-gradient-to-br hover:from-gray-100/90 hover:to-slate-100/90 dark:hover:from-gray-900/40 dark:hover:to-slate-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="group flex items-center gap-2 p-2 sm:p-3 bg-gradient-to-br from-gray-50/80 to-slate-50/80 dark:from-gray-900/30 dark:to-slate-900/30 backdrop-blur-xl rounded-2xl border border-gray-200/40 dark:border-gray-700/40 hover:bg-gradient-to-br hover:from-gray-100/90 hover:to-slate-100/90 dark:hover:from-gray-900/40 dark:hover:to-slate-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
                     className="w-6 h-6 bg-gradient-to-br from-gray-600 to-slate-700 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300"
@@ -304,7 +304,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   >
                     <Github className="h-3 w-3 text-white" />
                   </motion.div>
-                  <span className="text-xs font-medium text-gray-800 dark:text-gray-200">GitHub</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-gray-800 dark:text-gray-200">GitHub</span>
                 </motion.a>
               )}
 
@@ -318,7 +318,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   href={profile.socialHandles.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 p-3 bg-gradient-to-br from-purple-50/80 to-violet-50/80 dark:from-purple-900/30 dark:to-violet-900/30 backdrop-blur-xl rounded-2xl border border-purple-200/40 dark:border-purple-700/40 hover:bg-gradient-to-br hover:from-purple-100/90 hover:to-violet-100/90 dark:hover:from-purple-900/40 dark:hover:to-violet-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="group flex items-center gap-2 p-2 sm:p-3 bg-gradient-to-br from-purple-50/80 to-violet-50/80 dark:from-purple-900/30 dark:to-violet-900/30 backdrop-blur-xl rounded-2xl border border-purple-200/40 dark:border-purple-700/40 hover:bg-gradient-to-br hover:from-purple-100/90 hover:to-violet-100/90 dark:hover:from-purple-900/40 dark:hover:to-violet-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
                     className="w-6 h-6 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300"
@@ -330,7 +330,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   >
                     <ExternalLink className="h-3 w-3 text-white" />
                   </motion.div>
-                  <span className="text-xs font-medium text-purple-800 dark:text-purple-200">Website</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-purple-800 dark:text-purple-200">Website</span>
                 </motion.a>
               )}
 
@@ -344,7 +344,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   href={profile.socialHandles.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 p-3 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 backdrop-blur-xl rounded-2xl border border-blue-200/40 dark:border-blue-700/40 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="group flex items-center gap-2 p-2 sm:p-3 md:p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 backdrop-blur-xl rounded-2xl border border-blue-200/40 dark:border-blue-700/40 hover:bg-gradient-to-br hover:from-blue-100/90 hover:to-indigo-100/90 dark:hover:from-blue-900/40 dark:hover:to-indigo-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
                     className="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300"
@@ -355,7 +355,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   >
                     <Facebook className="h-3 w-3 text-white" />
                   </motion.div>
-                  <span className="text-xs font-medium text-blue-800 dark:text-blue-200">Facebook</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-blue-800 dark:text-blue-200">Facebook</span>
                 </motion.a>
               )}
 
@@ -369,7 +369,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   href={profile.socialHandles.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center gap-2 p-3 bg-gradient-to-br from-pink-50/80 to-rose-50/80 dark:from-pink-900/30 dark:to-rose-900/30 backdrop-blur-xl rounded-2xl border border-pink-200/40 dark:border-pink-700/40 hover:bg-gradient-to-br hover:from-pink-100/90 hover:to-rose-100/90 dark:hover:from-pink-900/40 dark:hover:to-rose-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="group flex items-center gap-2 p-2 sm:p-3 bg-gradient-to-br from-pink-50/80 to-rose-50/80 dark:from-pink-900/30 dark:to-rose-900/30 backdrop-blur-xl rounded-2xl border border-pink-200/40 dark:border-pink-700/40 hover:bg-gradient-to-br hover:from-pink-100/90 hover:to-rose-100/90 dark:hover:from-pink-900/40 dark:hover:to-rose-900/40 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
                     className="w-6 h-6 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300"
@@ -381,7 +381,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
                   >
                     <Instagram className="h-3 w-3 text-white" />
                   </motion.div>
-                  <span className="text-xs font-medium text-pink-800 dark:text-pink-200">Instagram</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-pink-800 dark:text-pink-200">Instagram</span>
                 </motion.a>
               )}
             </div>
