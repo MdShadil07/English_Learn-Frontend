@@ -5,6 +5,21 @@ import { api } from '@/utils/api';
 import { queryKeys, queryOptions } from '@/utils/queryKeys';
 import { SubscriptionDetails } from '@/types/user';
 
+// Declare Google OAuth types
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: any) => {
+            requestAccessToken: () => void;
+          };
+        };
+      };
+    };
+  }
+}
+
 export interface User {
   id: string;
   email: string;
@@ -20,6 +35,15 @@ export interface User {
   createdAt: string;
   lastLoginAt?: string;
   tier: 'free' | 'pro' | 'premium';
+  // Google OAuth fields
+  googleAuth?: {
+    googleId: string;
+    email: string;
+    profilePicture?: string;
+    isLinked: boolean;
+    linkedAt?: string;
+    linkedBy?: 'manual' | 'sso_first_time' | 'email_verification';
+  };
   // Backward compatibility flags from profile data
   isPremium?: boolean;
   isPro?: boolean;
@@ -34,6 +58,8 @@ interface AuthContextType {
   signOut: () => void;
   refreshUser: () => Promise<unknown>;
   updateUser: (updates: Partial<User>) => void;
+  signInWithGoogle: () => Promise<{ success: boolean; message: string }>;
+  linkGoogleAccount: () => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -154,6 +180,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isEmailVerified: true, // Assume verified if we have profile data
             createdAt: result.data.user?.createdAt || new Date().toISOString(),
             lastLoginAt: result.data.user?.lastLoginAt,
+            // Google OAuth fields
+            googleAuth: result.data.user?.googleAuth ? {
+              googleId: result.data.user.googleAuth.googleId,
+              email: result.data.user.googleAuth.email,
+              profilePicture: result.data.user.googleAuth.profilePicture,
+              isLinked: result.data.user.googleAuth.isLinked || false,
+              linkedAt: result.data.user.googleAuth.linkedAt,
+              linkedBy: result.data.user.googleAuth.linkedBy,
+            } : undefined,
             // Canonical tier logic - check tier field first, then fallback to isPremium/subscriptionStatus
             tier: (
               // Direct tier field from user or profile
@@ -216,9 +251,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const accessToken = localStorage.getItem('accessToken');
         if (accessToken) {
           const authResult = await authService.getProfile(accessToken);
-          if (authResult.success && authResult.data?.user) {
+          if (authResult.success && authResult.data && (authResult.data as any).user) {
             console.log('✅ AuthProvider: Fallback to auth API successful');
-            const fallbackUser = authResult.data.user;
+            const fallbackUser = (authResult.data as any).user;
             const resolvedUserId =
               (hasObjectId(fallbackUser) && normalizeId(fallbackUser._id)) ||
               (hasId(fallbackUser) && normalizeId(fallbackUser.id));
@@ -236,7 +271,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     },
     ...queryOptions.user,
-    enabled: true, // Always enabled for authenticated users
+    enabled: !!localStorage.getItem('accessToken'), // Only fetch if user has an access token
     staleTime: 30 * 1000, // 30 seconds for user data
     gcTime: 5 * 60 * 1000, // 5 minutes cache
     retry: (failureCount, error) => {
@@ -346,24 +381,225 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Reset user state
       setUser(null);
 
+      // Reset Google OAuth state by removing the Google script
+      const googleScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (googleScript) {
+        googleScript.remove();
+      }
+      // Clear window.google to force reload
+      if (window.google) {
+        delete (window as any).google;
+      }
+
       console.log('✅ AuthProvider: User signed out successfully');
     }
   }, [queryClient]);
 
   // Refresh user data (returns the refetch promise so callers can await)
   const refreshUser = useCallback(() => {
-    console.log('🔄 AuthProvider: Manual user refresh requested');
+    console.log('AuthProvider: Manual user refresh requested');
     return refetchUserData();
   }, [refetchUserData]);
 
   // Update user data (for optimistic updates)
   const updateUser = useCallback((updates: Partial<User>) => {
-    console.log('🔄 AuthProvider: Updating user data:', updates);
+    console.log('AuthProvider: Updating user data:', updates);
     setUser(prev => prev ? { ...prev, ...updates } : null);
     queryClient.setQueryData(queryKeys.global.currentUser(), (prev: User | undefined) =>
       prev ? { ...prev, ...updates } : prev
     );
   }, [queryClient]);
+
+  // Sign in with Google
+  const signInWithGoogle = useCallback(async (): Promise<{ success: boolean; message: string; code?: string }> => {
+    try {
+      // Load Google API script if not already loaded
+      if (!window.google) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://accounts.google.com/gsi/client';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Check if popup blocker might be active
+      const testPopup = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
+      if (!testPopup) {
+        console.warn('⚠️ Popup blocker detected. Google OAuth may not work.');
+        return { 
+          success: false, 
+          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try signing in with Google again' 
+        };
+      }
+      testPopup.close();
+
+      // Initialize Google Sign-In with redirect flow to avoid COOP issues
+      return new Promise((resolve) => {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          callback: async (response) => {
+            if (response.error) {
+              console.error('Google OAuth error:', response.error);
+              const errorMessage = response.error === 'popup_closed' 
+                ? 'Google sign-in was cancelled' 
+                : 'Failed to sign in with Google';
+              resolve({ success: false, message: errorMessage });
+              return;
+            }
+
+            try {
+              // Send the ID token to backend for verification
+              const result = await authService.googleSignIn(response.access_token || response.id_token);
+              
+              if (result.success && result.data) {
+                // Store tokens
+                localStorage.setItem('accessToken', result.data.tokens.accessToken);
+                localStorage.setItem('refreshToken', result.data.tokens.refreshToken);
+                
+                // Update user state
+                updateUser(result.data.user);
+                
+                // Invalidate and refetch user data to ensure consistency
+                await refetchUserData();
+                
+                resolve({ success: true, message: 'Successfully signed in with Google!' });
+              } else {
+                // Handle specific error codes for account linking
+                if (result.code === 'ACCOUNT_NOT_LINKED') {
+                  resolve({ 
+                    success: false, 
+                    message: 'Your Google account needs to be linked. Please sign in with your email/password first, then link your Google account in profile settings.',
+                    code: result.code
+                  });
+                } else if (result.code === 'EMAIL_EXISTS_NOT_LINKED') {
+                  resolve({ 
+                    success: false, 
+                    message: 'An account with this email already exists. Please sign in with your email/password first, then link your Google account in profile settings.',
+                    code: result.code
+                  });
+                } else if (result.code === 'GOOGLE_ID_MISMATCH') {
+                  resolve({ 
+                    success: false, 
+                    message: 'Security alert: This Google account is already linked to a different account. Please contact support.',
+                    code: result.code
+                  });
+                } else {
+                  throw new Error(result.message || 'Authentication failed');
+                }
+              }
+            } catch (error) {
+              console.error('Backend authentication error:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+              resolve({ success: false, message: errorMessage });
+            }
+          },
+          error_callback: (error) => {
+            console.error('Google OAuth error:', error);
+            if (error?.type === 'popup_closed' || error?.message?.includes('Popup window closed')) {
+              resolve({ success: false, message: 'Google sign-in was cancelled. Please try again.' });
+            } else if (error?.type === 'popup_failed_to_open' || error?.message?.includes('Failed to open popup window')) {
+              resolve({ 
+                success: false, 
+                message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar (usually top-right)\n2. Select "Always allow popups from this site" or "Allow"\n3. Refresh the page and try signing in with Google again\n\nIf you still see this error, try:\n- Disabling your popup blocker temporarily\n- Using a different browser\n- Using incognito/private mode' 
+              });
+            } else {
+              resolve({ success: false, message: 'Failed to sign in with Google. Please try again.' });
+            }
+          },
+        });
+
+        // Request the token
+        client.requestAccessToken();
+      });
+    } catch (error) {
+      console.error('Google login initialization error:', error);
+      return { success: false, message: 'Failed to initialize Google sign-in' };
+    }
+  }, [updateUser, refetchUserData]);
+
+  // Link Google account to existing user
+  const linkGoogleAccount = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      // Load Google API script if not already loaded
+      if (!window.google) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://accounts.google.com/gsi/client';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Check if popup blocker might be active
+      const testPopup = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
+      if (!testPopup) {
+        console.warn('⚠️ Popup blocker detected. Google OAuth may not work.');
+        return { 
+          success: false, 
+          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try linking your Google account again' 
+        };
+      }
+      testPopup.close();
+
+      // Initialize Google Sign-In for linking
+      return new Promise((resolve) => {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          callback: async (response) => {
+            if (response.error) {
+              console.error('Google OAuth error:', response.error);
+              const errorMessage = response.error === 'popup_closed' 
+                ? 'Google linking was cancelled' 
+                : 'Failed to link Google account';
+              resolve({ success: false, message: errorMessage });
+              return;
+            }
+
+            try {
+              // Send the token to backend for linking
+              const result = await authService.linkGoogleAccount(response.access_token || response.id_token);
+              
+              if (result.success) {
+                // Update user state with linked Google info
+                await refetchUserData();
+                resolve({ success: true, message: 'Google account linked successfully!' });
+              } else {
+                resolve({ success: false, message: result.message || 'Failed to link Google account' });
+              }
+            } catch (error) {
+              console.error('Google account linking error:', error);
+              const errorMessage = error instanceof Error ? error.message : 'Failed to link Google account';
+              resolve({ success: false, message: errorMessage });
+            }
+          },
+          error_callback: (error) => {
+            console.error('Google OAuth error:', error);
+            if (error?.type === 'popup_closed' || error?.message?.includes('Popup window closed')) {
+              resolve({ success: false, message: 'Google linking was cancelled. Please try again.' });
+            } else if (error?.type === 'popup_failed_to_open' || error?.message?.includes('Failed to open popup window')) {
+              resolve({ 
+                success: false, 
+                message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar (usually top-right)\n2. Select "Always allow popups from this site" or "Allow"\n3. Refresh the page and try linking your Google account again\n\nIf you still see this error, try:\n- Disabling your popup blocker temporarily\n- Using a different browser\n- Using incognito/private mode' 
+              });
+            } else {
+              resolve({ success: false, message: 'Failed to link Google account. Please try again.' });
+            }
+          },
+        });
+
+        // Request the token
+        client.requestAccessToken();
+      });
+    } catch (error) {
+      console.error('Google linking initialization error:', error);
+      return { success: false, message: 'Failed to initialize Google linking' };
+    }
+  }, [refetchUserData]);
 
   // Check authentication status
   const isAuthenticated = !!user && !error;
@@ -375,6 +611,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     refreshUser,
     updateUser,
+    signInWithGoogle,
+    linkGoogleAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -42,9 +42,11 @@ import {
   Building,
   Star,
   ChevronRight,
-  CheckCircle2
+  CheckCircle2,
+  Shield
 } from 'lucide-react';
 import ImageCropModal from '../../components/Edit Profile/ImageCropModel';
+import { SecureEmailVerificationSection } from '../../components/auth/SecureEmailVerificationSection';
 import {
   EditProfileHero,
   EditPersonalInformation,
@@ -286,7 +288,7 @@ const EditProfile: React.FC = () => {
     onSuccess: (data) => {
       // Update the profile cache with new document
       queryClient.setQueryData(queryKeys.profile.get(), (old: any) => {
-        let updatedProfile = { ...old };
+        const updatedProfile = { ...old };
 
         if (data.documentType === 'resume') {
           // Update resume URL in professional info
@@ -316,7 +318,7 @@ const EditProfile: React.FC = () => {
 
       // Update local state
       setFormData(prev => {
-        let updated = { ...prev };
+        const updated = { ...prev };
 
         if (data.documentType === 'resume') {
           updated.professionalInfo = {
@@ -364,7 +366,7 @@ const EditProfile: React.FC = () => {
     onSuccess: (data) => {
       // Update the profile cache to remove the deleted avatar
       queryClient.setQueryData(queryKeys.profile.get(), (old: any) => {
-        let updatedProfile = { ...old };
+        const updatedProfile = { ...old };
 
         if (data.fileType === 'avatar') {
           updatedProfile.user = updatedProfile.user ? { ...updatedProfile.user, avatar: null } : null;
@@ -393,7 +395,7 @@ const EditProfile: React.FC = () => {
 
       // Update local state
       setFormData(prev => {
-        let updated = { ...prev };
+        const updated = { ...prev };
 
         if (data.fileType === 'avatar') {
           updated.avatar_url = '';
@@ -1146,6 +1148,7 @@ const EditProfile: React.FC = () => {
     { id: 'certifications', title: 'Certifications', icon: Award },
     { id: 'social', title: 'Social Links', icon: LinkIcon },
     { id: 'preferences', title: 'Learning Preferences', icon: Target },
+    { id: 'verification', title: 'Account Verification', icon: Shield },
     { id: 'privacy', title: 'Privacy Settings', icon: Settings }
   ];
 
@@ -1333,6 +1336,10 @@ const EditProfile: React.FC = () => {
                   onSave={handleSave}
                   isSaving={isSaving}
                 />
+              )}
+
+              {activeSection === 'verification' && (
+                <SecureEmailVerificationSection />
               )}
 
               {activeSection === 'privacy' && (

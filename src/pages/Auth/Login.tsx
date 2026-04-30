@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { AuthCard, AuthInput, AuthButton, AuthDivider, AuthFooter, SocialAuthButton } from '@/components/auth/AuthComponents';
+import { AuthCard, AuthInput, AuthButton, AuthDivider, AuthFooter } from '@/components/auth';
 import { Mail, Lock, ArrowRight, Github, Chrome } from 'lucide-react';
 import { authService } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,8 +11,9 @@ import { useAuth } from '@/contexts/AuthContext';
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { refreshUser } = useAuth();
+  const { refreshUser, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -81,11 +82,57 @@ const Login = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+
+      if (result.success) {
+        toast({
+          title: "Google sign-in successful!",
+          description: "You have been successfully logged in.",
+        });
+        navigate('/dashboard', { replace: true });
+      } else {
+        // Handle specific error codes
+        if (result.code === 'ACCOUNT_NOT_LINKED' || result.code === 'EMAIL_EXISTS_NOT_LINKED') {
+          toast({
+            title: "Account needs linking",
+            description: result.message,
+            variant: "destructive",
+          });
+          // Redirect to login with email/password
+          // User will need to sign in first, then link Google in profile settings
+        } else if (result.code === 'GOOGLE_ID_MISMATCH') {
+          toast({
+            title: "Security alert",
+            description: result.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Google sign-in failed",
+            description: result.message || "Failed to sign in with Google.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Google sign-in failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleSocialLogin = (provider: string) => {
-    // Implement social login logic here
+    // Implement other social login logic here
     toast({
-      title: "Coming soon",
-      description: `${provider} login will be available soon.`,
+      title: "Social Login",
+      description: `${provider} login will be available soon!`,
     });
   };
 
@@ -96,14 +143,6 @@ const Login = () => {
         {/* Large gradient orbs */}
         <div className="absolute -top-[40%] -right-[60%] w-[100rem] h-[100rem] rounded-full bg-gradient-to-tr from-emerald-100/40 to-teal-100/40 blur-3xl dark:from-emerald-900/20 dark:to-teal-900/20"></div>
         <div className="absolute -bottom-[30%] -left-[60%] w-[80rem] h-[80rem] rounded-full bg-gradient-to-br from-emerald-100/40 to-green-100/40 blur-3xl dark:from-emerald-900/20 dark:to-green-900/20"></div>
-
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath opacity='.1' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        ></div>
       </div>
 
       <div className="w-full max-w-lg mx-auto relative z-10">
@@ -113,20 +152,32 @@ const Login = () => {
         >
           {/* Social Login Options */}
           <div className="space-y-3 mb-6">
-            <SocialAuthButton
-              provider="google"
-              onClick={() => handleSocialLogin('Google')}
+            <Button
+              variant="outline"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="w-full"
             >
-              <Chrome className="h-4 w-4 mr-2" />
-              Continue with Google
-            </SocialAuthButton>
-            <SocialAuthButton
-              provider="github"
+              {googleLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+                  Connecting...
+                </div>
+              ) : (
+                <>
+                  <Chrome className="h-4 w-4 mr-2" />
+                  Continue with Google
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => handleSocialLogin('GitHub')}
+              className="w-full"
             >
               <Github className="h-4 w-4 mr-2" />
               Continue with GitHub
-            </SocialAuthButton>
+            </Button>
           </div>
 
           <AuthDivider text="or continue with email" />

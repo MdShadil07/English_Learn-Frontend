@@ -193,37 +193,6 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   );
 };
 
-interface SocialAuthButtonProps {
-  provider: 'google' | 'github' | 'facebook';
-  children: React.ReactNode;
-  onClick: () => void;
-}
-
-export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
-  provider,
-  children,
-  onClick
-}) => {
-  const providerColors = {
-    google: 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700',
-    github: 'from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900',
-    facebook: 'from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-  };
-
-  return (
-    <Button
-      onClick={onClick}
-      variant="outline"
-      className={cn(
-        "w-full h-12 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200",
-        `bg-gradient-to-r ${providerColors[provider]} text-white border-0 hover:shadow-lg`
-      )}
-    >
-      {children}
-    </Button>
-  );
-};
-
 interface AuthDividerProps {
   text: string;
 }

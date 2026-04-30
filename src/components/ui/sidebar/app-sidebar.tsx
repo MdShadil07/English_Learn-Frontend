@@ -86,6 +86,7 @@ export function AppSidebar({
 
   const handleLogout = async () => {
     await signOut();
+    navigate('/login');
   };
 
   const getInitials = (nameOrEmail?: string) => {

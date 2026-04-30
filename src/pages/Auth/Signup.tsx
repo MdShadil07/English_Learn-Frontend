@@ -4,14 +4,17 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { AuthCard, AuthInput, AuthButton, AuthDivider, AuthFooter, SocialAuthButton, PasswordStrength } from '@/components/auth/AuthComponents';
+import { AuthCard, AuthInput, AuthButton, AuthDivider, AuthFooter, PasswordStrength } from '@/components/auth/AuthComponents';
 import { User, Mail, Lock, Calendar, Globe, BookOpen, ArrowRight, Github, Chrome, CheckCircle } from 'lucide-react';
 import { authService } from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -152,6 +155,35 @@ const Signup = () => {
     }
   };
 
+  const handleGoogleSignup = async () => {
+    setGoogleLoading(true);
+    try {
+      const result = await signInWithGoogle();
+
+      if (result.success) {
+        toast({
+          title: "Google sign-up successful!",
+          description: "Your account has been created successfully.",
+        });
+        navigate('/dashboard', { replace: true });
+      } else {
+        toast({
+          title: "Google sign-up failed",
+          description: result.message || "Failed to sign up with Google.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Google sign-up failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleSocialSignup = (provider: string) => {
     toast({
       title: "Coming soon",
@@ -181,20 +213,32 @@ const Signup = () => {
         >
           {/* Social Signup Options */}
           <div className="space-y-3 mb-6">
-            <SocialAuthButton
-              provider="google"
-              onClick={() => handleSocialSignup('Google')}
+            <Button
+              variant="outline"
+              onClick={handleGoogleSignup}
+              disabled={googleLoading}
+              className="w-full"
             >
-              <Chrome className="h-4 w-4 mr-2" />
-              Sign up with Google
-            </SocialAuthButton>
-            <SocialAuthButton
-              provider="github"
+              {googleLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+                  Connecting...
+                </div>
+              ) : (
+                <>
+                  <Chrome className="h-4 w-4 mr-2" />
+                  Sign up with Google
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => handleSocialSignup('GitHub')}
+              className="w-full"
             >
               <Github className="h-4 w-4 mr-2" />
               Sign up with GitHub
-            </SocialAuthButton>
+            </Button>
           </div>
 
           <AuthDivider text="or create account with email" />

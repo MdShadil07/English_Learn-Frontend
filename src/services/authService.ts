@@ -53,6 +53,7 @@ export interface AuthResponse {
 export interface LoginResponse {
   success: boolean;
   message: string;
+  code?: string;
   data?: {
     user: {
       id: string;
@@ -74,6 +75,13 @@ export interface LoginResponse {
       refreshToken: string;
     };
   };
+}
+
+export interface ApiResponse {
+  success: boolean;
+  message: string;
+  code?: string;
+  data?: any;
 }
 
 class AuthService {
@@ -241,6 +249,222 @@ class AuthService {
         return {
           success: false,
           message: result.message || 'Failed to update profile',
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async getGoogleAuthUrl(): Promise<{ success: boolean; message: string; data?: { authUrl: string } }> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/google/url`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Failed to get Google auth URL',
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async googleSignIn(token: string): Promise<LoginResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/google/verify-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken: token }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Google sign-in failed',
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  /**
+   * Link Google account to existing user (direct method)
+   */
+  async linkGoogleAccount(googleToken: string): Promise<ApiResponse> {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        return {
+          success: false,
+          message: 'Authentication required. Please log in first.',
+        };
+      }
+
+      const response = await fetch(`${this.baseURL}/auth/google/link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ googleToken }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Failed to link Google account',
+          code: result.code,
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  /**
+   * Send email-only verification code for Google account linking (maximum security)
+   */
+  async sendEmailOnlyGoogleLinkingVerification(email: string): Promise<ApiResponse> {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        return {
+          success: false,
+          message: 'Authentication required. Please log in first.',
+        };
+      }
+
+      const response = await fetch(`${this.baseURL}/auth/google/link/send-email-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Failed to send verification code',
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  /**
+   * Verify email code and link Google account (maximum security)
+   */
+  async verifyEmailCodeAndLinkGoogle(email: string, code: string): Promise<ApiResponse> {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        return {
+          success: false,
+          message: 'Authentication required. Please log in first.',
+        };
+      }
+
+      const response = await fetch(`${this.baseURL}/auth/google/link/verify-email-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ email, code }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Failed to verify and link Google account',
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  /**
+   * Resend email-only verification code for Google account linking
+   */
+  async resendEmailOnlyGoogleLinkingVerification(email: string): Promise<ApiResponse> {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) {
+        return {
+          success: false,
+          message: 'Authentication required. Please log in first.',
+        };
+      }
+
+      const response = await fetch(`${this.baseURL}/auth/google/link/resend-email-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Failed to resend verification code',
         };
       }
 

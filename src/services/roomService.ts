@@ -7,7 +7,7 @@
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 import * as mediasoup from 'mediasoup-client';
-import { Device, Transport, Producer, Consumer } from 'mediasoup-client/lib/types';
+import type { Device, Transport, Producer, Consumer } from 'mediasoup-client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -911,7 +911,11 @@ class RoomService {
     if (producer) {
       try { 
         console.log('[roomService.toggleAudio] Producer state change:', newState ? 'resume' : 'pause');
-        track.enabled ? await producer.resume() : await producer.pause(); 
+        if (track.enabled) {
+          await producer.resume();
+        } else {
+          await producer.pause();
+        }
       }
       catch (err) { console.error('[Mediasoup] Audio toggle error:', err); }
     }
@@ -1006,7 +1010,13 @@ class RoomService {
     videoTrack.enabled = !videoTrack.enabled;
     const producer = this.producers.get('video');
     if (producer) {
-      try { videoTrack.enabled ? await producer.resume() : await producer.pause(); }
+      try { 
+        if (videoTrack.enabled) {
+          await producer.resume();
+        } else {
+          await producer.pause();
+        }
+      }
       catch (err) { console.error('[Mediasoup] Video toggle error:', err); }
     }
     return videoTrack.enabled;

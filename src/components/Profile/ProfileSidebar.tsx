@@ -34,6 +34,7 @@ import { BasicPlanCard } from './BasicPlanCard';
 import { PremiumPlanCard } from './PremiumPlanCard';
 import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon } from '@/components/Icons/SubscriptionIcons';
 import { ProfileSideBarUserCard } from './ProfileSideBarUserCard';
+import { VerificationStatusButton } from './VerificationStatusButton';
 
 interface ProfileSidebarProps {
   showSidebar: boolean;
@@ -207,8 +208,13 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           {/* Header with Profile Card */}
           <ProfileSideBarUserCard profile={profile} />
 
+          {/* Verification Status Button */}
+          <div className="px-4 mt-4 mb-2">
+            <VerificationStatusButton profile={profile} />
+          </div>
+
           {/* Navigation Tabs - Horizontal Scrolling Pagination */}
-          <div className="px-4 mt-4 mb-3">
+          <div className="px-4 mt-2 mb-3">
             <div className="relative">
               {/* Horizontal Scrollable Container with Enhanced Scrollbar */}
               <div className="overflow-x-auto custom-scrollbar-thin scrollbar-thin touch-pan-x">

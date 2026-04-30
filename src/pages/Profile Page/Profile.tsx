@@ -42,7 +42,7 @@ import { supabase } from '../../integrations/supabase/client';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, signOut } = useAuth();
 
   const [showSidebar, setShowSidebar] = useState(true);
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string>('');
@@ -54,6 +54,11 @@ const Profile: React.FC = () => {
     totalSessions: 0,
     correctionCoins: 0
   });
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   // Fetch real-time stats from database
   useEffect(() => {
@@ -240,9 +245,7 @@ const Profile: React.FC = () => {
           subscriptionStatus: profile?.subscriptionStatus,
           role: (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student') as 'student' | 'teacher' | 'admin',
         }}
-        onLogout={() => {
-          // Handle logout logic here
-        }}
+        onLogout={handleLogout}
         showSidebarToggle={true}
         onSidebarToggle={handleSidebarToggle}
         sidebarOpen={showSidebar}
@@ -339,6 +342,7 @@ const Profile: React.FC = () => {
           {profile.isPremium !== undefined && (profile.isPremium || profile.subscriptionStatus === 'pro') && <PremiumPlanCard isPremium={profile.isPremium} />}
         </div>
 
+        
         {/* Learning Goals & Achievements */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6 md:mt-8 w-full">
           <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">

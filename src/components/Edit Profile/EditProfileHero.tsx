@@ -120,7 +120,7 @@ const EditProfileHero: React.FC<EditProfileHeroProps> = ({
       const testFormData = new FormData();
       testFormData.append('avatar', croppedFile);
       console.log('📋 FormData test:');
-      for (let [key, value] of testFormData.entries()) {
+      for (const [key, value] of testFormData.entries()) {
         console.log(`  ${key}:`, value instanceof File ? `${value.name} (${value.size} bytes, ${value.type})` : value);
       }
 

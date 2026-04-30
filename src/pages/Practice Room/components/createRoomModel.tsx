@@ -327,7 +327,7 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRo
                          <input 
                            type="range" 
                            min="2" 
-                           max="10" 
+                           max="500" 
                            value={maxUsers}
                            onChange={(e) => setMaxUsers(e.target.value)}
                            className="flex-1 accent-blue-500 cursor-pointer"
