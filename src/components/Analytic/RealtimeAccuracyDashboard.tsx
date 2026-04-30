@@ -60,60 +60,34 @@ interface AccuracyData {
   lastCalculated: string | null;
 }
 
-interface DashboardResponse {
-  success: boolean;
-  source: 'cache' | 'database';
-  data: {
-    overview: {
-      totalXP: number;
-      currentLevel: number;
-      currentStreak: number;
-      longestStreak: number;
-      totalSessions: number;
-      totalHours: number;
-    };
-    accuracy: AccuracyData;
-    todayProgress: {
-      minutes: number;
-      minutesGoal: number;
-      messages: number;
-      messagesGoal: number;
-      goalMet: boolean;
-      percentComplete: number;
-    };
-    streakStats: {
-      current: number;
-      longest: number;
-      totalActiveDays: number;
-      averageMinutesPerDay: number;
-    };
-  };
-}
-
 interface RealtimeProgressResponse {
-  streak: { current: number };
-  accuracy: {
-    overall: number;
-    grammar?: number;
-    vocabulary?: number;
-    spelling?: number;
-    fluency?: number;
-    punctuation?: number;
-    capitalization?: number;
-    syntax?: number;
-    coherence?: number;
-    messageCount?: number;
-    lastUpdated: string;
-    source: 'fast-cache' | 'optimized-cache' | 'progress-cache' | 'database' | 'none';
-  };
-  xp: {
-    total: number;
-    currentLevel: number;
-    prestigeLevel: number;
-  };
-  stats: {
-    totalMessages: number;
-    totalMinutes: number;
+  success: boolean;
+  source: 'fast-cache' | 'cache' | 'database';
+  data: {
+    streak: { current: number };
+    accuracy: {
+      overall: number;
+      grammar?: number;
+      vocabulary?: number;
+      spelling?: number;
+      fluency?: number;
+      punctuation?: number;
+      capitalization?: number;
+      syntax?: number;
+      coherence?: number;
+      messageCount?: number;
+      lastUpdated: string;
+      source: 'fast-cache' | 'optimized-cache' | 'progress-cache' | 'database' | 'none';
+    };
+    xp: {
+      total: number;
+      currentLevel: number;
+      prestigeLevel: number;
+    };
+    stats: {
+      totalMessages: number;
+      totalMinutes: number;
+    };
   };
 }
 
@@ -186,22 +160,6 @@ const CATEGORY_CONFIG = [
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-async function fetchDashboardData(): Promise<DashboardResponse> {
-  const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-  const response = await fetch(`${API_BASE_URL}/progress/dashboard`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch dashboard data');
-  }
-
-  return response.json();
-}
-
 async function fetchRealtimeProgress(): Promise<RealtimeProgressResponse> {
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
   const response = await fetch(`${API_BASE_URL}/progress/realtime`, {
@@ -259,21 +217,7 @@ function formatTimestamp(timestamp: string | null): string {
 export function RealtimeAccuracyDashboard() {
   const [isRealtime, setIsRealtime] = useState(true);
 
-  // Dashboard data (slower updates, more comprehensive)
-  const {
-    data: dashboardData,
-    isLoading: isDashboardLoading,
-    error: dashboardError,
-    refetch: refetchDashboard
-  } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: fetchDashboardData,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: isRealtime ? 30000 : false, // Auto-refresh every 30s
-    refetchOnWindowFocus: true,
-  });
-
-  // Realtime progress (faster updates, lightweight)
+  // Use only realtime endpoint for consistency - it uses fastAccuracyCache as single source of truth
   const {
     data: realtimeData,
     isLoading: isRealtimeLoading,
@@ -287,13 +231,13 @@ export function RealtimeAccuracyDashboard() {
     refetchOnWindowFocus: true,
   });
 
-  const accuracy = dashboardData?.data.accuracy;
-  const realtimeAccuracy = realtimeData?.accuracy;
-  const isLoading = isDashboardLoading || isRealtimeLoading;
-  const hasError = dashboardError || realtimeError;
+  const accuracy = realtimeData?.data?.accuracy;
+  const realtimeAccuracy = realtimeData?.data?.accuracy;
+  const isLoading = isRealtimeLoading;
+  const hasError = realtimeError;
 
-  // Use realtime data if available, otherwise fall back to dashboard data
-  const displayData = realtimeAccuracy || accuracy;
+  // Use realtime data as single source of truth
+  const displayData = realtimeData?.data?.accuracy;
 
   if (hasError) {
     return (
@@ -302,10 +246,7 @@ export function RealtimeAccuracyDashboard() {
           <Activity className="h-12 w-12 mx-auto mb-4 text-red-500" />
           <p>Failed to load accuracy data</p>
           <button
-            onClick={() => {
-              refetchDashboard();
-              refetchRealtime();
-            }}
+            onClick={() => refetchRealtime()}
             className="mt-4 text-primary hover:underline"
           >
             Try again
@@ -337,20 +278,20 @@ export function RealtimeAccuracyDashboard() {
                     <>
                       <span className="text-muted-foreground">•</span>
                       <span>
-                        {accuracy?.calculationCount || realtimeAccuracy?.messageCount || 0} messages analyzed
+                        {displayData?.messageCount || 0} messages analyzed
                       </span>
                       <span className="text-muted-foreground">•</span>
                       <Clock className="h-3 w-3" />
-                      <span>{formatTimestamp(accuracy?.lastCalculated || realtimeAccuracy?.lastUpdated || null)}</span>
+                      <span>{formatTimestamp(displayData?.lastUpdated || null)}</span>
                     </>
                   )}
                 </CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {realtimeData?.accuracy.source && (
+              {realtimeData?.data?.accuracy?.source && (
                 <Badge variant="outline" className="text-xs">
-                  {realtimeData.accuracy.source}
+                  {realtimeData.data.accuracy.source}
                 </Badge>
               )}
               <button
@@ -482,57 +423,6 @@ export function RealtimeAccuracyDashboard() {
           );
         })}
       </div>
-
-      {/* Additional Stats */}
-      {dashboardData?.data && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <MessageSquare className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Today's Progress</p>
-                <p className="text-2xl font-bold">
-                  {dashboardData.data.todayProgress.messages}/{dashboardData.data.todayProgress.messagesGoal}
-                </p>
-                <Progress 
-                  value={(dashboardData.data.todayProgress.messages / dashboardData.data.todayProgress.messagesGoal) * 100} 
-                  className="mt-2 h-1"
-                />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <Award className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Current Streak</p>
-                <p className="text-2xl font-bold">
-                  {dashboardData.data.streakStats.current} days
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Longest: {dashboardData.data.streakStats.longest} days
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Practice Time</p>
-                <p className="text-2xl font-bold">
-                  {dashboardData.data.todayProgress.minutes} min
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Goal: {dashboardData.data.todayProgress.minutesGoal} min
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
