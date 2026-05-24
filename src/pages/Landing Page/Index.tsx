@@ -2,37 +2,46 @@ import React, { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sun, Moon, Menu, X, LogIn } from 'lucide-react';
+import { LogIn, Moon, Sun, Menu, X, Zap } from 'lucide-react';
 
 import Hero from '../../components/Landing Page Component/Hero';
 import Features from '../../components/Landing Page Component/Features';
 import HowItWorks from '../../components/Landing Page Component/HowItWorks';
-import Testimonials from '../../components/Landing Page Component/Testimonials';
 import Pricing from '../../components/Landing Page Component/Pricing';
+import Testimonials from '../../components/Landing Page Component/Testimonials';
 import FAQ from '../../components/Landing Page Component/FAQ';
 import CTA from '../../components/Landing Page Component/CTA';
 import Footer from '../../components/Landing Page Component/Footer';
 
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // After mounting, we have access to the theme
+  // Enable smooth anchor scrolling for hash-link navigation
   useEffect(() => {
-    setMounted(true);
+    document.documentElement.style.scrollBehavior = 'smooth';
+    return () => {
+      document.documentElement.style.scrollBehavior = '';
+    };
   }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const navItems = [
-    { name: 'Features', href: '#features' },
-    { name: 'How It Works', href: '#how-it-works' },
-    { name: 'Testimonials', href: '#testimonials' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'FAQ', href: '#faq' }
+    { name: 'Features', sectionId: 'features' },
+    { name: 'How It Works', sectionId: 'how-it-works' },
+    { name: 'Testimonials', sectionId: 'testimonials' },
+    { name: 'Pricing', sectionId: 'pricing' },
+    { name: 'FAQ', sectionId: 'faq' }
   ];
 
   return (
@@ -79,13 +88,13 @@ const LandingPage = () => {
             <div className="hidden md:flex items-center space-x-6">
               <nav className="flex space-x-6">
                 {navItems.map((item) => (
-                  <a
+                  <button
                     key={item.name}
-                    href={item.href}
-                    className="text-sm text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-medium transition-colors"
+                    onClick={() => scrollToSection(item.sectionId)}
+                    className="text-sm text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-medium transition-colors cursor-pointer"
                   >
                     {item.name}
-                  </a>
+                  </button>
                 ))}
               </nav>
 
@@ -95,7 +104,7 @@ const LandingPage = () => {
                   className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   aria-label="Toggle theme"
                 >
-                  {mounted && theme === 'dark' ? (
+                  {theme === 'dark' ? (
                     <Sun className="h-5 w-5" />
                   ) : (
                     <Moon className="h-5 w-5" />
@@ -109,8 +118,12 @@ const LandingPage = () => {
                 </Link>
 
                 <Link to="/signup">
-                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                    Sign Up Free
+                  <Button className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white font-semibold px-6 py-2.5 rounded-full shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 group">
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Zap className="w-4 h-4 fill-current" />
+                      Free Trial
+                    </span>
+                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                   </Button>
                 </Link>
               </div>
@@ -123,7 +136,7 @@ const LandingPage = () => {
                 className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 aria-label="Toggle theme"
               >
-                {mounted && theme === 'dark' ? (
+                {theme === 'dark' ? (
                   <Sun className="h-5 w-5" />
                 ) : (
                   <Moon className="h-5 w-5" />
@@ -150,14 +163,16 @@ const LandingPage = () => {
           <div className="md:hidden bg-white dark:bg-slate-900 px-4 pt-2 pb-4 border-t border-slate-200 dark:border-slate-800">
             <nav className="flex flex-col space-y-3">
               {navItems.map((item) => (
-                <a
+                <button
                   key={item.name}
-                  href={item.href}
-                  className="py-2 text-base text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-medium"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => {
+                    scrollToSection(item.sectionId);
+                    setIsMenuOpen(false);
+                  }}
+                  className="py-2 text-base text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-medium text-left w-full cursor-pointer"
                 >
                   {item.name}
-                </a>
+                </button>
               ))}
               <div className="pt-2 flex flex-col space-y-3">
                 <Link 
@@ -169,10 +184,13 @@ const LandingPage = () => {
                 </Link>
                 <Link 
                   to="/signup" 
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-center font-medium"
+                  className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white text-center font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-emerald-500/30 transition-all duration-300"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Sign Up Free
+                  <span className="flex items-center justify-center gap-2">
+                    <Zap className="w-4 h-4 fill-current" />
+                    Free Trial
+                  </span>
                 </Link>
               </div>
             </nav>
@@ -185,8 +203,8 @@ const LandingPage = () => {
         <Hero />
         <Features />
         <HowItWorks />
-        <Testimonials />
         <Pricing />
+        <Testimonials />
         <FAQ />
         <CTA />
       </main>

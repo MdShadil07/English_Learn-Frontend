@@ -1,222 +1,217 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { ArrowRight, Zap, CheckCircle2, Trophy, Target, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, TrendingUp, Star, Zap, CheckCircle2, Trophy, Target, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const CTA = () => {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
+
   return (
-    <section className="relative py-12 md:py-24 overflow-hidden bg-slate-50 flex items-center justify-center min-h-[auto] lg:min-h-[700px]">
+    <section className="relative py-24 lg:py-32 overflow-hidden bg-[#f8fbff] dark:bg-[#070b14] flex items-center justify-center min-h-[auto] lg:min-h-[800px] transition-colors duration-500 ease-in-out font-sans">
       
-      {/* --- Dynamic Background (Light Mode) --- */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-100"></div>
+      {/* --- Optimized Background Effects (No Heavy Blurs) --- */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {/* Dotted Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
         
-        {/* Animated Gradient Orbs */}
-        <motion.div 
-          className="absolute top-[-10%] right-[-10%] w-[20rem] md:w-[50rem] h-[20rem] md:h-[50rem] bg-emerald-200/40 rounded-full blur-[60px] md:blur-[100px]"
-          animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.6, 0.4] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="absolute bottom-[-10%] left-[-10%] w-[20rem] md:w-[50rem] h-[20rem] md:h-[50rem] bg-blue-200/40 rounded-full blur-[60px] md:blur-[100px]"
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.4, 0.7, 0.4] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        />
-        
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 opacity-10 mix-blend-multiply" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-        }}></div>
+        {/* Hardware-Accelerated Gradients */}
+        <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,rgba(52,211,153,0.06)_0%,transparent_60%)] dark:bg-[radial-gradient(circle,rgba(52,211,153,0.04)_0%,transparent_60%)]" style={{ transform: 'translateZ(0)' }}></div>
+        <div className="absolute bottom-[-10%] left-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,rgba(45,212,191,0.06)_0%,transparent_60%)] dark:bg-[radial-gradient(circle,rgba(45,212,191,0.04)_0%,transparent_60%)]" style={{ transform: 'translateZ(0)' }}></div>
       </div>
 
-      {/* --- "Smoke" Fade Effect from Top --- */}
-      <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-slate-50 via-slate-50/50 to-transparent z-10 pointer-events-none"></div>
-
-      <div className="container px-4 mx-auto relative z-20">
-        <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1440px] w-full mx-auto px-6 sm:px-8 lg:px-12 relative z-20">
+        <div className="grid lg:grid-cols-2 gap-16 lg:gap-8 items-center">
           
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
-            
-            {/* --- Left Column: Compelling Copy & Benefits --- */}
-            <div className="text-center lg:text-left relative z-10 order-1">
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white border border-slate-200 shadow-sm mb-6 md:mb-8">
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span className="text-[10px] md:text-xs font-bold tracking-wide uppercase text-slate-600">
-                    Join 2 Million+ Learners
-                  </span>
-                </div>
+          {/* --- Left Column: Compelling Copy & Benefits --- */}
+          <div className="text-center lg:text-left relative z-10 order-1">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              {/* Headline */}
+              <h2 className="text-5xl sm:text-6xl lg:text-[4.5rem] font-extrabold text-[#0f172a] dark:text-white mb-6 leading-[1.05] tracking-tight transition-colors duration-500">
+                Write Your <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500 pb-2 block">
+                  Success Story.
+                </span>
+              </h2>
 
-                <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 mb-4 md:mb-6 leading-[1.1] tracking-tight">
-                  Write Your <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-blue-600">
-                    Success Story.
-                  </span>
-                </h2>
+              <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 mb-10 leading-relaxed max-w-[480px] mx-auto lg:mx-0 font-medium transition-colors duration-500">
+                Experience the fastest way to fluency. Our AI adapts to your personal goals, giving you the confidence to speak from day one.
+              </p>
 
-                <p className="text-base md:text-lg text-slate-600 mb-8 md:mb-10 leading-relaxed max-w-xl mx-auto lg:mx-0">
-                  Experience the fastest way to fluency. Our AI adapts to your personal goals, giving you the confidence to speak from day one.
-                </p>
-
-                {/* Why This Platform? - Micro Benefits */}
-                <div className="flex flex-col gap-3 md:gap-4 mb-8 md:mb-10">
-                  {[
-                    { icon: Target, title: "Hyper-Personalized", desc: "AI adapts to your career & interests" },
-                    { icon: Zap, title: "3x Faster Fluency", desc: "Proven methodology for rapid growth" },
-                    { icon: Users, title: "Real Connections", desc: "Practice with a global community" }
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex items-start gap-3 md:gap-4 bg-white/60 backdrop-blur-sm p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow text-left">
-                      <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl flex-shrink-0">
-                        <item.icon className="w-4 h-4 md:w-5 md:h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{item.title}</h4>
-                        <p className="text-xs text-slate-500 leading-snug">{item.desc}</p>
-                      </div>
+              {/* Micro Benefits Grid */}
+              <div className="flex flex-col gap-4 mb-10 max-w-md mx-auto lg:mx-0">
+                {[
+                  { icon: Target, title: "Hyper-Personalized", desc: "AI adapts to your career & interests" },
+                  { icon: Zap, title: "3x Faster Fluency", desc: "Proven methodology for rapid growth" },
+                  { icon: Users, title: "Real Connections", desc: "Practice with a global community" }
+                ].map((item, idx) => (
+                  <motion.div 
+                    key={idx} 
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 + (idx * 0.1), duration: 0.5 }}
+                    className="flex items-center gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm hover:border-teal-200 dark:hover:border-teal-800 hover:bg-white dark:hover:bg-slate-800/80 transition-all text-left group"
+                  >
+                    <div className="p-3 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <item.icon className="w-5 h-5" />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <h4 className="font-extrabold text-[#0f172a] dark:text-white text-[15px]">{item.title}</h4>
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-snug mt-0.5">{item.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center lg:justify-start w-full">
+              {/* CTAs */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start w-full max-w-md mx-auto lg:mx-0">
+                <Link to="/signup" className="w-full sm:w-auto">
                   <Button 
                     size="lg" 
-                    className="relative w-full sm:w-auto h-12 md:h-14 px-8 rounded-full text-base font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-emerald-900/10 overflow-hidden transition-all hover:scale-[1.02] active:scale-95 border-0 group"
+                    className="relative w-full h-14 px-8 rounded-full text-base font-bold bg-[#0f172a] dark:bg-emerald-500 text-white hover:bg-black dark:hover:bg-emerald-400 shadow-xl shadow-slate-900/10 dark:shadow-emerald-900/20 transition-all hover:-translate-y-1 border-0 group overflow-hidden"
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2">
                       Start Your Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </span>
-                    {/* Shimmer Effect */}
                     <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
                   </Button>
-                  
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="w-full sm:w-auto h-12 md:h-14 px-8 rounded-full text-base font-bold border-slate-200 bg-white text-slate-900 hover:bg-slate-50"
-                  >
-                    View Success Stories
-                  </Button>
-                </div>
+                </Link>
                 
-                <div className="mt-6 text-xs md:text-sm text-slate-500 flex items-center justify-center lg:justify-start gap-2">
-                  <div className="flex -space-x-2 mr-2">
-                     {[1,2,3].map(i => (
-                        <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
-                           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i+30}`} alt="user" />
-                        </div>
-                     ))}
-                  </div>
-                  <p>Rated <span className="font-bold text-slate-900">4.9/5</span> by users like you</p>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="w-full sm:w-auto h-14 px-8 rounded-full text-base font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#0f172a] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all hover:-translate-y-1"
+                  onClick={() => {
+                    document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  View Success Stories
+                </Button>
+              </div>
+              
+              {/* Mini Social Proof */}
+              <div className="mt-8 text-sm text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+                <div className="flex -space-x-3">
+                   {[1, 2, 3].map((i) => (
+                     <div key={i} className="w-8 h-8 rounded-full border-2 border-[#f8fbff] dark:border-[#070b14] bg-slate-200 dark:bg-slate-800 overflow-hidden shadow-sm">
+                        <img src="/mine.png" alt="user" className="w-full h-full object-cover" />
+                     </div>
+                   ))}
                 </div>
+                <p className="font-medium">Rated <span className="font-extrabold text-[#0f172a] dark:text-white">4.9/5</span> by users like you</p>
+              </div>
 
-              </motion.div>
-            </div>
+            </motion.div>
+          </div>
 
-            {/* --- Right Column: 3D Success Graphic --- */}
-            {/* Visible on mobile, but scaled down */}
-            <div className="relative h-[450px] md:h-[600px] flex items-center justify-center perspective-1000 order-2 mt-8 lg:mt-0">
+          {/* --- Right Column: 3D Success Graphic --- */}
+          <div className="relative h-[550px] md:h-[650px] flex items-center justify-center order-2 mt-8 lg:mt-0" style={{ perspective: '1200px' }}>
+             
+             {/* Hardware-accelerated scaling wrapper for mobile */}
+             <div className="transform scale-[0.85] sm:scale-95 lg:scale-100 transition-transform duration-300 origin-center relative z-20">
                
-               {/* Mobile Scale Wrapper */}
-               <div className="transform scale-[0.75] sm:scale-[0.85] md:scale-100 transition-transform duration-300 origin-center">
+               {/* Decorative Back Card (Shadow illusion) */}
+               <div className="absolute top-6 left-12 w-[340px] md:w-[380px] h-[540px] bg-teal-100/50 dark:bg-teal-900/20 rounded-[2.5rem] border border-teal-200/50 dark:border-teal-800/30 z-10 transform rotate-[6deg] opacity-70"></div>
+               
+               {/* Main Floating 3D Card */}
+               <motion.div 
+                 className="relative w-[340px] md:w-[380px] h-[560px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_30px_60px_-20px_rgba(20,184,166,0.15),0_20px_40px_-20px_rgba(0,0,0,0.1)] dark:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)] border border-white/60 dark:border-slate-700/50 z-20 flex flex-col p-3 transition-colors duration-500 overflow-hidden"
+                 initial={{ rotateY: -15, rotateX: 5, y: 30, opacity: 0 }}
+                 whileInView={{ rotateY: -8, rotateX: 2, y: 0, opacity: 1 }}
+                 transition={{ duration: 1.2, type: "spring", bounce: 0.4 }}
+                 whileHover={{ rotateY: 0, rotateX: 0, scale: 1.02, transition: { duration: 0.4 } }}
+               >
                  
-                 {/* Floating 3D Card Container */}
-                 <motion.div 
-                   className="relative w-[340px] h-[500px] bg-white rounded-[2.5rem] shadow-[0_50px_100px_-20px_rgba(50,50,93,0.25),0_30px_60px_-30px_rgba(0,0,0,0.3)] border border-white/50 z-20 flex flex-col overflow-hidden"
-                   initial={{ rotateY: -15, rotateX: 5, y: 20, opacity: 0 }}
-                   whileInView={{ rotateY: -10, rotateX: 5, y: 0, opacity: 1 }}
-                   transition={{ duration: 1, type: "spring" }}
-                   whileHover={{ rotateY: 0, rotateX: 0, scale: 1.02, transition: { duration: 0.4 } }}
-                 >
-                    {/* Card Header Image */}
-                    <div className="h-32 bg-gradient-to-br from-emerald-400 to-teal-500 relative">
-                       <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                          <div className="w-24 h-24 rounded-full border-4 border-white bg-white p-1 shadow-lg">
-                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=c0aede" alt="User" className="w-full h-full rounded-full" />
-                          </div>
+                 {/* Holographic Glare Effect */}
+                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/40 to-white/0 dark:from-white/0 dark:via-white/10 dark:to-white/0 opacity-0 hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full hover:translate-x-full ease-out"></div>
+
+                 {/* Large Rectangular Aesthetic Avatar */}
+                 <div className="w-full h-[280px] rounded-[2rem] overflow-hidden relative shadow-inner group cursor-pointer border border-slate-100/50 dark:border-slate-800/50">
+                    <img 
+                      src="/mine.png" 
+                      alt="Md Shadil" 
+                      className="w-full h-full object-cover object-top transform transition-transform duration-700 group-hover:scale-105"
+                      style={{ objectPosition: 'center 20%' }}
+                    />
+                    {/* Premium Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/20 to-transparent opacity-80 dark:opacity-90 pointer-events-none"></div>
+                    
+                    {/* Integrated Profile Info */}
+                    <div className="absolute bottom-5 left-6 right-5 flex justify-between items-end">
+                       <div>
+                          <h3 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">Md Shadil</h3>
+                          <p className="text-teal-300 text-[13px] font-bold mt-1 uppercase tracking-wider drop-shadow-sm">Student - Galgotias University</p>
+                       </div>
+                       <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-lg">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                        </div>
                     </div>
+                 </div>
 
-                    {/* Card Body */}
-                    <div className="pt-12 pb-8 px-6 text-center flex-1 flex flex-col">
-                       <h3 className="text-2xl font-bold text-slate-900">Sarah Jenkins</h3>
-                       <p className="text-slate-500 text-sm mb-6">Marketing Director</p>
+                 {/* Card Body */}
+                 <div className="pt-6 pb-3 px-4 text-center flex-1 flex flex-col relative z-10">
+                    
+                    {/* Achievement Badges */}
+                    <div className="flex justify-center gap-3 mb-6">
+                       <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-sm transition-colors">
+                          <Trophy className="w-4 h-4 text-amber-500" /> Top 1% Earner
+                       </span>
+                       <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-sm transition-colors">
+                          <Target className="w-4 h-4 text-blue-500" /> C1 Advanced
+                       </span>
+                    </div>
 
-                       {/* Achievement Badges */}
-                       <div className="flex justify-center gap-2 mb-6">
-                          <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                             <Trophy className="w-3 h-3" /> Top 1%
-                          </span>
-                          <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                             <CheckCircle2 className="w-3 h-3" /> C1 Fluent
-                          </span>
+                    {/* Styled Growth Graph */}
+                    <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/60 mt-auto shadow-inner transition-colors">
+                       <div className="flex justify-between items-end h-[72px] gap-2.5">
+                          {[30, 45, 40, 60, 55, 75, 95].map((h, i) => (
+                            <motion.div 
+                              key={i}
+                              className="w-full bg-slate-200 dark:bg-slate-800 rounded-full relative group overflow-hidden transition-colors"
+                              initial={{ height: 0 }}
+                              whileInView={{ height: `${h}%` }}
+                              transition={{ duration: 1, delay: 0.5 + (i * 0.08), ease: "easeOut" }}
+                            >
+                               {i === 6 && (
+                                  <div className="absolute inset-0 bg-gradient-to-t from-teal-500 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(52,211,153,0.5)]">
+                                     <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-900 rounded-full border-2 border-emerald-400"></div>
+                                  </div>
+                               )}
+                               {i !== 6 && (
+                                  <div className="absolute inset-0 bg-teal-100 dark:bg-teal-900/40 rounded-full transition-colors"></div>
+                               )}
+                            </motion.div>
+                          ))}
                        </div>
-
-                       {/* Growth Graph */}
-                       <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mt-auto">
-                          <div className="flex justify-between items-end h-16 gap-2">
-                             {[30, 45, 40, 60, 55, 75, 90].map((h, i) => (
-                                <motion.div 
-                                  key={i}
-                                  className="w-full bg-emerald-200 rounded-t-sm"
-                                  initial={{ height: 0 }}
-                                  whileInView={{ height: `${h}%` }}
-                                  transition={{ duration: 1, delay: 0.5 + (i * 0.1) }}
-                                >
-                                   {i === 6 && (
-                                      <div className="w-full h-full bg-emerald-500 relative">
-                                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-1.5 py-0.5 rounded">
-                                            Now
-                                         </div>
-                                      </div>
-                                   )}
-                                </motion.div>
-                             ))}
-                          </div>
-                          <div className="text-xs text-slate-400 mt-2 font-medium">3 Month Progress</div>
-                       </div>
+                       <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-4 font-bold uppercase tracking-widest">3 Month Fluency Progress</div>
                     </div>
-                 </motion.div>
-
-                 {/* Floating Elements Behind/Around */}
-                 <motion.div 
-                   className="absolute top-20 right-10 w-20 h-20 bg-white rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center z-30"
-                   animate={{ y: [0, -15, 0] }}
-                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                 >
-                    <Zap className="w-10 h-10 text-amber-400 fill-current" />
-                 </motion.div>
-
-                 <motion.div 
-                   className="absolute bottom-32 left-0 bg-white py-3 px-5 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 z-30"
-                   animate={{ y: [0, 15, 0] }}
-                   transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                 >
-                    <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                       <TrendingUp className="w-5 h-5" />
-                    </div>
-                    <div>
-                       <div className="text-xs text-slate-500">Weekly Goal</div>
-                       <div className="text-sm font-bold text-slate-900">Completed!</div>
-                    </div>
-                 </motion.div>
-
-                 {/* Decorative Back Card */}
-                 <div className="absolute top-10 left-20 w-[340px] h-[500px] bg-slate-100 rounded-[2.5rem] border border-slate-200 z-10 transform rotate-[-6deg] opacity-60"></div>
-               </div>
-
-            </div>
+                 </div>
+               </motion.div>
+             </div>
 
           </div>
+
         </div>
       </div>
+      
+      {/* Global CSS for shimmer effect */}
+      <style>{`
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </section>
   );
 };

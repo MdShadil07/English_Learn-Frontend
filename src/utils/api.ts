@@ -2,7 +2,7 @@
  * API Configuration
  * Frontend API client for backend integration with comprehensive profile features
  */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
  * Get authentication token from localStorage
@@ -161,6 +161,23 @@ const createApiFunction = <T = unknown>(
  * API endpoints organized by feature with full backend alignment
  */
 export const api = {
+  // Support requests
+  support: {
+    submitRequest: (data: {
+      name: string;
+      email: string;
+      subject?: string;
+      message: string;
+      category?: 'general' | 'billing' | 'technical' | 'account' | 'feature';
+      urgency?: 'low' | 'normal' | 'high' | 'urgent';
+      source?: string;
+      pageUrl?: string;
+      referrer?: string;
+      userAgent?: string;
+      browserLanguage?: string;
+    }) => createApiFunction('POST', '/support/contact', { requiresAuth: false })(data),
+  },
+
   // Authentication endpoints
   auth: {
     signup: (data: {
@@ -297,6 +314,40 @@ export const api = {
     getStats: (userId: string) => createApiFunction('GET', `/level/${userId}/stats`)(),
   },
 
+  // Pronunciation practice endpoints
+  pronunciation: {
+    createSession: (data: { exerciseType?: string; cefrLevel?: string; phonemeTargets?: string[]; mtiTargets?: string[] }) =>
+      createApiFunction('POST', '/pronunciation/solo-practice/session')(data),
+    getSession: (sessionId: string) =>
+      createApiFunction('GET', `/pronunciation/solo-practice/session/${sessionId}`)(),
+    createUploadSession: (data: {
+      sessionId: string;
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      durationMs: number;
+      chunkSizeBytes: number;
+      totalChunks: number;
+      waveformPeaks?: number[];
+      qualityMetrics?: Record<string, unknown>;
+      deviceMetadata?: Record<string, unknown>;
+      networkMetadata?: Record<string, unknown>;
+      validation?: Record<string, unknown>;
+    }) => createApiFunction('POST', '/pronunciation/solo-practice/upload/session')(data),
+    getUploadSession: (uploadId: string) =>
+      createApiFunction('GET', `/pronunciation/solo-practice/upload/session/${uploadId}`)(),
+    completeUpload: (uploadId: string) =>
+      createApiFunction('POST', `/pronunciation/solo-practice/upload/session/${uploadId}/complete`)(),
+    cancelUpload: (uploadId: string) =>
+      createApiFunction('DELETE', `/pronunciation/solo-practice/upload/session/${uploadId}`)(),
+    submitAttempt: (sessionId: string, data: { audioUrl: string; transcript: string; attemptNumber: number; metadata?: Record<string, unknown> }) =>
+      createApiFunction('POST', `/pronunciation/solo-practice/session/${sessionId}/attempt`)(data),
+    getAttempt: (sessionId: string, attemptId: string) =>
+      createApiFunction('GET', `/pronunciation/solo-practice/session/${sessionId}/attempt/${attemptId}`)(),
+    recommendPassage: (data: { exerciseType?: string; cefrLevel?: string; phonemeTargets?: string[]; mtiTargets?: string[] }) =>
+      createApiFunction('POST', '/pronunciation/passages/recommend')(data),
+  },
+
   // Accuracy analysis endpoints
   accuracy: {
     analyzeMessage: (data: { userMessage: string; aiResponse?: string }) =>
@@ -314,7 +365,7 @@ export const api = {
   health: {
     check: () => createApiFunction('GET', '/health', { requiresAuth: false })(),
     getMetrics: () => createApiFunction('GET', '/metrics', { requiresAuth: false })(),
-    getApiDocs: () => createApiFunction('GET', '/api-docs.json', { requiresAuth: false })(),
+    getApiDocs: () => createApiFunction('GET', '/api-docs.json', { requiresAuth: false, suppressAuthRedirect: true })(),
   },
 
   // Payment endpoints
@@ -457,3 +508,5 @@ export interface ProfileData {
     communicationPreferences: Record<string, boolean>;
   };
 }
+
+export const getBackendDocsBaseUrl = (): string => API_BASE_URL.replace(/\/api$/, '');

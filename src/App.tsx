@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { ThemeProvider } from "next-themes";
 
 import Index from "./pages/Landing Page/Index.tsx";
 import Login from "./pages/Auth/Login.tsx";
@@ -19,16 +20,21 @@ import AIChatPage from "./pages/AI Chat Page/AIChatPage";
 import PricingPage from "./pages/pricing/PricingPage";
 import CheckoutReturn from "./pages/payment/CheckoutReturn";
 import PracticeRoomPage from "./pages/Practice Room/PracticeRoomPage";
+import PronunciationStudio from "./pages/Pronunciation/PronunciationStudio";
+import LiveCallPage from "./pages/Pronunciation/LiveCallPage";
+import DemoVideoPage from "./pages/DemoVideo/DemoVideoPage";
+import DocumentationCenter from "./pages/Documentation Page/DocumentationCenter";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+  <ThemeProvider attribute="class" defaultTheme="light" storageKey="theme" themes={['light', 'dark']}>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -76,6 +82,8 @@ const App = () => (
                }
              />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/docs" element={<DocumentationCenter />} />
+            <Route path="/documentation" element={<DocumentationCenter />} />
             <Route
               path="/payment/checkout-return"
               element={
@@ -92,6 +100,23 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/pronunciation"
+              element={
+                <ProtectedRoute>
+                  <PronunciationStudio />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pronunciation/live-call"
+              element={
+                <ProtectedRoute>
+                  <LiveCallPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/demo" element={<DemoVideoPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -99,6 +124,7 @@ const App = () => (
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

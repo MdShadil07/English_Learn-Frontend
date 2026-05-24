@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Search, Calendar, Settings } from 'lucide-react';
+import { Bell, Search, Calendar, Settings, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -24,6 +25,7 @@ interface NewDashboardLayoutProps {
 
 const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboardLayoutProps) => {
   const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [userStats, setUserStats] = useState({ streak: 12, coins: 240, level: 15 });
   const [mounted, setMounted] = useState(false);
 
@@ -103,11 +105,19 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
 
             {/* Right side actions */}
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-1.5 sm:p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-200 hover:shadow-sm"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
+              </button>
+
               <button className="p-1.5 sm:p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 relative transition-all duration-200 hover:shadow-sm">
                 <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               </button>
-              
+
               <button className="p-1.5 sm:p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-200 hover:shadow-sm hidden xs:flex">
                 <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
@@ -128,7 +138,7 @@ const NewDashboardLayout = ({ children, activeView, onViewChange }: NewDashboard
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className={`h-full ${activeView === 'rooms' || activeView === 'voice-rooms' ? 'p-0' : 'p-3 sm:p-6'}`}
+              className={`h-full ${activeView === 'rooms' || activeView === 'voice-rooms' ? 'p-0' : activeView === 'ai-chat' || activeView === 'ai-tutor' ? 'px-0 py-2 sm:py-3' : 'p-3 sm:p-6'}`}
             >
               {children}
             </motion.div>

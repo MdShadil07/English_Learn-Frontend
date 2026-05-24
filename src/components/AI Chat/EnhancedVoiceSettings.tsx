@@ -159,10 +159,10 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
   }, [userTier, isPremium, isPro, isFree, currentPersonalityId]);
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-full min-w-0 space-y-4 overflow-hidden">
       {/* Subscription Tier Indicator */}
-      <div className="flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-2">
+      <div className="flex min-w-0 items-center justify-between gap-2 p-2 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex min-w-0 items-center gap-2">
           <Crown className={cn(
             "h-4 w-4",
             isPremium ? "text-amber-500" : isPro ? "text-blue-500" : "text-slate-400"
@@ -174,7 +174,7 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
         <Badge 
           variant="outline" 
           className={cn(
-            "text-xs font-semibold",
+            "flex-shrink-0 text-xs font-semibold",
             isPremium ? "border-amber-400 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30" :
             isPro ? "border-blue-400 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30" :
             "border-slate-400 text-slate-700 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/30"
@@ -187,16 +187,16 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
       {/* Personality-Matched Voice Recommendation (Pro/Premium) */}
       {personalityMatchedVoice && (isPro || isPremium) && (
         <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex-shrink-0 p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
               <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex min-w-0 items-center gap-2 mb-1">
                 <h4 className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
                   AI Personality Match
                 </h4>
-                <Badge variant="outline" className="text-[10px] py-0 h-4 border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
+                <Badge variant="outline" className="h-4 flex-shrink-0 py-0 text-[10px] border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
                   {isPremium ? 'Premium' : 'Pro'}
                 </Badge>
               </div>
@@ -207,7 +207,7 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
                 onClick={() => onVoiceSelect(personalityMatchedVoice)}
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
+                className="h-7 max-w-full justify-start text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
               >
                 <span className="truncate">{personalityMatchedVoice.name}</span>
               </Button>
@@ -226,14 +226,14 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
             </h4>
           </div>
           
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
             {/* Gender Filter */}
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <label className="text-[10px] font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                 Gender
               </label>
               <Select value={genderFilter} onValueChange={(value: 'all' | 'male' | 'female') => setGenderFilter(value)}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 min-w-0 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,7 +261,7 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
 
             {/* Premium Quality Filter (Premium only) */}
             {isPremium && (
-              <div className="space-y-1.5">
+              <div className="min-w-0 space-y-1.5">
                 <label className="text-[10px] font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
                   Quality
                 </label>
@@ -270,12 +270,12 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
                   variant={showPremiumOnly ? "default" : "outline"}
                   size="sm"
                   className={cn(
-                    "w-full h-8 text-xs",
+                    "h-8 w-full min-w-0 px-2 text-xs",
                     showPremiumOnly && "bg-amber-500 hover:bg-amber-600"
                   )}
                 >
                   <Crown className="h-3 w-3 mr-1.5" />
-                  Premium Only
+                  <span className="truncate">Premium Only</span>
                 </Button>
               </div>
             )}
@@ -285,8 +285,8 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
 
       {/* Voice Selection */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="min-w-0">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               Voice Selection
             </label>
@@ -305,10 +305,10 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
             }
           }}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full min-w-0">
             <SelectValue placeholder="Select a voice" />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px] overflow-y-auto">
+          <SelectContent className="max-h-[300px] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-2rem)] overflow-y-auto">
             {Object.entries(voicesByLanguage).map(([language, langVoices]) => (
               <React.Fragment key={language}>
                 <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 sticky top-0">
@@ -328,7 +328,7 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
                       disabled={isLocked}
                       className="cursor-pointer py-1.5"
                     >
-                      <div className="flex items-center justify-between w-full gap-2">
+                      <div className="flex min-w-0 items-center justify-between w-full gap-2">
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           {(isMale || isFemale) && <span className="text-xs">{isMale ? '♂' : '♀'}</span>}
                           <span className="truncate text-xs">{voice.name}</span>
@@ -349,12 +349,12 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
         {/* Selected Voice Info - Compact */}
         {selectedVoice && (
           <div className="p-2 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
                   {selectedVoice.name}
                 </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">
                   {selectedVoice.lang} • {selectedVoice.localService ? 'Local' : 'Online'}
                 </p>
               </div>
@@ -404,12 +404,12 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
         <>
           <Separator />
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-              <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <h4 className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Voice Personalities
               </h4>
-              <Badge variant="outline" className="text-[10px] py-0 h-4 ml-auto border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300">
+              <Badge variant="outline" className="h-4 flex-shrink-0 py-0 text-[10px] border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300">
                 {Object.keys(VOICE_PERSONALITIES).length} Personalities
               </Badge>
             </div>
@@ -432,16 +432,16 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
                         : "border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <div className="flex items-start gap-2">
-                      <div className="text-lg mt-0.5">{personality.displayName.split(' ')[0]}</div>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div className="mt-0.5 flex-shrink-0 text-lg">{personality.displayName.split(' ')[0]}</div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <h5 className="text-xs font-medium text-slate-900 dark:text-slate-100">
+                        <div className="flex min-w-0 items-center gap-1.5 mb-0.5">
+                          <h5 className="min-w-0 truncate text-xs font-medium text-slate-900 dark:text-slate-100">
                             {personality.displayName.split(' ').slice(1).join(' ')}
                           </h5>
-                          {!hasAccess && <Crown className="h-3 w-3 text-amber-500" />}
+                          {!hasAccess && <Crown className="h-3 w-3 flex-shrink-0 text-amber-500" />}
                           {isCurrentPersonality && (
-                            <Badge variant="outline" className="text-[9px] py-0 h-3.5 border-emerald-500 text-emerald-700 dark:text-emerald-300">
+                            <Badge variant="outline" className="h-3.5 flex-shrink-0 py-0 text-[9px] border-emerald-500 text-emerald-700 dark:text-emerald-300">
                               Active
                             </Badge>
                           )}
@@ -450,7 +450,7 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
                           {personality.description}
                         </p>
                         {hasAccess && (
-                          <div className="flex items-center gap-2 text-[9px] text-slate-500 dark:text-slate-400">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-slate-500 dark:text-slate-400">
                             <span>Rate: {personality.rate}x</span>
                             <span>•</span>
                             <span>Pitch: {personality.pitch.toFixed(1)}</span>
@@ -478,7 +478,7 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
         <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
           Quick Presets
         </label>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
           {VOICE_PRESETS.map((preset) => (
             <Button
               key={preset.id}
@@ -486,14 +486,14 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
               size="sm"
               onClick={() => onSpeechRateChange(preset.rate)}
               className={cn(
-                "flex items-center justify-start h-8 px-2 text-xs transition-all",
+                "flex h-8 min-w-0 items-center justify-start px-2 text-xs transition-all",
                 Math.abs(speechRate - preset.rate) < 0.05 && 
                 "border-emerald-500 bg-emerald-50 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100"
               )}
             >
-              <span className="mr-1.5">{preset.icon}</span>
-              <span className="text-[11px]">{preset.displayName}</span>
-              <span className="ml-auto text-[10px] text-slate-500">{preset.rate}x</span>
+              <span className="mr-1.5 flex-shrink-0">{preset.icon}</span>
+              <span className="min-w-0 truncate text-[11px]">{preset.displayName}</span>
+              <span className="ml-auto flex-shrink-0 text-[10px] text-slate-500">{preset.rate}x</span>
             </Button>
           ))}
         </div>
@@ -504,12 +504,12 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
         <>
           <Separator />
           <div className="space-y-3 p-3 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <Crown className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <label className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
+              <label className="min-w-0 flex-1 truncate text-xs font-semibold text-emerald-900 dark:text-emerald-100">
                 Advanced Controls
               </label>
-              <Badge variant="secondary" className="bg-emerald-200 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-[10px] h-4 ml-auto">
+              <Badge variant="secondary" className="h-4 flex-shrink-0 bg-emerald-200 text-[10px] text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
                 {isPremium ? 'Premium' : 'Pro'}
               </Badge>
             </div>

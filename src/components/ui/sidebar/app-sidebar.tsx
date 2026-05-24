@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import {
   BookOpen,
   Bot,
@@ -7,7 +8,7 @@ import {
   FileText,
   PenTool,
   BookMarked,
-  MessageSquare,
+  Volume2,
   Users,
   Focus,
   StickyNote,
@@ -66,22 +67,19 @@ export function AppSidebar({
   const { state: sidebarState, isMobile } = useSidebar();
   const isCollapsed = sidebarState === "collapsed" && !isMobile;
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const handleNavigation = (viewId: string) => {
-    navigate(`/dashboard?view=${viewId}`);
+    if (viewId === "pronunciation") {
+      navigate("/pronunciation");
+    } else {
+      navigate(`/dashboard?view=${viewId}`);
+    }
     onViewChange(viewId);
   };
 
-  // Theme state
-  const [theme, setTheme] = React.useState("light");
-
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-    if (theme === "dark") {
-      document.documentElement.classList.remove("dark");
-    } else {
-      document.documentElement.classList.add("dark");
-    }
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const handleLogout = async () => {
@@ -138,7 +136,7 @@ export function AppSidebar({
           title: "AI-Powered",
           items: [
             { title: "AI Chat", id: "ai-chat", icon: Bot, badge: "New", isActive: activeView === "ai-chat" },
-            { title: "AI Practice", id: "ai-practice", icon: MessageSquare, isActive: activeView === "ai-practice" },
+            { title: "Pronunciation", id: "pronunciation", icon: Volume2, isActive: activeView === "pronunciation" },
             { title: "AI Tutor", id: "ai-tutor", icon: GraduationCap, badge: "Pro", isActive: activeView === "ai-tutor" },
           ],
         },
@@ -172,12 +170,30 @@ export function AppSidebar({
       {/* Header */}
       <SidebarHeader className="border-b border-slate-200 dark:border-slate-800 p-4 h-16 flex items-center">
         <div className="flex items-center justify-between gap-3 w-full overflow-hidden">
-          <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white truncate">
-            <div className="min-w-[1.75rem] flex items-center justify-center">
-              <Logo size={isCollapsed ? 'sm' : 'md'} sidebarState={isCollapsed ? 'collapsed' : 'expanded'} className={isCollapsed ? 'w-8 h-8' : 'w-8 h-8'} />
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-3 font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:opacity-80 transition-opacity group"
+            type="button"
+          >
+            <div className="relative flex items-center justify-center shrink-0 w-7 h-7">
+              <img
+                src="/logo.svg"
+                alt="CognitoSpeak Logo"
+                className="w-6 h-6 object-contain transition-all duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"></div>
             </div>
-            {!isCollapsed && <span className="truncate font-black tracking-tight text-lg sm:text-xl">CognitoSpeak</span>}
-          </div>
+            {!isCollapsed && (
+              <div className="hidden sm:block text-left">
+                <span className="text-lg font-bold bg-gradient-to-r from-slate-900 to-emerald-800 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent tracking-tight block leading-tight">
+                  CognitoSpeak
+                </span>
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium opacity-80 leading-tight">
+                  AI Learning Platform
+                </p>
+              </div>
+            )}
+          </button>
           
           {!isCollapsed && (
             <button
@@ -274,11 +290,14 @@ export function AppSidebar({
         </div>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-slate-200 dark:border-slate-800 p-3 bg-white/50 dark:bg-slate-900/50">
+      <SidebarFooter className="border-t border-slate-200 dark:border-slate-800 p-3 bg-white/50 dark:bg-slate-900/50 relative z-50">
         {!isCollapsed ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-3 w-full rounded-xl px-2 py-2 hover:bg-white dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm">
+              <button 
+                className="flex items-center gap-3 w-full rounded-xl px-2 py-2 hover:bg-white dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm cursor-pointer"
+                type="button"
+              >
                 <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm">
                   <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
@@ -290,22 +309,56 @@ export function AppSidebar({
                 <ChevronDown className="h-4 w-4 text-slate-400" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent 
+              align="end" 
+              side="top"
+              sideOffset={8}
+              className="w-56 z-[100]"
+            >
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/profile')}><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/settings')}><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" /> Settings
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-red-600"><LogOut className="mr-2 h-4 w-4" /> Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" /> Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div className="flex justify-center">
-             <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm cursor-pointer hover:scale-105 transition-transform">
-               <AvatarImage src={user?.avatar} />
-               <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
-             </Avatar>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex justify-center w-full cursor-pointer" type="button">
+                <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm hover:scale-105 transition-transform cursor-pointer">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="center" 
+              side="right"
+              sideOffset={12}
+              className="w-48 z-[100]"
+            >
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" /> Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </SidebarFooter>
       <SidebarRail />

@@ -179,13 +179,13 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
               )}
 
               {/* Settings Content */}
-              <ScrollArea className="flex-1 w-full">
-                <div className="w-full px-4 sm:px-5 py-4 box-border">
-                  <Tabs defaultValue="general" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 gap-2 mb-6">
-                      <TabsTrigger value="general">General</TabsTrigger>
-                      <TabsTrigger value="voice">Voice</TabsTrigger>
-                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <ScrollArea className="min-w-0 flex-1 w-full">
+                <div className="box-border w-full min-w-0 max-w-full overflow-hidden px-4 py-4 sm:px-5">
+                  <Tabs defaultValue="general" className="w-full min-w-0 max-w-full">
+                    <TabsList className="mb-6 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
+                      <TabsTrigger value="general" className="min-w-0 px-2 text-xs sm:text-sm">General</TabsTrigger>
+                      <TabsTrigger value="voice" className="min-w-0 px-2 text-xs sm:text-sm">Voice</TabsTrigger>
+                      <TabsTrigger value="advanced" className="min-w-0 px-2 text-xs sm:text-sm">Advanced</TabsTrigger>
                     </TabsList>
 
                     {/* General Settings */}
@@ -279,7 +279,7 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
                   </TabsContent>
 
                   {/* Voice Settings */}
-                  <TabsContent value="voice" className="space-y-6">
+                  <TabsContent value="voice" className="min-w-0 max-w-full space-y-6 overflow-hidden">
                     <div className="space-y-4">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                         Voice Output
@@ -448,13 +448,13 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
               )}
 
               {/* Settings Content */}
-              <ScrollArea className="flex-1 w-full">
-                <div className="w-full px-4 sm:px-5 py-4 box-border">
-                  <Tabs defaultValue="general" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 gap-2 mb-6">
-                      <TabsTrigger value="general">General</TabsTrigger>
-                      <TabsTrigger value="voice">Voice</TabsTrigger>
-                      <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <ScrollArea className="min-w-0 flex-1 w-full">
+                <div className="box-border w-full min-w-0 max-w-full overflow-hidden px-4 py-4 sm:px-5">
+                  <Tabs defaultValue="general" className="w-full min-w-0 max-w-full">
+                    <TabsList className="mb-6 grid w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
+                      <TabsTrigger value="general" className="min-w-0 px-2 text-xs sm:text-sm">General</TabsTrigger>
+                      <TabsTrigger value="voice" className="min-w-0 px-2 text-xs sm:text-sm">Voice</TabsTrigger>
+                      <TabsTrigger value="advanced" className="min-w-0 px-2 text-xs sm:text-sm">Advanced</TabsTrigger>
                     </TabsList>
 
                     {/* General Settings */}
@@ -548,7 +548,7 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
                     </TabsContent>
 
                     {/* Voice Settings */}
-                    <TabsContent value="voice" className="space-y-6">
+                    <TabsContent value="voice" className="min-w-0 max-w-full space-y-6 overflow-hidden">
                       <div className="space-y-4">
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                           Voice Output

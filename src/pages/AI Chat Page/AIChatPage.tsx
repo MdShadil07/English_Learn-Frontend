@@ -16,6 +16,7 @@ import {
   Volume2,
   PanelLeftClose,
   PanelLeftOpen,
+  Loader2,
   Languages,
   Sparkles
 } from 'lucide-react';
@@ -28,6 +29,7 @@ import StreakService, { StreakData, StreakUpdateResult } from '../../services/AI
 import { geminiService, GeminiMessage } from '../../services/AI Chat/geminiService';
 import OptimizedProgressService, { RealtimeProgressData, ProgressUpdate, ProgressListener } from '../../services/AI Chat/optimizedProgressService';
 import { fetchLatestAccuracy } from '../../services/AI Chat/accuracyService';
+import { conversationHistoryService } from '../../services/AI Chat/conversationHistoryService';
 import AIChatSidebar from '../../components/AI Chat/AIChatSidebar';
 
 import AIChatSettingsSidebar from '../../components/AI Chat/AIChatSettingsSidebar';
@@ -251,6 +253,9 @@ const AIChatPage: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationHistoryLoaded, setConversationHistoryLoaded] = useState(false);
+  const [isConversationHistoryLoading, setIsConversationHistoryLoading] = useState(false);
+  const [hydratingConversationId, setHydratingConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
@@ -299,6 +304,7 @@ const AIChatPage: React.FC = () => {
     null
   >(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const conversationHydrationRequestRef = useRef(0);
 
   // Check if user is at bottom of scroll area
   const checkIfAtBottom = useCallback(() => {
@@ -392,9 +398,22 @@ const AIChatPage: React.FC = () => {
 
   // Set personality-specific voice when personality changes
   // No need to set personality-specific voice, handled by selectedVoice effect above
+  const syncPersonalityFromConversation = useCallback((conversation: Conversation) => {
+    const conversationPersonality = AI_PERSONALITIES.find(
+      personality => personality.id === conversation.personalityId
+    );
+
+    if (conversationPersonality) {
+      setSelectedPersonality(conversationPersonality);
+      setSettings(prev => ({ ...prev, personality: conversationPersonality.id }));
+    }
+  }, []);
 
   // Start new conversation
   const startNewConversation = useCallback(() => {
+    conversationHydrationRequestRef.current += 1;
+    setHydratingConversationId(null);
+
     const newConversation: Conversation = {
       id: `conv_${Date.now()}`,
       title: `Chat with ${selectedPersonality.name}`,
@@ -419,12 +438,108 @@ const AIChatPage: React.FC = () => {
     setSidebarMode('stats');
   }, [selectedPersonality, user?.fullName]);
 
+  // Load persisted conversations once the authenticated user is available.
+  useEffect(() => {
+    if (!user?.id) {
+      setConversationHistoryLoaded(false);
+      setIsConversationHistoryLoading(false);
+      setHydratingConversationId(null);
+      return;
+    }
+
+    let cancelled = false;
+    const requestId = ++conversationHydrationRequestRef.current;
+
+    const loadConversationHistory = async () => {
+      setConversationHistoryLoaded(false);
+      setIsConversationHistoryLoading(true);
+      try {
+        const savedConversations = await conversationHistoryService.listConversations();
+        if (cancelled || requestId !== conversationHydrationRequestRef.current) return;
+
+        if (savedConversations.length > 0) {
+          const firstConversation = savedConversations[0];
+          syncPersonalityFromConversation(firstConversation);
+
+          setConversations(savedConversations);
+          setActiveConversation(firstConversation);
+          setMessages(firstConversation.messages);
+          setHydratingConversationId(firstConversation.id);
+
+          const fullMessages = await conversationHistoryService.getMessages(firstConversation.id);
+          if (cancelled || requestId !== conversationHydrationRequestRef.current) return;
+
+          const hydratedConversation = {
+            ...firstConversation,
+            messages: fullMessages,
+            messageCount: Math.max(firstConversation.messageCount, fullMessages.length),
+            lastUpdated: fullMessages[fullMessages.length - 1]?.timestamp || firstConversation.lastUpdated,
+          };
+
+          setConversations(prev =>
+            prev.map(conversation =>
+              conversation.id === hydratedConversation.id ? hydratedConversation : conversation
+            )
+          );
+          setActiveConversation(hydratedConversation);
+          setMessages(fullMessages);
+        } else {
+          setConversations([]);
+          setActiveConversation(null);
+          setMessages([]);
+        }
+      } catch (error) {
+        console.error('Failed to load saved AI chat conversations:', error);
+      } finally {
+        if (!cancelled && requestId === conversationHydrationRequestRef.current) {
+          setHydratingConversationId(null);
+          setIsConversationHistoryLoading(false);
+          setConversationHistoryLoaded(true);
+        }
+      }
+    };
+
+    loadConversationHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [syncPersonalityFromConversation, user?.id]);
+
   // Initialize conversation
   useEffect(() => {
+    if (!conversationHistoryLoaded) return;
     if (!activeConversation) {
       startNewConversation();
     }
-  }, [activeConversation, startNewConversation]);
+  }, [activeConversation, conversationHistoryLoaded, startNewConversation]);
+
+  // Ask the backend to flush queued conversation batches when the tab is hidden or closed.
+  useEffect(() => {
+    if (!user?.id) {
+      setHydratingConversationId(null);
+      return;
+    }
+
+    const flushQueuedConversations = () => {
+      conversationHistoryService.flushQueuedConversations(true);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        flushQueuedConversations();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', flushQueuedConversations);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', flushQueuedConversations);
+      conversationHistoryService.flushQueuedConversations();
+    };
+  }, [user?.id]);
 
   // 🔄 Fetch initial progress data once on mount
   useEffect(() => {
@@ -797,7 +912,7 @@ const AIChatPage: React.FC = () => {
       ));
 
       setActiveConversation(prev =>
-        prev ? {
+        prev?.id === activeConversation.id ? {
           ...prev,
           messages: messagesWithAssistant.map(msg =>
             msg.id === assistantMessage.id
@@ -809,8 +924,22 @@ const AIChatPage: React.FC = () => {
             sum + (msg.accuracy?.overall || 0), 0) / messagesWithAssistant.filter(msg => msg.accuracy).length || 0,
           totalXP: messagesWithAssistant.reduce((sum, msg) => sum + (msg.xpGained || 0), 0),
           messageCount: messagesWithAssistant.length
-        } : null
+        } : prev
       );
+
+      conversationHistoryService.queueTurn({
+        conversationId: activeConversation.id,
+        personalityId: selectedPersonality.id,
+        title: activeConversation.title || `Chat with ${selectedPersonality.name}`,
+        messages: [
+          userMessage,
+          {
+            ...assistantMessage,
+            content: fullResponse,
+            isStreaming: false,
+          },
+        ],
+      });
 
       // After sending a message, prefer using the optimized service listener (server-aware polling)
       // Falls back to local polling if no user id is available
@@ -1110,16 +1239,58 @@ const AIChatPage: React.FC = () => {
     }
   }, [availablePersonalities, toast, activeConversation, startNewConversation]);
 
-  const handleConversationSelect = useCallback((conversation: Conversation) => {
+  const handleConversationSelect = useCallback(async (conversation: Conversation) => {
+    const requestId = ++conversationHydrationRequestRef.current;
+    syncPersonalityFromConversation(conversation);
     setActiveConversation(conversation);
     setMessages(conversation.messages);
-  }, []);
+    setHydratingConversationId(conversation.id);
+
+    if (!user?.id) return;
+
+    try {
+      const persistedMessages = await conversationHistoryService.getMessages(conversation.id);
+      if (requestId !== conversationHydrationRequestRef.current) return;
+
+      const hydratedConversation = {
+        ...conversation,
+        messages: persistedMessages,
+        messageCount: Math.max(conversation.messageCount, persistedMessages.length),
+        lastUpdated: persistedMessages[persistedMessages.length - 1]?.timestamp || conversation.lastUpdated,
+      };
+
+      setActiveConversation(prev =>
+        prev?.id === conversation.id
+          ? hydratedConversation
+          : prev
+      );
+      setMessages(persistedMessages);
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === conversation.id
+            ? hydratedConversation
+            : conv
+        )
+      );
+    } catch (error) {
+      console.error('Failed to load full AI chat conversation:', error);
+      toast({
+        title: 'Conversation Load Error',
+        description: 'Could not load the full conversation history. Showing the recent messages.',
+        variant: 'destructive',
+      });
+    } finally {
+      if (requestId === conversationHydrationRequestRef.current) {
+        setHydratingConversationId(null);
+      }
+    }
+  }, [syncPersonalityFromConversation, toast, user?.id]);
 
 
   // (latestAccuracy state declared at the top of the component)
 
   return (
-    <div className="flex min-h-screen flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
 
       {/* Level-Up Notification */}
       {levelUpData && (
@@ -1145,11 +1316,11 @@ const AIChatPage: React.FC = () => {
         </motion.div>
       )}
 
-      <div className="container mx-auto flex h-full flex-1 min-h-0 flex-col justify-start px-0 py-0 sm:px-3 sm:py-4 lg:px-4 lg:py-6">
-        <div className="flex h-full w-full max-w-7xl flex-1 min-h-0 flex-col">
+      <div className="flex h-full min-h-0 flex-1 flex-col justify-start px-2 py-0 sm:px-3 lg:px-4">
+        <div className="mx-auto flex h-full w-full max-w-7xl flex-1 min-h-0 flex-col">
 
           {/* Unified Chat Card */}
-          <div className="relative flex h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] flex-1 flex-col min-h-0 overflow-hidden bg-white shadow-none dark:bg-slate-950/95 sm:h-[calc(100vh-5rem)] sm:max-h-[calc(100vh-5rem)] sm:rounded-[1.75rem] sm:border sm:bg-white sm:dark:bg-slate-950 lg:h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-6rem)] lg:flex-row">
+          <div className="relative flex h-full max-h-full flex-1 flex-col min-h-0 overflow-hidden bg-white shadow-none dark:bg-slate-950/95 sm:border sm:bg-white sm:dark:bg-slate-950 lg:flex-row">
 
             {/* Sidebar Section */}
             <AnimatePresence>
@@ -1159,9 +1330,9 @@ const AIChatPage: React.FC = () => {
                   animate={{ x: 0, opacity: 1 }}
                   exit={{ x: -300, opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-y-auto border-r border-emerald-200/40 dark:border-emerald-900/30 flex"
+                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex"
                 >
-                  <div className="flex h-full w-full overflow-y-auto">
+                  <div className="flex h-full min-h-0 w-full overflow-hidden">
                     <AIChatSidebar
                       conversations={conversations}
                       activeConversation={activeConversation}
@@ -1393,17 +1564,39 @@ const AIChatPage: React.FC = () => {
                   onScroll={handleScroll}
                 >
                   <div className="space-y-4">
-                    <AnimatePresence>
-                      {messages.map((message, index) => (
-                        <ChatMessageItem
-                          key={message.id}
-                          message={message}
-                          index={index}
-                          selectedPersonality={selectedPersonality}
-                          settings={settings}
-                        />
-                      ))}
-                    </AnimatePresence>
+                    {isConversationHistoryLoading && !activeConversation ? (
+                      <div className="flex min-h-[320px] items-center justify-center">
+                        <div className="flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-slate-900/80 dark:text-emerald-300">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading conversations...
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {hydratingConversationId === activeConversation?.id && messages.length === 0 && (
+                          <div className="flex min-h-[260px] items-center justify-center">
+                            <div className="flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-slate-900/80 dark:text-emerald-300">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Loading messages...
+                            </div>
+                          </div>
+                        )}
+
+                        <AnimatePresence initial={false}>
+                          {messages.map((message, index) => (
+                            <ChatMessageItem
+                              key={message.id}
+                              message={message}
+                              index={index}
+                              selectedPersonality={selectedPersonality}
+                              settings={settings}
+                              userName={user?.fullName || user?.email?.split('@')[0] || 'You'}
+                              userAvatar={user?.avatar}
+                            />
+                          ))}
+                        </AnimatePresence>
+                      </>
+                    )}
 
                     <div ref={messagesEndRef} />
                   </div>

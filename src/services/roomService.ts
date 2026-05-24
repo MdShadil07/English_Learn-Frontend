@@ -28,6 +28,8 @@ export interface RoomDetails {
   bannerIsItalic?: boolean;
   bannerFontSize?: number;
   hostId: string;
+  hostName?: string;
+  hostAvatar?: string;
   participants: RoomParticipant[];
   maxParticipants: number;
   isPrivate: boolean;

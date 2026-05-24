@@ -12,6 +12,8 @@ export interface RoomDetails {
   topic: string;
   description?: string;
   hostId: string;
+  hostName?: string;
+  hostAvatar?: string;
   participants: RoomParticipant[];
   maxParticipants: number;
   isPrivate: boolean;

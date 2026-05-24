@@ -139,6 +139,10 @@ The code is ready for deployment on:
 - **Offline Mode**: PWA capabilities
 - **Advanced Voice**: Pronunciation scoring and feedback
 
+## Architecture Documentation
+
+- Conversation persistence and scaling guide: `Documentation/AI_CHAT_CONVERSATION_PERSISTENCE_ARCHITECTURE.md`
+
 ## Support
 
 For issues or feature requests, please refer to:

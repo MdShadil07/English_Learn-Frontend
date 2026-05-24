@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Quote, MapPin } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Star, Quote, MapPin, Sparkles } from 'lucide-react';
 
 const testimonials = [
   {
@@ -22,7 +21,7 @@ const testimonials = [
     content: 'The pronunciation coach feature is a game-changer. I finally mastered sounds I struggled with for years. My professors noticed the improvement immediately!',
     rating: 5,
     location: 'Spain',
-    color: 'blue'
+    color: 'cyan'
   },
   {
     id: 3,
@@ -32,7 +31,7 @@ const testimonials = [
     content: 'I love how the AI adapts to my technical vocabulary needs. The writing assistant helped me improve my documentation skills significantly.',
     rating: 5,
     location: 'Japan',
-    color: 'purple'
+    color: 'teal'
   },
   {
     id: 4,
@@ -42,7 +41,7 @@ const testimonials = [
     content: 'The community aspect sets it apart. Connecting with people globally and practicing in rooms has accelerated my progress beyond expectations.',
     rating: 4,
     location: 'Russia',
-    color: 'amber'
+    color: 'blue'
   },
   {
     id: 5,
@@ -52,7 +51,7 @@ const testimonials = [
     content: 'As a medical student, I needed specialized vocabulary. The custom modules and AI corrections have been invaluable for my studies.',
     rating: 5,
     location: 'China',
-    color: 'teal'
+    color: 'emerald'
   },
   {
     id: 6,
@@ -62,53 +61,60 @@ const testimonials = [
     content: 'The flexibility is amazing. I can practice for 10 minutes between projects. The "Storyteller Maya" persona makes learning actually fun!',
     rating: 5,
     location: 'UK',
-    color: 'rose'
+    color: 'teal'
   }
 ];
 
 const TestimonialCard = ({ item }) => {
   return (
-    <div className="min-w-[320px] md:min-w-[400px] p-4 select-none">
-      <div className={`relative h-full group bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
+    <div className="w-[320px] md:w-[400px] flex-shrink-0 p-4 select-none">
+      <div className="relative h-full group bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-3xl p-8 border border-slate-200/60 dark:border-slate-800/60 shadow-lg shadow-slate-200/20 dark:shadow-none hover:border-teal-300 dark:hover:border-teal-700/50 hover:bg-white dark:hover:bg-slate-800/80 transition-all duration-300">
+        
+        {/* Subtle Inner Glow on Hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-300 pointer-events-none"></div>
+
         {/* Decorative Quote Icon */}
-        <div className={`absolute top-4 right-4 opacity-10 group-hover:opacity-20 transition-opacity text-${item.color}-500`}>
-          <Quote className="w-8 h-8 fill-current" />
+        <div className="absolute top-6 right-6 opacity-10 group-hover:opacity-30 group-hover:-translate-y-1 transition-all duration-300 text-teal-500 dark:text-teal-400">
+          <Quote className="w-10 h-10 fill-current" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className={`p-0.5 rounded-full bg-gradient-to-br from-${item.color}-400 to-${item.color}-600`}>
-            <div className="p-0.5 bg-white dark:bg-slate-900 rounded-full">
-              <Avatar className="w-12 h-12">
-                <AvatarImage src={item.avatarUrl} alt={item.name} />
-                <AvatarFallback>{item.name[0]}</AvatarFallback>
-              </Avatar>
+        <div className="flex items-center gap-4 mb-6 relative z-10">
+          <div className="relative">
+            <div className="absolute inset-0 bg-teal-400 blur-md opacity-20 group-hover:opacity-40 transition-opacity"></div>
+            <div className="w-14 h-14 rounded-full border-2 border-white dark:border-slate-800 bg-gradient-to-br from-teal-400 to-emerald-400 p-[2px] shadow-md relative z-10 transform transition-transform group-hover:scale-105 group-hover:rotate-3">
+              <img 
+                src={item.avatarUrl} 
+                alt={item.name} 
+                className="w-full h-full rounded-full object-cover bg-white dark:bg-slate-900"
+                crossOrigin="anonymous"
+              />
             </div>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900 dark:text-white text-sm md:text-base">{item.name}</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{item.role}</p>
+            <h4 className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight">{item.name}</h4>
+            <p className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider mt-0.5">{item.role}</p>
           </div>
         </div>
 
         {/* Rating */}
-        <div className="flex mb-3">
+        <div className="flex mb-4 relative z-10">
           {[...Array(5)].map((_, i) => (
             <Star 
               key={i} 
-              className={`w-3.5 h-3.5 ${i < item.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200 dark:text-slate-700'}`} 
+              className={`w-4 h-4 mr-1 ${i < item.rating ? 'text-amber-400 fill-amber-400 drop-shadow-sm' : 'text-slate-200 dark:text-slate-700'}`} 
             />
           ))}
         </div>
 
         {/* Content */}
-        <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-4 relative z-10">
+        <p className="text-slate-600 dark:text-slate-300 text-[15px] font-medium leading-relaxed mb-6 relative z-10">
           "{item.content}"
         </p>
 
-        {/* Footer */}
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 dark:text-slate-500">
-          <MapPin className="w-3 h-3" />
+        {/* Footer Location Pill */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 relative z-10 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
+          <MapPin className="w-3.5 h-3.5" />
           {item.location}
         </div>
       </div>
@@ -117,115 +123,105 @@ const TestimonialCard = ({ item }) => {
 };
 
 const Testimonials = () => {
-  const scrollRef = useRef(null);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Auto-scroll logic
   useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
+    setIsMounted(true);
+  }, []);
 
-    let animationFrameId;
-    
-    const scroll = () => {
-      if (!isPaused) {
-        if (scrollContainer.scrollLeft >= (scrollContainer.scrollWidth - scrollContainer.clientWidth)) {
-          // Reset to start for infinite loop illusion (requires duplicated content ideally, but simplistic reset here)
-          scrollContainer.scrollLeft = 0;
-        } else {
-          scrollContainer.scrollLeft += 1; // Adjust speed here
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
+  // We duplicate the array to create a seamless infinite CSS scrolling effect
+  const doubledTestimonials = [...testimonials, ...testimonials];
 
-    animationFrameId = requestAnimationFrame(scroll);
-
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isPaused]);
+  if (!isMounted) return null;
 
   return (
-    <section className="py-24 bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
+    <section id="testimonials" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-slate-950 relative overflow-hidden transition-colors duration-500 font-sans">
       
-      {/* Background Elements */}
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-700 to-transparent"></div>
-        <div className="absolute top-[10%] left-[20%] w-64 h-64 bg-purple-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[40%] right-[10%] w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"></div>
+      {/* --- Optimized Background Elements (No CSS Blurs) --- */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+        <div className="absolute top-[10%] left-[20%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,rgba(20,184,166,0.06)_0%,transparent_60%)] dark:bg-[radial-gradient(circle,rgba(20,184,166,0.04)_0%,transparent_60%)]" style={{ transform: 'translateZ(0)' }}></div>
+        <div className="absolute bottom-[20%] right-[10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.06)_0%,transparent_60%)] dark:bg-[radial-gradient(circle,rgba(6,182,212,0.04)_0%,transparent_60%)]" style={{ transform: 'translateZ(0)' }}></div>
       </div>
 
-      <div className="container px-4 mx-auto relative z-10">
+      <div className="w-full relative z-10">
         
         {/* Header */}
-        <div className="max-w-3xl mx-auto text-center mb-12">
+        <div className="max-w-[1440px] mx-auto px-6 sm:px-8 lg:px-12 text-center mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-slate-900 dark:text-white tracking-tight">
-              Loved by <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Learners Worldwide</span>
+            {/* Badge */}
+            <div className="inline-flex w-fit items-center gap-2 px-3 py-1.5 mb-6 rounded-full bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm backdrop-blur-sm transition-colors duration-500">
+              <Sparkles className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 tracking-tight">Wall of Love</span>
+            </div>
+
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-[#0f172a] dark:text-white tracking-tight leading-[1.1]">
+              Loved by <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500 pb-2">Learners Worldwide</span>
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-400">
-              Join a global community of achievers who are mastering English on their own terms.
+            <p className="text-lg sm:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+              Join a global community of achievers who are mastering English on their own terms. See what they have to say.
             </p>
           </motion.div>
         </div>
 
-        {/* Scrollable Row Container */}
-        <div className="relative w-full">
-          {/* Gradient Fade Edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-slate-50 dark:from-slate-950 to-transparent z-20 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-slate-50 dark:from-slate-950 to-transparent z-20 pointer-events-none"></div>
+        {/* --- Pure CSS Hardware-Accelerated Marquee --- */}
+        <div className="relative w-full overflow-hidden flex py-4">
+          
+          {/* Gradient Fade Masks for seamless entering/exiting (Optimized) */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-r from-[#f8fbff] dark:from-slate-950 to-transparent z-20 pointer-events-none transition-colors duration-500"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-l from-[#f8fbff] dark:from-slate-950 to-transparent z-20 pointer-events-none transition-colors duration-500"></div>
 
-          <div 
-            ref={scrollRef}
-            className="flex overflow-x-auto no-scrollbar py-4 gap-0 cursor-grab active:cursor-grabbing"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onTouchStart={() => setIsPaused(true)}
-            onTouchEnd={() => setIsPaused(false)}
-          >
-            {/* Original List */}
-            {testimonials.map((item) => (
-              <TestimonialCard key={item.id} item={item} />
-            ))}
-            {/* Duplicated List for Smoother Loop Feel */}
-            {testimonials.map((item) => (
-              <TestimonialCard key={`dup-${item.id}`} item={item} />
+          {/* Marquee Track */}
+          <div className="flex animate-marquee hover:[animation-play-state:paused]">
+            {/* Render duplicated list for infinite loop */}
+            {doubledTestimonials.map((item, idx) => (
+              <TestimonialCard key={`${item.id}-${idx}`} item={item} />
             ))}
           </div>
         </div>
 
-        {/* Smoke Effect Bottom Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-10 overflow-hidden">
-           {/* Gradient Fade */}
-           <div className="absolute inset-0 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent"></div>
-           
-           {/* Animated Smoke/Mist Layers */}
-           <div className="absolute -bottom-10 left-0 right-0 h-full opacity-30 animate-pulse">
-              <div className="w-[200%] h-full bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent blur-3xl transform translate-x-[-50%] animate-[drift_20s_linear_infinite]"></div>
-           </div>
-           <style>{`
-             @keyframes drift {
-               0% { transform: translateX(-50%); }
-               50% { transform: translateX(0%); }
-               100% { transform: translateX(-50%); }
-             }
-           `}</style>
-        </div>
+        {/* Global Styles for Infinite Marquee */}
+        <style>{`
+          .animate-marquee {
+            /* Width calculation: Card Width (400px on desktop) * Original Array Length (6) = 2400px. 
+               We translate by exactly half the total width of the doubled array. */
+            animation: scroll 40s linear infinite;
+            /* Force hardware acceleration */
+            transform: translateZ(0); 
+            will-change: transform;
+          }
 
-        {/* Trust Indicators (Below Smoke) */}
+          @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          
+          /* Adjust for mobile card width (320px) */
+          @media (max-width: 768px) {
+            .animate-marquee {
+               animation-duration: 30s;
+            }
+          }
+        `}</style>
+
+        {/* Trust Indicators (Logos) */}
         <motion.div 
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 1 }}
-          className="mt-8 pt-10 border-t border-slate-200 dark:border-slate-800 flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 relative z-20"
+          viewport={{ once: true }}
+          className="mt-12 pt-12 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap justify-center gap-10 md:gap-20 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 relative z-20 max-w-[1440px] mx-auto px-6"
         >
-           {/* Placeholder Logos for Social Proof */}
-           {['Forbes', 'TechCrunch', 'TheVerge', 'Wired'].map((brand) => (
-             <span key={brand} className="text-xl font-bold text-slate-400 dark:text-slate-600 cursor-default">{brand}</span>
+           {/* High-end typography for placeholder logos */}
+           {['Forbes', 'TechCrunch', 'TheVerge', 'Wired', 'Bloomberg'].map((brand) => (
+             <span key={brand} className="text-xl md:text-2xl font-black tracking-tighter text-slate-800 dark:text-slate-300 cursor-default select-none transition-colors">
+               {brand}
+             </span>
            ))}
         </motion.div>
 

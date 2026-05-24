@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from 'next-themes';
 import BasicHeader from '@/components/layout/BasicHeader';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -54,9 +55,9 @@ interface UserPreferences {
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    theme: 'auto',
+  const [preferences, setPreferences] = useState<Omit<UserPreferences, 'theme'>>({
     language: 'en',
     notifications: {
       email: true,
@@ -173,14 +174,13 @@ const SettingsPage: React.FC = () => {
                   <Label htmlFor="theme" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Theme
                   </Label>
-                  <Select value={preferences.theme} onValueChange={(value: any) => updatePreference('theme', value)}>
+                  <Select value={theme || 'light'} onValueChange={(value: 'light' | 'dark') => setTheme(value)}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="light">Light</SelectItem>
                       <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="auto">Auto (System)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
