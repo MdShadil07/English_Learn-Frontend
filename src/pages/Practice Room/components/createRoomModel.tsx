@@ -69,6 +69,7 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRo
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState('B2');
   const [privacy, setPrivacy] = useState('public');
+  const [roomMode, setRoomMode] = useState<'smallGroup' | 'classroom' | 'webinar'>('classroom');
   const [maxUsers, setMaxUsers] = useState<number | string>(4);
   const [banner, setBanner] = useState(BANNER_PRESETS[0].id);
   const [customBannerUrl, setCustomBannerUrl] = useState<string | null>(null);
@@ -114,14 +115,15 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRo
       const newRoom = await roomService.createRoom({
         maxParticipants: parseInt(maxUsers.toString()) || 4,
         isPrivate: privacy === 'private',
-        topic: topic,
+        topic: topic.trim() || 'English Practice Room',
         description: `Target Level: ${level}`, // Storing the level in description since it's required backend context
         banner: finalBannerStr,
         bannerText: bannerSettings.text,
         bannerFontFamily: bannerSettings.fontFamily,
         bannerIsBold: bannerSettings.isBold,
         bannerIsItalic: bannerSettings.isItalic,
-        bannerFontSize: bannerSettings.fontSize
+        bannerFontSize: bannerSettings.fontSize,
+        mode: roomMode
       });
 
       setIsSuccess(true);
@@ -130,30 +132,29 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRo
         description: 'Your practice room is ready. Joining now...',
       });
       
-      // Auto close and navigate after success
-      setTimeout(() => {
-        setIsSuccess(false);
-        onClose();
-        setTopic('');
-        setLevel('B2');
-        setPrivacy('public');
-        setCustomBannerUrl(null);
-        setBannerFile(null);
-        setBanner(BANNER_PRESETS[0].id);
-        setBannerSettings({
-            text: 'English Practice Room',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            isBold: true,
-            isItalic: false,
-            fontSize: 24
-        });
-        
-        if (onSuccess) onSuccess();
-        
-        // Navigate to the new room immediately
-        const codeSuffix = newRoom.isPrivate && newRoom.roomCode ? `?code=${newRoom.roomCode}` : '';
-        navigate(`/practice-room/${newRoom.roomId}${codeSuffix}`);
-      }, 2000);
+      // Auto close and navigate after success (removed artificial delay for better UX)
+      setIsSuccess(false);
+      onClose();
+      setTopic('');
+      setLevel('B2');
+      setPrivacy('public');
+      setRoomMode('classroom');
+      setCustomBannerUrl(null);
+      setBannerFile(null);
+      setBanner(BANNER_PRESETS[0].id);
+      setBannerSettings({
+          text: 'English Practice Room',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          isBold: true,
+          isItalic: false,
+          fontSize: 24
+      });
+      
+      if (onSuccess) onSuccess();
+      
+      // Navigate to the new room immediately
+      const codeSuffix = newRoom.isPrivate && newRoom.roomCode ? `?code=${newRoom.roomCode}` : '';
+      navigate(`/practice-room/${newRoom.roomId}${codeSuffix}`);
     } catch (error) {
       console.error('Error creating room:', error);
       toast({
@@ -334,6 +335,33 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRo
                          />
                          <span className="text-white font-bold text-sm w-4 text-center">{maxUsers}</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Room Mode Selection */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Room Layout Mode</label>
+                    <div className="grid grid-cols-3 gap-2 p-1 bg-black/40 border border-white/10 rounded-xl">
+                      {[
+                        { id: 'smallGroup', label: 'Small Group', desc: 'Everyone visible' },
+                        { id: 'classroom', label: 'Classroom', desc: 'Stage + Audience' },
+                        { id: 'webinar', label: 'Webinar', desc: '1 Speaker + Many' }
+                      ].map(mode => (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setRoomMode(mode.id as any)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-lg transition-all",
+                            roomMode === mode.id 
+                              ? "bg-white/10 text-white shadow-sm ring-1 ring-white/20" 
+                              : "text-white/40 hover:text-white/80 hover:bg-white/5"
+                          )}
+                        >
+                          <span className="text-sm font-bold">{mode.label}</span>
+                          <span className="text-[9px] mt-0.5 opacity-70 text-center">{mode.desc}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 

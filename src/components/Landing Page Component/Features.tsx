@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionTemplate, useMotionValue, AnimatePresence } from 'framer-motion';
-import { 
-  MessageSquare, Mic, Zap, Activity, 
+import {
+  MessageSquare, Mic, Zap, Activity,
   Crown, Sparkles, Volume2, Settings, CheckCircle2,
   ArrowRight, ArrowUpRight, BookOpen,
   Brain, Briefcase, GraduationCap, Glasses, Award,
@@ -9,13 +9,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Globe from 'react-globe.gl';
-import { 
-  BasicTutorIcon, 
-  ConversationCoachIcon, 
-  GrammarExpertIcon, 
-  BusinessMentorIcon, 
-  CulturalGuideIcon 
-} from '../Icons/AIPersonalityIcons';
+import {
+  AlexPersonalityLogo,
+  NovaPersonalityLogo,
+  LiamPersonalityLogo,
+  CoachTaylorLogo,
+  SophiaLogo,
+} from '../Icons/AIPersonalityLogos';
 
 // --- Helper: Color Maps to prevent Tailwind purging dynamic classes ---
 const colorClasses = {
@@ -130,12 +130,12 @@ const SpotlightCard = ({ children, className = "", spotColor = "rgba(45, 212, 19
 // --- Micro-component: Typist Simulator for Correction Preview ---
 const TypingText = ({ text, delay = 0.05 }) => {
   const [displayed, setDisplayed] = useState('');
-  
+
   useEffect(() => {
     let index = 0;
     setDisplayed('');
     if (!text) return;
-    
+
     const timer = setInterval(() => {
       setDisplayed((prev) => prev + text.charAt(index));
       index++;
@@ -143,7 +143,7 @@ const TypingText = ({ text, delay = 0.05 }) => {
         clearInterval(timer);
       }
     }, delay * 1000);
-    
+
     return () => clearInterval(timer);
   }, [text, delay]);
 
@@ -181,53 +181,58 @@ const AudioWaveform = () => {
 
 // --- Visual: AI Personality Selector (Custom Gradient SVG Avatars) ---
 const personalities = [
-  { 
-    id: 'alex', 
-    name: 'Alex', 
-    role: 'Casual Chat', 
-    tier: 'Free', 
+  {
+    id: 'alex',
+    name: 'Alex',
+    role: 'Casual Chat',
+    tier: 'Free',
     color: 'emerald' as const,
-    Icon: BasicTutorIcon,
+    Icon: AlexPersonalityLogo,
+    iconSize: 28,
     desc: 'Great for daily conversation practice. Provides minor corrections on the fly.',
     features: ['Casual Tone', 'Minor Corrections', 'Basic Vocabulary']
   },
-  { 
-    id: 'nova', 
-    name: 'Nova', 
-    role: 'Professional', 
-    tier: 'Pro', 
+  {
+    id: 'nova',
+    name: 'Nova',
+    role: 'Professional',
+    tier: 'Pro',
     color: 'purple' as const,
-    Icon: BusinessMentorIcon,
+    Icon: NovaPersonalityLogo,
+    iconSize: 28,
     desc: 'Focused on business English and formal structure. Ideal for workplace prep.',
     features: ['Formal Tone', 'Grammar Precision', 'Business Terms']
   },
-  { 
-    id: 'liam', 
-    name: 'Liam', 
-    role: 'Grammar Coach', 
-    tier: 'Pro', 
+  {
+    id: 'liam',
+    name: 'Liam',
+    role: 'Grammar Coach',
+    tier: 'Pro',
     color: 'cyan' as const,
-    Icon: GrammarExpertIcon,
+    Icon: LiamPersonalityLogo,
+    iconSize: 28,
     desc: 'Stops to explain rules. Perfect if you want to understand the "why" behind mistakes.',
     features: ['Rule Explanations', 'Structure Drills', 'Detailed Feedback']
   },
-  { 
-    id: 'coach', 
-    name: 'Coach Taylor', 
-    role: 'Intensive', 
-    tier: 'Premium', 
+  {
+    id: 'coach',
+    name: 'Coach Taylor',
+    role: 'Intensive',
+    tier: 'Premium',
     color: 'teal' as const,
-    Icon: ConversationCoachIcon,
+    Icon: CoachTaylorLogo,
+    iconSize: 28,
     desc: 'High-intensity practice with deep analysis. Corrects major & minor errors instantly.',
     features: ['Deep Analysis', 'Strict Corrections', 'Unlimited Chats']
   },
-  { 
-    id: 'sophia', 
-    name: 'Sophia', 
-    role: 'Academic', 
-    tier: 'Premium', 
+  {
+    id: 'sophia',
+    name: 'Sophia',
+    role: 'Academic',
+    tier: 'Premium',
     color: 'amber' as const,
-    Icon: CulturalGuideIcon,
+    Icon: SophiaLogo,
+    iconSize: 34,
     desc: 'Prepares you for IELTS/TOEFL with complex sentence structures and advanced vocabulary.',
     features: ['Academic Vocab', 'Complex Syntax', 'Essay Review']
   }
@@ -236,13 +241,13 @@ const personalities = [
 const PersonalityShowcase = () => {
   const [activeId, setActiveId] = useState('coach');
   const activePersona = personalities.find(p => p.id === activeId) || personalities[3];
-  
+
   const activeClasses = colorClasses[activePersona.color];
   const colorGlow = activePersona.color === 'emerald' ? 'rgba(16, 185, 129, 0.08)' :
-                    activePersona.color === 'purple' ? 'rgba(168, 85, 247, 0.08)' :
-                    activePersona.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' :
-                    activePersona.color === 'teal' ? 'rgba(20, 184, 166, 0.08)' :
-                    'rgba(245, 158, 11, 0.08)';
+    activePersona.color === 'purple' ? 'rgba(168, 85, 247, 0.08)' :
+      activePersona.color === 'cyan' ? 'rgba(6, 182, 212, 0.08)' :
+        activePersona.color === 'teal' ? 'rgba(20, 184, 166, 0.08)' :
+          'rgba(245, 158, 11, 0.08)';
 
   return (
     <div className="flex flex-col h-full w-full justify-center">
@@ -252,23 +257,24 @@ const PersonalityShowcase = () => {
           <button
             key={p.id}
             onClick={() => setActiveId(p.id)}
-            className={`relative group flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 flex-shrink-0 min-w-[68px] md:min-w-0 ${
-              activeId === p.id 
-                ? 'bg-white dark:bg-slate-850 shadow-md scale-105 z-10 border border-slate-150/40 dark:border-slate-700/50' 
-                : 'hover:bg-white/40 dark:hover:bg-slate-850/40 opacity-60 hover:opacity-100'
-            }`}
+            className={`relative group flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 flex-shrink-0 min-w-[68px] md:min-w-0 ${activeId === p.id
+                ? 'bg-slate-950/5 dark:bg-white/8 shadow-[0_10px_30px_rgba(15,23,42,0.12)] dark:shadow-[0_10px_30px_rgba(0,0,0,0.35)] scale-105 z-10 border border-white/50 dark:border-white/10'
+                : 'hover:bg-white/50 dark:hover:bg-slate-850/50 opacity-70 hover:opacity-100 hover:-translate-y-0.5'
+              }`}
+            aria-pressed={activeId === p.id}
           >
             <div className="relative">
-              <p.Icon size={46} className={`transition-all duration-300 ${activeId === p.id ? 'scale-110' : 'opacity-85'}`} />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-white/70 via-white/30 to-slate-100/50 dark:from-slate-900/75 dark:via-slate-900/55 dark:to-slate-800/80 border border-white/70 dark:border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_8px_20px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_20px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-all duration-300 group-hover:scale-105 group-active:scale-95">
+                <p.Icon size={p.iconSize} className={`transition-all duration-300 ${activeId === p.id ? 'scale-110' : 'opacity-85'}`} />
+              </div>
               {p.tier === 'Premium' && (
                 <div className="absolute -top-1 -right-1 bg-amber-500 text-white p-0.5 rounded-full shadow-sm border-2 border-white dark:border-slate-800">
                   <Crown className="w-2.5 h-2.5 fill-current" />
                 </div>
               )}
             </div>
-            <span className={`text-[10px] md:text-xs mt-2 transition-colors whitespace-nowrap ${
-              activeId === p.id ? 'text-[#0f172a] dark:text-white font-bold' : 'text-slate-500 font-medium'
-            }`}>
+            <span className={`text-[10px] md:text-xs mt-2 transition-colors whitespace-nowrap ${activeId === p.id ? 'text-[#0f172a] dark:text-white font-bold' : 'text-slate-500 font-medium'
+              }`}>
               {p.name}
             </span>
           </button>
@@ -277,24 +283,23 @@ const PersonalityShowcase = () => {
 
       {/* Details Card */}
       <AnimatePresence mode='wait'>
-        <motion.div 
+        <motion.div
           key={activeId}
           initial={{ opacity: 0, y: 10, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.98 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`flex-1 rounded-[1.5rem] p-6 border relative overflow-hidden flex flex-col justify-center shadow-inner ${
-            activePersona.tier === 'Premium' 
+          className={`flex-1 rounded-[1.5rem] p-6 border relative overflow-hidden flex flex-col justify-center shadow-inner ${activePersona.tier === 'Premium'
               ? 'bg-gradient-to-br from-amber-50/90 to-orange-50/90 dark:from-amber-950/40 dark:to-orange-950/20 border-amber-200/50 dark:border-amber-800/30'
               : 'bg-white/80 dark:bg-slate-800/40 border-slate-200/60 dark:border-slate-700/50'
-          }`}
+            }`}
         >
           {/* Background Glow */}
           <div className="absolute -top-1/2 -right-1/2 w-full h-full pointer-events-none transform translateZ(0)"
-               style={{ backgroundImage: `radial-gradient(circle, ${colorGlow} 0%, transparent 70%)` }} />
-          
-          <div className="absolute -bottom-6 -right-6 opacity-[0.03] dark:opacity-[0.05] rotate-12 pointer-events-none transform scale-150">
-            <activePersona.Icon size={180} />
+            style={{ backgroundImage: `radial-gradient(circle, ${colorGlow} 0%, transparent 70%)` }} />
+
+          <div className="absolute -bottom-4 -right-4 opacity-[0.04] dark:opacity-[0.06] rotate-12 pointer-events-none transform scale-100 md:scale-110 blur-[0.4px] transition-transform duration-500">
+            <activePersona.Icon size={96} />
           </div>
 
           <div className="relative z-10 w-full">
@@ -305,11 +310,10 @@ const PersonalityShowcase = () => {
                   {activePersona.tier === 'Premium' && <Sparkles className="w-5 h-5 text-amber-500 fill-current animate-pulse" />}
                 </h4>
                 <div className="flex gap-2 flex-wrap">
-                  <span className={`text-[10px] md:text-xs px-3 py-1 rounded-full font-extrabold border shadow-sm uppercase tracking-wider ${
-                    activePersona.tier === 'Free' ? 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-450' :
-                    activePersona.tier === 'Pro' ? 'border-cyan-200 text-cyan-700 bg-cyan-50 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-450' :
-                    'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-450'
-                  }`}>
+                  <span className={`text-[10px] md:text-xs px-3 py-1 rounded-full font-extrabold border shadow-sm uppercase tracking-wider ${activePersona.tier === 'Free' ? 'border-emerald-200 text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:border-emerald-800 dark:text-emerald-450' :
+                      activePersona.tier === 'Pro' ? 'border-cyan-200 text-cyan-700 bg-cyan-50 dark:bg-cyan-900/30 dark:border-cyan-800 dark:text-cyan-450' :
+                        'border-amber-200 text-amber-700 bg-amber-50 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-450'
+                    }`}>
                     {activePersona.tier}
                   </span>
                   <span className="text-[10px] md:text-xs px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-650 dark:text-slate-300 font-bold shadow-sm uppercase tracking-wider">
@@ -325,8 +329,8 @@ const PersonalityShowcase = () => {
 
             <div className="grid grid-cols-1 gap-3">
               {activePersona.features.map((feat, idx) => (
-                <motion.div 
-                  key={idx} 
+                <motion.div
+                  key={idx}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.1 }}
@@ -351,13 +355,13 @@ const MobileVoiceInterface = () => (
   <div className="transform scale-[0.85] sm:scale-95 md:scale-100 origin-bottom relative mx-auto border-slate-900 dark:border-slate-800 bg-[#0f172a] border-[10px] rounded-[2.5rem] md:rounded-[3rem] h-[440px] md:h-[480px] w-[250px] md:w-[280px] shadow-2xl flex flex-col overflow-hidden z-20 translate-y-4 md:translate-y-8">
     {/* Dynamic Island / Notch */}
     <div className="absolute top-2 left-1/2 -translate-x-1/2 h-5 w-24 bg-black rounded-full z-30 flex items-center justify-between px-2">
-       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 opacity-80"></div>
-       <div className="w-2 h-2 rounded-full bg-slate-800/80 border border-slate-700/50"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 opacity-80"></div>
+      <div className="w-2 h-2 rounded-full bg-slate-800/80 border border-slate-700/50"></div>
     </div>
-    
+
     {/* Screen Content - Dark Mode Styled */}
     <div className="flex-1 bg-gradient-to-b from-slate-900 to-[#070b14] overflow-y-auto no-scrollbar pt-12 pb-6 px-4 font-sans text-white flex flex-col">
-      
+
       {/* Header Status */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
@@ -385,8 +389,8 @@ const MobileVoiceInterface = () => (
         </div>
         <div className="bg-slate-900 border border-slate-700 rounded-xl p-2 flex items-center justify-between shadow-inner">
           <div className="flex items-center gap-2">
-             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[8px] font-bold">UK</div>
-             <span className="text-[10px] md:text-xs font-bold text-slate-200">James (British)</span>
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-[8px] font-bold">UK</div>
+            <span className="text-[10px] md:text-xs font-bold text-slate-200">James (British)</span>
           </div>
           <ArrowRight className="w-3 h-3 text-slate-500" />
         </div>
@@ -431,10 +435,10 @@ const MobileVoiceInterface = () => (
       </div>
 
     </div>
-    
+
     {/* Bottom Nav Bar (Simulated iPhone Home Indicator) */}
     <div className="bg-[#070b14] h-6 flex justify-center items-end pb-2">
-        <div className="w-1/3 h-1 bg-slate-600 rounded-full"></div>
+      <div className="w-1/3 h-1 bg-slate-600 rounded-full"></div>
     </div>
   </div>
 );
@@ -444,7 +448,7 @@ const TrackGrowth = () => {
   const [key, setKey] = useState(0);
 
   return (
-    <div 
+    <div
       className="bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] p-6 md:p-8 w-full max-w-sm mx-auto shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200/60 dark:border-slate-700/60 font-sans relative overflow-hidden cursor-pointer"
       onClick={() => setKey(k => k + 1)}
     >
@@ -452,7 +456,7 @@ const TrackGrowth = () => {
       <div className="absolute top-2 right-4 text-[9px] text-slate-450 dark:text-slate-500 uppercase tracking-wider font-semibold opacity-60 hover:opacity-100 transition-opacity">
         Replay
       </div>
-      
+
       {/* Hardware Accelerated Background Glow */}
       <div className="absolute top-[-50px] right-[-50px] w-48 h-48 bg-[radial-gradient(circle,rgba(20,184,166,0.15)_0%,transparent_70%)] pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
 
@@ -463,7 +467,7 @@ const TrackGrowth = () => {
         </div>
         <div className="relative h-8 md:h-10 bg-slate-100 dark:bg-slate-800/80 rounded-2xl p-1 flex items-center shadow-inner">
           {/* Active Pill with spring animation */}
-          <motion.div 
+          <motion.div
             key={`pill-${key}`}
             initial={{ left: '0%' }}
             animate={{ left: '68%' }}
@@ -472,7 +476,7 @@ const TrackGrowth = () => {
           />
           {/* Base Track */}
           <div className="w-full h-full flex divide-x divide-slate-200/50 dark:divide-slate-700/50">
-             <div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div>
+            <div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div><div className="flex-1"></div>
           </div>
         </div>
         <div className="text-center mt-3.5">
@@ -483,7 +487,7 @@ const TrackGrowth = () => {
 
       {/* Radar Chart Container */}
       <div className="relative w-full aspect-square max-w-[210px] md:max-w-[230px] mx-auto z-10">
-        
+
         {/* Labels */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 text-center">
           <div className="text-teal-600 dark:text-teal-400 font-black text-xs md:text-sm">95%</div>
@@ -510,23 +514,23 @@ const TrackGrowth = () => {
         <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible drop-shadow-md">
           {/* Grid (Pentagons) */}
           {[20, 40, 60, 80, 100].map((r, i) => (
-            <polygon 
+            <polygon
               key={i}
-              points="50,5 90,35 75,90 25,90 10,35" 
-              fill="none" 
-              stroke="currentColor" 
+              points="50,5 90,35 75,90 25,90 10,35"
+              fill="none"
+              stroke="currentColor"
               strokeWidth="0.5"
-              transform={`scale(${r/100})`}
+              transform={`scale(${r / 100})`}
               className="origin-center text-slate-200 dark:text-slate-850"
             />
           ))}
-          
+
           {/* Data Shape with morph animation */}
-          <motion.polygon 
+          <motion.polygon
             key={`chart-${key}`}
-            points="50,10 80,45 70,80 35,75 20,40" 
-            fill="rgba(45, 212, 191, 0.2)" 
-            stroke="#14b8a6" 
+            points="50,10 80,45 70,80 35,75 20,40"
+            fill="rgba(45, 212, 191, 0.2)"
+            stroke="#14b8a6"
             strokeWidth="2"
             className="filter drop-shadow-[0_0_10px_rgba(45,212,191,0.3)]"
             initial={{ scale: 0, opacity: 0 }}
@@ -534,7 +538,7 @@ const TrackGrowth = () => {
             transition={{ type: "spring", stiffness: 80, damping: 13, delay: 0.2 }}
             style={{ originX: "50px", originY: "50px" }}
           />
-          
+
           {/* Data Points */}
           <circle cx="50" cy="10" r="3" fill="#14b8a6" stroke="#fff" strokeWidth="1.5" />
           <circle cx="80" cy="45" r="2.5" fill="#94a3b8" stroke="none" />
@@ -561,8 +565,8 @@ const CorrectionDepth = () => {
   }, [key]);
 
   return (
-    <div 
-      className="space-y-4 w-full cursor-pointer" 
+    <div
+      className="space-y-4 w-full cursor-pointer"
       onClick={() => setKey(k => k + 1)}
     >
       {/* Replay Hint */}
@@ -582,13 +586,13 @@ const CorrectionDepth = () => {
           </p>
         </div>
       </div>
-      
+
       <div className="relative pl-11 min-h-[220px] w-full">
         <AnimatePresence>
           {showAnalysis && (
             <>
               {/* Free Tier Correction (Background Layer) */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 0.45, y: -25, scale: 0.95 }}
                 exit={{ opacity: 0 }}
@@ -599,7 +603,7 @@ const CorrectionDepth = () => {
               </motion.div>
 
               {/* Premium Analysis (Foreground Layer) */}
-              <motion.div 
+              <motion.div
                 className="relative bg-white dark:bg-slate-800 border border-amber-250/70 dark:border-amber-700/50 p-4 rounded-2xl rounded-tl-none shadow-xl shadow-amber-500/5 z-20 w-full"
                 initial={{ y: 20, opacity: 0, scale: 0.98 }}
                 animate={{ y: 5, opacity: 1, scale: 1 }}
@@ -632,7 +636,7 @@ const PronunciationPreview = () => {
   return (
     <div className="relative w-full h-full min-h-[400px] md:min-h-[480px] flex items-center justify-center perspective-[1200px]" style={{ perspective: '1200px' }}>
       {/* 3D Tilted Card - Now much larger and adaptive */}
-      <motion.div 
+      <motion.div
         className="w-[90%] max-w-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-2 border-slate-200/50 dark:border-slate-800/80 rounded-[2.5rem] p-8 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] relative"
         initial={{ rotateX: 15, rotateY: -10, scale: 0.95 }}
         animate={{ rotateX: [15, 12, 15], rotateY: [-10, -6, -10] }}
@@ -647,11 +651,11 @@ const PronunciationPreview = () => {
             <div>
               <div className="text-sm md:text-base font-black text-slate-800 dark:text-white tracking-tight">Speech Analysis</div>
               <div className="flex items-center gap-2 mt-1">
-                 <span className="relative flex h-2 w-2">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                 </span>
-                 <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest">Listening Engine Active</span>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] md:text-xs text-slate-500 font-bold uppercase tracking-widest">Listening Engine Active</span>
               </div>
             </div>
           </div>
@@ -659,14 +663,14 @@ const PronunciationPreview = () => {
         </div>
 
         <div className="text-xl md:text-3xl font-medium leading-[1.6] text-slate-400 dark:text-slate-500 mt-6" style={{ transform: 'translateZ(40px)' }}>
-          The <span className="text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800/60 rounded-lg px-2 transition-colors duration-300 shadow-sm">quick</span> brown fox 
+          The <span className="text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800/60 rounded-lg px-2 transition-colors duration-300 shadow-sm">quick</span> brown fox
           <span className="relative inline-block mx-2 group">
             <span className="text-rose-600 dark:text-rose-400 font-black bg-rose-50 dark:bg-rose-950/40 rounded-lg px-2 border-b-4 border-rose-300 dark:border-rose-800 cursor-pointer transition-all hover:bg-rose-100 dark:hover:bg-rose-900/60">
               jumps
             </span>
-            
+
             {/* 3D Floating Error Tag - Refined Size and Typography */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: -65 }}
               transition={{ delay: 0.8, type: "spring", stiffness: 100, damping: 10 }}
@@ -681,7 +685,7 @@ const PronunciationPreview = () => {
         </div>
 
         {/* Floating Scores - More balanced placements */}
-        <motion.div 
+        <motion.div
           className="absolute -right-8 -bottom-8 bg-gradient-to-br from-emerald-400 to-teal-500 text-white p-5 rounded-[2rem] shadow-2xl shadow-emerald-500/40 border-[3px] border-white dark:border-slate-800"
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -692,7 +696,7 @@ const PronunciationPreview = () => {
           <div className="text-4xl md:text-5xl font-black tracking-tighter">92<span className="text-2xl text-emerald-100 opacity-80">%</span></div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           className="absolute -left-8 top-[35%] bg-gradient-to-br from-amber-400 to-orange-500 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-amber-500/30 border-[3px] border-white dark:border-slate-800"
           initial={{ scale: 0, x: -30 }}
           animate={{ scale: 1, x: 0 }}
@@ -711,128 +715,72 @@ const PronunciationPreview = () => {
 const PracticeRoomPreview = () => {
   return (
     <div className="relative w-full h-full min-h-[460px] md:min-h-[500px] flex items-center justify-center rounded-[2.5rem] overflow-hidden bg-[#020617] shadow-[0_30px_60px_rgba(0,0,0,0.4)] group perspective-[1200px]" style={{ perspective: '1200px' }}>
-      
-      {/* Background Holographic Render using Mix-Blend-Screen */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-80 mix-blend-screen pointer-events-none scale-125 md:scale-150">
-        <img src="/sfu_global_hologram.png" alt="SFU Hologram" className="w-full h-full object-cover animate-pulse" style={{ animationDuration: '4s' }} />
-      </div>
 
-      {/* 3D Floating Main Interface */}
-      <motion.div 
-        className="w-[95%] max-w-[500px] bg-slate-900/60 backdrop-blur-2xl border border-slate-700/50 rounded-[2rem] p-5 md:p-6 shadow-[0_30px_60px_rgba(0,0,0,0.6)] relative z-10"
-        initial={{ rotateX: 10, rotateY: 15, scale: 0.95 }}
-        animate={{ rotateX: [10, 15, 10], rotateY: [15, 10, 15] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      {/* Ambient glow to frame the vector artwork */}
+      <div className="absolute inset-0 z-0 pointer-events-none bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.22),transparent_40%),radial-gradient(circle_at_bottom,rgba(14,165,233,0.18),transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.94),rgba(2,6,23,0.99))]" />
+      <div className="absolute inset-0 z-[1] pointer-events-none opacity-30 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:linear-gradient(to_bottom,white,transparent_92%)]" />
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(circle_at_center,transparent_35%,rgba(2,6,23,0.18)_100%)]" />
+
+      {/* Hero artwork rendered as contained vector-style illustration */}
+      <motion.div
+        className="absolute inset-0 z-[2] flex items-center justify-center pointer-events-none"
+        animate={{ y: [0, -10, 0], scale: [1, 1.015, 1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <div className="relative w-[92%] h-[92%] max-w-[680px] max-h-[680px] flex items-center justify-center">
+          <div className="absolute inset-10 rounded-full bg-cyan-300/15 blur-3xl" />
+          <div className="absolute inset-[10%] rounded-[2rem] bg-gradient-to-br from-white/10 via-transparent to-cyan-300/10 blur-2xl opacity-70" />
+          <img
+            src="/practice.png"
+            alt="Practice room hero preview"
+            className="relative z-10 w-full h-full object-contain select-none drop-shadow-[0_30px_60px_rgba(34,211,238,0.35)] [filter:contrast(1.12)_saturate(1.18)_brightness(1.04)] [image-rendering:auto]"
+            draggable={false}
+          />
+        </div>
+      </motion.div>
+
+      {/* Soft light sweep for depth */}
+      <div className="absolute inset-0 z-[3] pointer-events-none bg-[linear-gradient(115deg,transparent_20%,rgba(255,255,255,0.1)_50%,transparent_80%)] opacity-55 mix-blend-screen group-hover:opacity-75 transition-opacity duration-700" />
+
+      {/* Floating room card */}
+      <motion.div
+        className="absolute right-4 bottom-4 md:right-6 md:bottom-6 z-[4] w-[210px] md:w-[240px] rounded-[1.75rem] border border-white/20 bg-slate-950/55 backdrop-blur-xl p-4 text-white shadow-[0_24px_50px_rgba(0,0,0,0.45)]"
+        initial={{ opacity: 0, y: 18, scale: 0.94, rotate: -4 }}
+        animate={{ opacity: 1, y: [0, -8, 0], scale: 1, rotate: [1, -1, 1] }}
+        transition={{
+          opacity: { duration: 0.35 },
+          y: { duration: 5.5, repeat: Infinity, ease: 'easeInOut' },
+          scale: { duration: 0.35 },
+          rotate: { duration: 5.5, repeat: Infinity, ease: 'easeInOut' }
+        }}
         style={{ transformStyle: 'preserve-3d' }}
       >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6" style={{ transform: 'translateZ(20px)' }}>
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/10 flex items-center justify-center border border-rose-500/30">
-               <Video className="w-5 h-5 text-rose-400" />
-             </div>
-             <div>
-               <div className="text-white font-black text-sm md:text-base tracking-tight">Global Practice Hub</div>
-               <div className="text-teal-400 font-bold text-[9px] tracking-widest uppercase">SFU Ultra-Low Latency</div>
-             </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/80 font-black">Live room</div>
+            <div className="mt-1 text-sm font-bold text-white">Global Practice Hub</div>
           </div>
-          <div className="flex gap-2">
-             <span className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black px-3 py-1.5 rounded-full border border-emerald-500/30 flex items-center gap-1.5 uppercase tracking-wider">
-               <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span> Live
-             </span>
+          <div className="relative h-11 w-11 rounded-2xl bg-cyan-400/15 border border-cyan-300/25 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-2xl bg-cyan-300/20 blur-lg" />
+            <Globe2 className="relative z-10 h-5 w-5 text-cyan-200" />
           </div>
         </div>
 
-        {/* Video/Audio Participant Grid */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4" style={{ transform: 'translateZ(40px)' }}>
-          
-          {/* Main Speaker (Video + Audio) */}
-          <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-gradient-to-tr from-indigo-900/50 to-blue-900/50 border-2 border-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.2)]">
-            {/* Simulated Video Feed Background */}
-            <div className="absolute inset-0 opacity-50 mix-blend-overlay bg-[url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400&h=300')] bg-cover bg-center"></div>
-            
-            <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md px-2 py-1 rounded text-[8px] font-bold text-white border border-slate-700">🇺🇸 Sarah (Host)</div>
-            <div className="absolute bottom-2 left-2 right-2 flex justify-between items-end">
-               <div className="bg-teal-500/90 text-white text-[9px] font-bold px-2 py-1 rounded-lg backdrop-blur-sm shadow-lg border border-teal-400">
-                 Speaking...
-               </div>
-               <div className="flex items-end gap-0.5 h-4 mb-1 mr-1">
-                 {[1,2,3,4].map(i => (
-                   <motion.div key={i} className="w-1 bg-teal-400 rounded-full" animate={{ height: [4, 16, 4] }} transition={{ duration: 0.5 + Math.random(), repeat: Infinity }} />
-                 ))}
-               </div>
-            </div>
+        <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-300/80 font-bold">Learners online</div>
+            <div className="text-lg font-black tracking-tight">128</div>
           </div>
-
-          {/* Participant 2 (Audio Only Avatar) */}
-          <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-800/80 border border-slate-700/50 flex flex-col items-center justify-center shadow-inner">
-            <div className="relative">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-lg font-black text-white shadow-lg border-[3px] border-slate-900 z-10">J</div>
-              <motion.div className="absolute inset-0 rounded-full bg-rose-500 z-0" animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2, repeat: Infinity }} />
-            </div>
-            <div className="mt-3 text-[10px] font-bold text-slate-300 bg-slate-900/80 px-2 py-1 rounded-md border border-slate-700/50">🇯🇵 Junko</div>
-            <div className="absolute top-2 right-2 p-1.5 rounded-full bg-slate-900/80 border border-slate-700/50 text-rose-400">
-               <MicOff className="w-3 h-3" />
-            </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-300/80 font-bold">Latency</div>
+            <div className="text-sm font-bold text-emerald-300">18 ms</div>
           </div>
-
-          {/* Participant 3 */}
-          <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-slate-800/80 border border-slate-700/50 flex flex-col items-center justify-center shadow-inner">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-lg font-black text-white shadow-lg border-[3px] border-slate-900">M</div>
-            <div className="mt-3 text-[10px] font-bold text-slate-300 bg-slate-900/80 px-2 py-1 rounded-md border border-slate-700/50">🇧🇷 Mateo</div>
-          </div>
-
-          {/* Network/Video Stats Overlay */}
-          <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-indigo-950/40 border border-indigo-500/30 flex flex-col p-3 shadow-inner backdrop-blur-md">
-             <div className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-               <Activity className="w-3 h-3" /> System Diagnostics
-             </div>
-             <div className="space-y-2.5 mt-auto">
-                <div>
-                  <div className="flex justify-between text-[8px] text-slate-400 mb-1 font-bold uppercase tracking-wider"><span>Video Bitrate</span><span className="text-teal-400">2.4 Mbps</span></div>
-                  <div className="h-1.5 w-full bg-slate-800/80 rounded-full overflow-hidden shadow-inner"><div className="h-full bg-gradient-to-r from-teal-600 to-teal-400 w-[85%] rounded-full"></div></div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-[8px] text-slate-400 mb-1 font-bold uppercase tracking-wider"><span>Audio Latency</span><span className="text-emerald-400">42ms</span></div>
-                  <div className="h-1.5 w-full bg-slate-800/80 rounded-full overflow-hidden shadow-inner"><div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 w-[95%] rounded-full"></div></div>
-                </div>
-             </div>
-          </div>
-          
         </div>
 
-        {/* AI Real-time Subtitles Floating above */}
-        <motion.div 
-          className="absolute -bottom-8 left-4 right-4 bg-white/10 backdrop-blur-2xl border border-white/20 p-4 rounded-2xl shadow-2xl"
-          style={{ transform: 'translateZ(60px)' }}
-        >
-          <div className="flex gap-3 items-start">
-             <div className="p-1.5 bg-amber-500/20 rounded-lg border border-amber-500/30 shrink-0">
-               <Sparkles className="w-4 h-4 text-amber-400" />
-             </div>
-             <div>
-               <div className="text-[9px] font-black text-amber-400/80 uppercase tracking-widest mb-1.5">AI Live Transcript</div>
-               <div className="text-xs font-bold text-white leading-relaxed">
-                 "I think environmental policies need to prioritize <span className="text-emerald-400 bg-emerald-500/20 px-1 rounded shadow-sm border border-emerald-500/30">renewable energy</span> immediately..."
-               </div>
-             </div>
-          </div>
-        </motion.div>
-
-        {/* Global Connection Badges */}
-        <motion.div 
-          className="absolute -right-8 top-[15%] bg-slate-900/90 backdrop-blur-xl border border-rose-500/40 px-3 py-2 rounded-xl shadow-[0_20px_40px_rgba(244,63,94,0.2)] flex items-center gap-2"
-          style={{ transform: 'translateZ(80px)' }}
-          animate={{ y: [-5, 5, -5] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        >
-           <Globe2 className="w-4 h-4 text-rose-400" />
-           <div>
-             <div className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Region</div>
-             <div className="text-[10px] text-white font-black">US-East Node</div>
-           </div>
-        </motion.div>
-
+        <div className="mt-3 flex items-center gap-2 text-xs text-slate-200/85">
+          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(74,222,128,0.8)]" />
+          Topic room: IELTS • Debates • Daily speaking
+        </div>
       </motion.div>
     </div>
   );
@@ -962,15 +910,15 @@ const Features = () => {
 
   const currentStep = steps[activeStep];
   const colorGlow = currentStep.accentColor === 'emerald' ? 'rgba(16, 185, 129, 0.06)' :
-                    currentStep.accentColor === 'teal' ? 'rgba(20, 184, 166, 0.06)' :
-                    currentStep.accentColor === 'amber' ? 'rgba(245, 158, 11, 0.06)' :
-                    currentStep.accentColor === 'indigo' ? 'rgba(99, 102, 241, 0.06)' :
-                    currentStep.accentColor === 'rose' ? 'rgba(244, 63, 94, 0.06)' :
-                    'rgba(6, 182, 212, 0.06)';
+    currentStep.accentColor === 'teal' ? 'rgba(20, 184, 166, 0.06)' :
+      currentStep.accentColor === 'amber' ? 'rgba(245, 158, 11, 0.06)' :
+        currentStep.accentColor === 'indigo' ? 'rgba(99, 102, 241, 0.06)' :
+          currentStep.accentColor === 'rose' ? 'rgba(244, 63, 94, 0.06)' :
+            'rgba(6, 182, 212, 0.06)';
 
   return (
-    <section id="features" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden transition-colors duration-500 ease-in-out font-sans">
-      
+    <section id="features" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden transition-colors duration-500 ease-in-out font-sans scroll-mt-24 lg:scroll-mt-32">
+
       {/* Global CSS to hide scrollbars */}
       <style>{`
         .no-scrollbar::-webkit-scrollbar {
@@ -984,14 +932,14 @@ const Features = () => {
 
       {/* --- Optimized Background Elements (No performance degrading blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04]" 
-             style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className="absolute top-[10%] left-[20%] w-[800px] h-[800px] rounded-full pointer-events-none" 
-             style={{ background: `radial-gradient(circle, ${colorGlow} 0%, transparent 60%)`, transform: 'translateZ(0)' }} />
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04]"
+          style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div className="absolute top-[10%] left-[20%] w-[800px] h-[800px] rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${colorGlow} 0%, transparent 60%)`, transform: 'translateZ(0)' }} />
       </div>
 
       <div className="max-w-[1440px] px-6 sm:px-8 lg:px-12 mx-auto relative z-10">
-        
+
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center mb-16 md:mb-24">
           <motion.div
@@ -1018,10 +966,10 @@ const Features = () => {
 
         {/* Walkthrough Layout Split-Screen */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 max-w-6xl mx-auto items-stretch">
-          
+
           {/* LEFT: Stepper Timeline Panel (40% width) */}
           <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-            
+
             {/* Horizontal Timeline Scroll on Mobile & Tablet */}
             <div className="flex lg:hidden overflow-x-auto no-scrollbar gap-3 pb-3 border-b border-slate-200/50 dark:border-slate-800/40">
               {steps.map((step, idx) => {
@@ -1031,11 +979,10 @@ const Features = () => {
                   <button
                     key={idx}
                     onClick={() => handleStepClick(idx)}
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-xs font-bold transition-all duration-300 flex-shrink-0 ${
-                      isActive 
-                        ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm scale-102` 
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-xs font-bold transition-all duration-300 flex-shrink-0 ${isActive
+                        ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm scale-102`
                         : 'bg-white/40 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800 text-slate-500 dark:text-slate-455'
-                    }`}
+                      }`}
                   >
                     <step.icon className="w-3.5 h-3.5" />
                     <span>{step.title}</span>
@@ -1055,22 +1002,20 @@ const Features = () => {
                     onMouseEnter={() => setIsPlaying(false)}
                     onMouseLeave={() => setIsPlaying(true)}
                     onClick={() => handleStepClick(idx)}
-                    className={`relative p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-400 group flex items-start gap-4 select-none ${
-                      isActive 
+                    className={`relative p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-400 group flex items-start gap-4 select-none ${isActive
                         ? `${colors.bg} ${colors.border} shadow-md shadow-slate-200/5 dark:shadow-none`
                         : 'bg-white/30 dark:bg-slate-900/10 border-transparent hover:bg-white/60 dark:hover:bg-slate-900/40 hover:border-slate-200/40 dark:hover:border-slate-800/50'
-                    }`}
+                      }`}
                   >
                     {/* Stepper Side indicator */}
                     <div className="flex flex-col items-center h-full relative">
-                      <div className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all duration-300 ${
-                        isActive 
-                          ? `${colors.bg} ${colors.text} ${colors.border} scale-110 shadow-sm` 
+                      <div className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all duration-300 ${isActive
+                          ? `${colors.bg} ${colors.text} ${colors.border} scale-110 shadow-sm`
                           : 'bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800 text-slate-450 dark:text-slate-500 group-hover:scale-105'
-                      }`}>
+                        }`}>
                         <step.icon className="w-4 h-4" />
                       </div>
-                      
+
                       {/* Vertical line connector */}
                       {idx < steps.length - 1 && (
                         <div className="absolute top-9 bottom-[-28px] w-[2px] bg-slate-200/60 dark:bg-slate-800/60 pointer-events-none" />
@@ -1078,23 +1023,21 @@ const Features = () => {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className={`text-base font-extrabold mb-1 tracking-tight transition-colors duration-300 ${
-                        isActive ? 'text-[#0f172a] dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200'
-                      }`}>
+                      <h3 className={`text-base font-extrabold mb-1 tracking-tight transition-colors duration-300 ${isActive ? 'text-[#0f172a] dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200'
+                        }`}>
                         {step.title}
                       </h3>
-                      <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
-                        isActive ? colors.text : 'text-slate-400 dark:text-slate-500'
-                      }`}>
+                      <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${isActive ? colors.text : 'text-slate-400 dark:text-slate-500'
+                        }`}>
                         {step.subtitle}
                       </p>
 
                       {/* Loading line indicator */}
                       {isActive && (
                         <div className="h-0.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-3">
-                          <motion.div 
-                            className={`h-full ${colors.progress}`} 
-                            style={{ width: `${progress}%` }} 
+                          <motion.div
+                            className={`h-full ${colors.progress}`}
+                            style={{ width: `${progress}%` }}
                           />
                         </div>
                       )}
@@ -1113,7 +1056,7 @@ const Features = () => {
               <p className="text-slate-500 dark:text-slate-400 text-sm md:text-[15px] font-medium leading-relaxed mb-6">
                 {currentStep.desc}
               </p>
-              
+
               <ul className="space-y-3">
                 {currentStep.features.map((feat, idx) => (
                   <li key={idx} className="flex items-start text-xs font-bold text-slate-650 dark:text-slate-300 leading-tight">
@@ -1122,9 +1065,9 @@ const Features = () => {
                   </li>
                 ))}
               </ul>
-              
+
               <div className="mt-8 flex gap-3">
-                <Button 
+                <Button
                   onClick={() => setActiveStep((prev) => (prev + 1) % steps.length)}
                   className={`rounded-full h-11 px-5 font-bold shadow-sm transition-transform hover:-translate-y-0.5 active:translate-y-0 text-white flex items-center gap-2 ${stepColorClasses[currentStep.accentColor].progress}`}
                 >
@@ -1136,7 +1079,7 @@ const Features = () => {
           </div>
 
           {/* RIGHT: Visual Rendering Sandbox (60% width) */}
-          <div 
+          <div
             className="lg:col-span-7 flex items-center justify-center w-full min-h-[460px] md:min-h-[500px]"
             onMouseEnter={() => setIsPlaying(false)}
             onMouseLeave={() => setIsPlaying(true)}

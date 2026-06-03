@@ -1,9 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const FloatingParticles = () => {
-  // Generate 20 random particles
-  const particles = Array.from({ length: 20 }).map((_, i) => ({
+type Particle = {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  duration: number;
+  delay: number;
+};
+
+const FloatingParticles = ({ particles }: { particles?: Particle[] }) => {
+  const resolvedParticles = particles ?? Array.from({ length: 12 }).map((_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
@@ -14,10 +22,10 @@ const FloatingParticles = () => {
 
   return (
     <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[3rem]">
-      {particles.map((particle) => (
+      {resolvedParticles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-white transform-gpu"
+          className="absolute rounded-full bg-white transform-gpu will-change-transform"
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,

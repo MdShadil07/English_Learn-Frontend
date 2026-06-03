@@ -184,11 +184,11 @@ export function AppSidebar({
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none"></div>
             </div>
             {!isCollapsed && (
-              <div className="hidden sm:block text-left">
+              <div className="text-left min-w-0">
                 <span className="text-lg font-bold bg-gradient-to-r from-slate-900 to-emerald-800 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent tracking-tight block leading-tight">
                   CognitoSpeak
                 </span>
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium opacity-80 leading-tight">
+                <p className="hidden sm:block text-[11px] text-emerald-600 dark:text-emerald-400 font-medium opacity-80 leading-tight">
                   AI Learning Platform
                 </p>
               </div>

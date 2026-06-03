@@ -238,7 +238,7 @@ const FAQ = () => {
   };
 
   return (
-    <section className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden transition-colors duration-500 ease-in-out font-sans" id="faq">
+    <section className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden transition-colors duration-500 ease-in-out font-sans scroll-mt-24 lg:scroll-mt-32" id="faq">
       
       {/* --- Optimized Background Elements (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -284,6 +284,38 @@ const FAQ = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+              </div>
+
+              {/* Mobile Support Card (Pinned near the top for visibility) */}
+              <div className="lg:hidden mb-10 p-6 rounded-[2rem] bg-[#0f172a] dark:bg-slate-900 border border-slate-800 text-white shadow-2xl relative overflow-hidden transform translateZ(0)">
+                <div className="absolute top-[-20%] right-[-10%] w-[180px] h-[180px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.15)_0%,transparent_60%)] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
+                <div className="relative z-10">
+                  <div className="w-11 h-11 bg-slate-800/80 rounded-2xl flex items-center justify-center mb-4 border border-slate-700/50 shadow-sm backdrop-blur-sm">
+                    <MessageCircle className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <h4 className="text-lg font-extrabold mb-2 tracking-tight">Need help?</h4>
+                  <p className="text-slate-400 text-sm mb-5 font-medium leading-relaxed">
+                    Contact support or open the docs right from here.
+                  </p>
+                  <div className="space-y-3">
+                    <Button
+                      type="button"
+                      onClick={() => openSupportForm()}
+                      className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold border-0 justify-center shadow-lg shadow-emerald-500/20 transition-all"
+                    >
+                      <Mail className="w-4 h-4 mr-2" /> Contact Support
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full h-12 rounded-xl border-slate-700 bg-white/5 hover:bg-white/10 text-white font-bold justify-center backdrop-blur-md transition-all"
+                    >
+                      <Link to="/docs">
+                        <FileText className="w-4 h-4 mr-2" /> Documentation
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Support Card (Desktop) */}
@@ -352,25 +384,6 @@ const FAQ = () => {
                 )}
               </AnimatePresence>
             </motion.div>
-
-            {/* Mobile Support Card (Visible only on small screens) */}
-            <div className="lg:hidden mt-12 p-8 rounded-[2rem] bg-[#0f172a] dark:bg-slate-900 border border-slate-800 text-white shadow-2xl relative overflow-hidden transform translateZ(0)">
-              <div className="absolute top-[-20%] right-[-10%] w-[200px] h-[200px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.15)_0%,transparent_60%)] pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
-              <div className="relative z-10 flex flex-col items-center text-center gap-6">
-                <div>
-                  <div className="w-12 h-12 bg-slate-800/80 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-700/50 shadow-sm backdrop-blur-sm">
-                    <MessageCircle className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <h4 className="text-xl font-extrabold mb-2 tracking-tight">Still need help?</h4>
-                  <p className="text-slate-400 text-sm font-medium">Chat with our support team directly.</p>
-                </div>
-                <Button asChild className="w-full h-12 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold border-0 justify-center shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
-                  <Link to="/docs">
-                    <FileText className="w-4 h-4 mr-2" /> Open Documentation
-                  </Link>
-                </Button>
-              </div>
-            </div>
 
           </div>
 

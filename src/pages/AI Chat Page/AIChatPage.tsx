@@ -29,18 +29,23 @@ import StreakService, { StreakData, StreakUpdateResult } from '../../services/AI
 import { geminiService, GeminiMessage } from '../../services/AI Chat/geminiService';
 import OptimizedProgressService, { RealtimeProgressData, ProgressUpdate, ProgressListener } from '../../services/AI Chat/optimizedProgressService';
 import { fetchLatestAccuracy } from '../../services/AI Chat/accuracyService';
+import { analyzeMessageAccuracy } from '../../utils/AI Chat/accuracy/accuracyCalculator';
 import { conversationHistoryService } from '../../services/AI Chat/conversationHistoryService';
+import { lazy, Suspense } from 'react';
 import AIChatSidebar from '../../components/AI Chat/AIChatSidebar';
-
-import AIChatSettingsSidebar from '../../components/AI Chat/AIChatSettingsSidebar';
 import ChatInputArea from '../../components/AI Chat/ChatInputArea';
 import VoiceRecordingBubble from '../../components/AI Chat/VoiceRecordingBubble';
 import ChatMessageItem from '../../components/AI Chat/ChatMessageItem';
-import LevelUpNotification from '../../components/AI Chat/LevelUpNotification';
+
+// Lazy load heavy components that aren't immediately necessary on first render
+const MobileAccuracyDrawer = lazy(() => import('../../components/AI Chat/MobileAccuracyDrawer'));
+const AccuracyMasterBadge = lazy(() => import('../../components/Badges/AccuracyMaster').then(module => ({ default: module.LevelUpModal })));
+const AIChatSettingsSidebar = lazy(() => import('../../components/AI Chat/AIChatSettingsSidebar'));
+const LevelUpNotification = lazy(() => import('../../components/AI Chat/LevelUpNotification'));
 import { Button } from '../../components/ui/button';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { Card, CardContent } from '../../components/ui/card';
-import { getPersonalityIcon } from '../../components/Icons/AIPersonalityIcons';
+import { getPersonalityLogo } from '../../components/Icons/AIPersonalityLogos';
 import { AI_PERSONALITIES } from '../../components/AI Chat/constants';
 import { cn } from '../../lib/utils';
 import {
@@ -80,6 +85,7 @@ const AIChatPage: React.FC = () => {
   // State for latest accuracy snapshot (per message) - must be declared before any usage
   const [latestAccuracy, setLatestAccuracy] = useState<{
     accuracy: AccuracyResult;
+    currentScore?: number;
     xpGained?: number;
     timestamp: Date;
     fromCache?: boolean;
@@ -125,20 +131,9 @@ const AIChatPage: React.FC = () => {
           streak: progress.streak?.current ?? 0,
           totalLearningTime: (progress.stats?.totalMinutes ?? 0) * 60
         });
-        setLatestAccuracy({
-          accuracy: {
-            overall: accuracy.overall,
-            adjustedOverall: accuracy.adjustedOverall,
-            grammar: accuracy.grammar ?? 0,
-            vocabulary: accuracy.vocabulary ?? 0,
-            spelling: accuracy.spelling ?? 0,
-            fluency: accuracy.fluency ?? 0,
-            punctuation: accuracy.punctuation ?? 0,
-            capitalization: accuracy.capitalization ?? 0,
-          },
-          timestamp: new Date(accuracy.lastUpdated || Date.now()),
-          fromCache: accuracy.source !== 'database'
-        });
+        // Note: polling only updates sidebar stats (chatStats) above.
+        // Per-message accuracy for the MobileAccuracyDrawer is set
+        // separately in sendMessage via analyzeMessageAccuracy().
 
         // Debug: log incoming progress and accuracy payloads to help trace staleness
         // These logs are temporary for runtime verification and can be removed later.
@@ -186,6 +181,7 @@ const AIChatPage: React.FC = () => {
     personality: AI_PERSONALITIES[0].id,
     showAccuracy: true,
     autoTranslate: false,
+    showPerMessageSnapshot: true,
     theme: 'auto'
   });
 
@@ -284,6 +280,7 @@ const AIChatPage: React.FC = () => {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<'stats' | 'accuracy'>('stats');
+  const [mobileAccuracyOpen, setMobileAccuracyOpen] = useState(false);
   // Removed: latestAccuracy state, now handled by backend real-time progress only
   
   // Real-time progress state
@@ -704,7 +701,7 @@ const AIChatPage: React.FC = () => {
   // Removed: Real-time frontend accuracy calculation effect. All accuracy is now backend-driven.
 
 
-  // AI response generator
+  // AI response generator — fetches complete response, then animates word-by-word
   const getAIResponse = useCallback(async (
     userMessage: string,
     personality: AIPersonality,
@@ -719,87 +716,87 @@ const AIChatPage: React.FC = () => {
         parts: message.content
       }));
 
-      // Call backend API with streaming support
+      // Call backend API — returns the complete response as JSON
       const response = await fetch(`${import.meta.env.VITE_API_URL}/ai-chat/generate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-          body: JSON.stringify({
-            message: userMessage,
-            personalityId: personality.id,
-            conversationHistory: conversationHistory,
-            language: settings.language,
-            userProfile: user ? {
-              userName: user.fullName || user.username,
-              userLevel: (user as User & { level?: number }).level || 1,
-              totalXP: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.totalXP || 0,
-              currentStreak: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.currentStreak || 0,
-              skillLevels: {
-                vocabulary: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.vocabulary || 0,
-                grammar: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.grammar || 0,
-                pronunciation: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.pronunciation || 0,
-                fluency: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.fluency || 0
-              }
-            } : undefined
-          }),
-          signal: signal
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          personalityId: personality.id,
+          conversationHistory: conversationHistory,
+          language: settings.language,
+          userProfile: user ? {
+            userName: user.fullName || user.username,
+            userLevel: (user as User & { level?: number }).level || 1,
+            totalXP: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.totalXP || 0,
+            currentStreak: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.currentStreak || 0,
+            skillLevels: {
+              vocabulary: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.vocabulary || 0,
+              grammar: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.grammar || 0,
+              pronunciation: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.pronunciation || 0,
+              fluency: (user as User & { stats?: { totalXP?: number; currentStreak?: number; vocabulary?: number; grammar?: number; pronunciation?: number; fluency?: number } }).stats?.fluency || 0
+            }
+          } : undefined
+        }),
+        signal: signal
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
 
-        // Handle Server-Sent Events
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error('Response body is not readable');
-        }
+      const data = await response.json();
+      const fullResponse: string = data.response || '';
 
-        const decoder = new TextDecoder();
-        let fullResponse = '';
+      if (!fullResponse) {
+        throw new Error('Empty response from AI');
+      }
 
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
+      // 🎬 Client-side typewriter animation — stream the full response word-by-word
+      if (onChunk) {
+        // Split response into small word-groups for natural typing feel
+        const words = fullResponse.split(/(\s+)/); // Preserve whitespace
+        const WORDS_PER_TICK = 3; // Words per animation frame
+        let wordIndex = 0;
 
-            if (done) {
-              break;
+        await new Promise<void>((resolve) => {
+          const animateNextChunk = () => {
+            if (signal?.aborted) {
+              // If aborted, flush remaining text immediately
+              const remaining = words.slice(wordIndex).join('');
+              if (remaining) onChunk(remaining);
+              resolve();
+              return;
             }
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
+            if (wordIndex >= words.length) {
+              resolve();
+              return;
+            }
 
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const dataStr = line.substring(6);
-                try {
-                  const data = JSON.parse(dataStr);
+            // Grab the next group of words
+            const chunk = words.slice(wordIndex, wordIndex + WORDS_PER_TICK).join('');
+            wordIndex += WORDS_PER_TICK;
 
-                  if (data.chunk) {
-                    fullResponse += data.chunk;
-                    onChunk?.(data.chunk);
-                  } else if (data.done) {
-                    onComplete?.(fullResponse);
-                    return fullResponse;
-                  } else if (data.error) {
-                    throw new Error(data.error);
-                  }
-                } catch (parseError) {
-                  // Skip invalid JSON
-                  console.warn('Skipping invalid SSE data:', dataStr);
-                }
-              }
-          }
-        }
+            if (chunk) {
+              onChunk(chunk);
+            }
 
-        onComplete?.(fullResponse);
-        return fullResponse;
+            // Use requestAnimationFrame for smooth, non-blocking animation
+            requestAnimationFrame(animateNextChunk);
+          };
 
-      } finally {
-        reader.releaseLock();
+          requestAnimationFrame(animateNextChunk);
+        });
       }
+
+      // Signal that the full response is ready
+      onComplete?.(fullResponse);
+      return fullResponse;
 
     } catch (error) {
       console.error('Backend API error:', error);
@@ -893,6 +890,61 @@ const AIChatPage: React.FC = () => {
         controller.signal
       );
 
+      // === Per-message accuracy analysis for MobileAccuracyDrawer ===
+      // Calls /api/accuracy/analyze with the specific user message + AI response
+      // to get a per-message breakdown (not the overall cumulative score).
+      try {
+        const perMessageResult = await analyzeMessageAccuracy(
+          userMessage.content,
+          fullResponse,
+          {
+            userTier: userTier,
+            userId: user?.id,
+          }
+        );
+
+        const perMessageAccuracy = {
+          accuracy: {
+            overall: perMessageResult.overall,
+            adjustedOverall: perMessageResult.adjustedOverall,
+            grammar: perMessageResult.grammar ?? 0,
+            vocabulary: perMessageResult.vocabulary ?? 0,
+            spelling: perMessageResult.spelling ?? 0,
+            fluency: perMessageResult.fluency ?? 0,
+            punctuation: perMessageResult.punctuation ?? 0,
+            capitalization: perMessageResult.capitalization ?? 0,
+            readability: perMessageResult.readability ?? undefined,
+            tone: perMessageResult.tone ?? undefined,
+            style: perMessageResult.style ?? undefined,
+            vocabularyAnalysis: perMessageResult.vocabularyAnalysis ?? undefined,
+            premiumFeatures: perMessageResult.premiumFeatures ?? undefined,
+          } as AccuracyResult,
+          currentScore: perMessageResult.adjustedOverall ?? perMessageResult.overall,
+          xpGained: perMessageResult.netXP ?? perMessageResult.xpEarned ?? 0,
+          timestamp: new Date(),
+          fromCache: false,
+        };
+
+        setLatestAccuracy(perMessageAccuracy);
+
+        // Open the mobile drawer on small screens, sidebar on wide screens
+        const isSmall = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+        if (isSmall) {
+          if (settings.showPerMessageSnapshot !== false) {
+            setSidebarMode('accuracy');
+            setMobileAccuracyOpen(true);
+          }
+        } else {
+          setSidebarMode('accuracy');
+          setSidebarOpen(true);
+        }
+
+        console.debug('[PER-MESSAGE ACCURACY] Result:', perMessageResult, 'mapped:', perMessageAccuracy);
+      } catch (perMsgError) {
+        console.error('[PER-MESSAGE ACCURACY] Failed to analyze message accuracy:', perMsgError);
+        // Don't block the rest of the flow — drawer just won't open
+      }
+
       setConversations(prev => prev.map(conv =>
         conv.id === activeConversation.id
           ? {
@@ -963,6 +1015,12 @@ const AIChatPage: React.FC = () => {
               };
 
               setChatStats(mapped);
+              // Merge newly gained XP into the per-message drawer display
+              if (update.xp.gained && update.xp.gained > 0) {
+                setLatestAccuracy(prev => 
+                  prev ? { ...prev, xpGained: update.xp.gained } : prev
+                );
+              }
               // Clear loading state and debug
               setIsSidebarLoading(false);
               console.debug('[PROGRESS LISTENER] onProgressUpdate', update, mapped);
@@ -972,32 +1030,14 @@ const AIChatPage: React.FC = () => {
               setShowLevelUpNotification(true);
             },
             onAccuracyUpdate: (accuracyUpdate: ProgressUpdate['accuracy']) => {
-              const accuracyObj = {
-                overall: accuracyUpdate.overall,
-                adjustedOverall: accuracyUpdate.adjustedOverall,
-                grammar: accuracyUpdate.grammar ?? 0,
-                vocabulary: accuracyUpdate.vocabulary ?? 0,
-                spelling: accuracyUpdate.spelling ?? 0,
-                fluency: accuracyUpdate.fluency ?? 0,
-                punctuation: accuracyUpdate.punctuation,
-                capitalization: accuracyUpdate.capitalization,
-                messageCount: accuracyUpdate.messageCount
-              } as AccuracyResult;
-
-              const latest = {
-                accuracy: accuracyObj,
-                xpGained: undefined,
-                timestamp: new Date(accuracyUpdate.lastUpdated || Date.now()),
-                fromCache: accuracyUpdate.source !== 'database'
-              };
-
-              setLatestAccuracy(latest);
-              // Clear loading state and debug
+              // Only update overall sidebar stats — do NOT overwrite latestAccuracy
+              // which holds per-message accuracy for the MobileAccuracyDrawer.
+              setChatStats(prev => ({
+                ...prev,
+                currentAccuracy: accuracyUpdate.adjustedOverall ?? accuracyUpdate.overall,
+              }));
               setIsSidebarLoading(false);
-              // Auto-switch sidebar to accuracy view and ensure it's visible so users see the latest snapshot
-              setSidebarMode('accuracy');
-              setSidebarOpen(true);
-              console.debug('[PROGRESS LISTENER] onAccuracyUpdate', accuracyUpdate, latest, 'switched sidebar to accuracy');
+              console.debug('[PROGRESS LISTENER] onAccuracyUpdate (sidebar only)', accuracyUpdate);
             },
             onError: (err?: Error) => {
               console.error('Progress listener error:', err);
@@ -1289,8 +1329,39 @@ const AIChatPage: React.FC = () => {
 
   // (latestAccuracy state declared at the top of the component)
 
+  // Badge preview state (for visual testing)
+  const [showBadgePreview, setShowBadgePreview] = useState(false);
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
+
+      {/* 🏅 Badge Preview Modal (for visual testing) */}
+      <AccuracyMasterBadge open={showBadgePreview} onClose={() => setShowBadgePreview(false)} />
+
+      {/* Badge Preview Trigger Button — fixed bottom-right */}
+      <button
+        onClick={() => setShowBadgePreview(true)}
+        style={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          zIndex: 9999,
+          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 12,
+          padding: '10px 18px',
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: 'pointer',
+          boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}
+      >
+        🏅 Preview Badge
+      </button>
 
       {/* Level-Up Notification */}
       {levelUpData && (
@@ -1317,6 +1388,9 @@ const AIChatPage: React.FC = () => {
       )}
 
       <div className="flex h-full min-h-0 flex-1 flex-col justify-start px-2 py-0 sm:px-3 lg:px-4">
+        <Suspense fallback={null}>
+          <MobileAccuracyDrawer open={mobileAccuracyOpen} latest={latestAccuracy ?? null} onClose={() => setMobileAccuracyOpen(false)} />
+        </Suspense>
         <div className="mx-auto flex h-full w-full max-w-7xl flex-1 min-h-0 flex-col">
 
           {/* Unified Chat Card */}
@@ -1359,46 +1433,50 @@ const AIChatPage: React.FC = () => {
                   transition={{ duration: 0.3 }}
                   className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex flex-col"
                 >
-                  <AIChatSettingsSidebar
-                    inline
-                    isOpen={showSettings}
-                    onClose={() => setShowSettings(false)}
-                    settings={settings}
-                    setSettings={setSettings}
-                    isRecording={isRecording}
-                    onToggleRecording={handleRecordingToggle}
-                    voices={voices}
-                    selectedVoice={selectedVoice}
-                    onVoiceSelect={setSelectedVoice}
-                    onTestVoice={handleTestVoice}
-                    speechRate={speechRate}
-                    onSpeechRateChange={setSpeechRate}
-                    userTier={userTier}
-                    currentPersonalityId={selectedPersonality.id}
-                  />
+                  <Suspense fallback={null}>
+                    <AIChatSettingsSidebar
+                      inline
+                      isOpen={showSettings}
+                      onClose={() => setShowSettings(false)}
+                      settings={settings}
+                      setSettings={setSettings}
+                      isRecording={isRecording}
+                      onToggleRecording={handleRecordingToggle}
+                      voices={voices}
+                      selectedVoice={selectedVoice}
+                      onVoiceSelect={setSelectedVoice}
+                      onTestVoice={handleTestVoice}
+                      speechRate={speechRate}
+                      onSpeechRateChange={setSpeechRate}
+                      userTier={userTier}
+                      currentPersonalityId={selectedPersonality.id}
+                    />
+                  </Suspense>
                 </motion.aside>
               )}
             </AnimatePresence>
 
             {/* Settings Sidebar (overlay for small screens) */}
             {!(isWide && showSettings) && (
-              <AIChatSettingsSidebar
-                inline={false}
-                isOpen={showSettings}
-                onClose={() => setShowSettings(false)}
-                settings={settings}
-                setSettings={setSettings}
-                isRecording={isRecording}
-                onToggleRecording={handleRecordingToggle}
-                voices={voices}
-                selectedVoice={selectedVoice}
-                onVoiceSelect={setSelectedVoice}
-                onTestVoice={handleTestVoice}
-                speechRate={speechRate}
-                onSpeechRateChange={setSpeechRate}
-                userTier={userTier}
-                currentPersonalityId={selectedPersonality.id}
-              />
+              <Suspense fallback={null}>
+                <AIChatSettingsSidebar
+                  inline={false}
+                  isOpen={showSettings}
+                  onClose={() => setShowSettings(false)}
+                  settings={settings}
+                  setSettings={setSettings}
+                  isRecording={isRecording}
+                  onToggleRecording={handleRecordingToggle}
+                  voices={voices}
+                  selectedVoice={selectedVoice}
+                  onVoiceSelect={setSelectedVoice}
+                  onTestVoice={handleTestVoice}
+                  speechRate={speechRate}
+                  onSpeechRateChange={setSpeechRate}
+                  userTier={userTier}
+                  currentPersonalityId={selectedPersonality.id}
+                />
+              </Suspense>
             )}
 
             {/* Main Chat Section */}
@@ -1406,8 +1484,8 @@ const AIChatPage: React.FC = () => {
               <header className="relative z-10 flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 border-b border-emerald-500/35 bg-[#059669] text-white shadow-[0_8px_24px_-18px_rgba(5,150,105,0.85)] sm:gap-3 sm:px-4 sm:py-3">
                 <div className="flex items-center gap-3 sm:gap-4 text-white">
                   {(() => {
-                    const Icon = getPersonalityIcon(selectedPersonality.iconId);
-                    return <Icon size={40} className="opacity-95" />;
+                    const Icon = getPersonalityLogo(selectedPersonality.iconId);
+                    return <Icon size={24} className="opacity-95 transition-transform duration-200 hover:scale-105" />;
                   })()}
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]"></span>
@@ -1637,8 +1715,6 @@ const AIChatPage: React.FC = () => {
                 settings={settings}
                 selectedPersonality={selectedPersonality}
                 onKeyPress={handleKeyPress}
-                characterCount={input.length}
-                maxCharacters={500}
               />
             </main>
           </div>

@@ -72,6 +72,11 @@ export interface AccuracyResult {
   capitalization?: number;
   syntax?: number;
   coherence?: number;
+  readability?: any;
+  tone?: any;
+  style?: any;
+  vocabularyAnalysis?: any;
+  premiumFeatures?: any;
   contextRelevance?: number;
   messageLengthScore?: number;
   complexityScore?: number;
@@ -135,12 +140,14 @@ export const analyzeMessageAccuracy = async (
   if (options?.previousAccuracy) body.previousAccuracy = options.previousAccuracy;
   if (options?.userId) body.userId = options.userId;
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   try {
-    const response = await fetch(`${apiBase}/api/accuracy/analyze`, {
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    const response = await fetch(`${apiBase}/accuracy/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
     });
@@ -156,10 +163,19 @@ export const analyzeMessageAccuracy = async (
           vocabulary: analysis.vocabulary ?? 0,
           spelling: analysis.spelling ?? 0,
           fluency: analysis.fluency ?? 0,
+          punctuation: analysis.punctuation ?? 0,
+          capitalization: analysis.capitalization ?? 0,
+          syntax: analysis.syntax ?? 0,
+          coherence: analysis.coherence ?? 0,
+          readability: analysis.readability ?? undefined,
+          tone: analysis.tone ?? undefined,
+          style: analysis.style ?? undefined,
+          vocabularyAnalysis: analysis.vocabularyAnalysis ?? undefined,
+          premiumFeatures: analysis.premiumFeatures ?? undefined,
           feedback: analysis.feedback ?? analysis?.feedback ?? [],
           statistics: analysis.statistics ?? undefined,
           insights: analysis.accuracyInsights ?? analysis.insights ?? undefined,
-          xpEarned: data.data.xp?.earned ?? data.data.xpEarned ?? undefined,
+          xpEarned: data.data.xp?.earned ?? data.data.xpEarned ?? analysis.netXP ?? undefined,
           tier: options?.userTier as AccuracyResult["tier"],
           timestamp: new Date().toISOString(),
         };

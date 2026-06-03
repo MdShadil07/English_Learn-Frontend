@@ -1,17 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { LogIn, Moon, Sun, Menu, X, Zap } from 'lucide-react';
 
-import Hero from '../../components/Landing Page Component/Hero';
-import Features from '../../components/Landing Page Component/Features';
-import HowItWorks from '../../components/Landing Page Component/HowItWorks';
-import Pricing from '../../components/Landing Page Component/Pricing';
-import Testimonials from '../../components/Landing Page Component/Testimonials';
-import FAQ from '../../components/Landing Page Component/FAQ';
-import CTA from '../../components/Landing Page Component/CTA';
-import Footer from '../../components/Landing Page Component/Footer';
+// ── All components are lazy loaded for maximum performance ────────────────────
+const Hero        = lazy(() => import('../../components/Landing Page Component/Hero'));
+const Features    = lazy(() => import('../../components/Landing Page Component/Features'));
+const HowItWorks  = lazy(() => import('../../components/Landing Page Component/HowItWorks'));
+const Pricing     = lazy(() => import('../../components/Landing Page Component/Pricing'));
+const Testimonials = lazy(() => import('../../components/Landing Page Component/Testimonials'));
+const FAQ         = lazy(() => import('../../components/Landing Page Component/FAQ'));
+const CTA         = lazy(() => import('../../components/Landing Page Component/CTA'));
+const Footer      = lazy(() => import('../../components/Landing Page Component/Footer'));
+
+import {
+  HeroSkeleton,
+  FeaturesSkeleton,
+  HowItWorksSkeleton,
+  PricingSkeleton,
+  TestimonialsSkeleton,
+  FAQSkeleton,
+  CTASkeleton,
+  FooterSkeleton
+} from '../../components/ui/LandingSkeletons';
+
+// ── Intersection Observer Wrapper for sequential loading ──────────────────────
+// This prevents React.lazy from triggering the network request for the chunk
+// until the user actually scrolls near the section.
+const LazySection = ({ children, fallback }: { children: React.ReactNode, fallback: React.ReactNode }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          // Once it's visible and we trigger the load, we don't need to observe anymore
+          if (sectionRef.current) observer.unobserve(sectionRef.current);
+        }
+      },
+      // Root margin 600px means we start loading it before it even enters the screen
+      { rootMargin: '600px 0px' }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={sectionRef}>
+      {isVisible ? <Suspense fallback={fallback}>{children}</Suspense> : fallback}
+    </div>
+  );
+};
 
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
@@ -20,34 +66,49 @@ const LandingPage = () => {
   // Enable smooth anchor scrolling for hash-link navigation
   useEffect(() => {
     document.documentElement.style.scrollBehavior = 'smooth';
+    document.documentElement.style.scrollPaddingTop = '4rem';
     return () => {
       document.documentElement.style.scrollBehavior = '';
+      document.documentElement.style.scrollPaddingTop = '';
     };
   }, []);
 
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+    setIsMenuOpen((prev) => !prev);
   };
 
-  const scrollToSection = (sectionId: string) => {
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  const navItems = [
+  const sectionTargets = [
     { name: 'Features', sectionId: 'features' },
     { name: 'How It Works', sectionId: 'how-it-works' },
     { name: 'Testimonials', sectionId: 'testimonials' },
     { name: 'Pricing', sectionId: 'pricing' },
     { name: 'FAQ', sectionId: 'faq' }
-  ];
+  ] as const;
+
+  const navigateToSection = (sectionId: string, closeMenu = false) => {
+    if (closeMenu) {
+      setIsMenuOpen(false);
+    }
+
+    window.setTimeout(() => {
+      const sectionElement = document.getElementById(sectionId);
+      if (!sectionElement) {
+        return;
+      }
+
+      const headerOffset = 80;
+      const elementTop = sectionElement.getBoundingClientRect().top + window.pageYOffset;
+      const targetTop = Math.max(0, elementTop - headerOffset);
+
+      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      window.history.replaceState(null, '', `#${sectionId}`);
+    }, closeMenu ? 180 : 0);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-50/30 to-emerald-50/20 dark:from-slate-950 dark:via-slate-900/50 dark:to-emerald-950/10 flex flex-col">
+    <div className="relative min-h-screen bg-gradient-to-br from-white via-slate-50/30 to-emerald-50/20 dark:from-slate-950 dark:via-slate-900/50 dark:to-emerald-950/10 flex flex-col overflow-x-hidden">
       {/* Background decorative elements */}
-      <div className="fixed inset-0 -z-50 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 -z-50 overflow-hidden pointer-events-none" aria-hidden="true">
         {/* Neural network pattern */}
         <div
           className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04]"
@@ -56,13 +117,13 @@ const LandingPage = () => {
           }}
         ></div>
 
-        {/* Subtle gradient orbs */}
-        <div className="absolute top-[10%] right-[10%] w-96 h-96 rounded-full bg-gradient-to-br from-emerald-100/30 to-teal-100/20 blur-3xl dark:from-emerald-900/10 dark:to-teal-900/5"></div>
-        <div className="absolute bottom-[20%] left-[5%] w-80 h-80 rounded-full bg-gradient-to-tr from-cyan-100/20 to-emerald-100/30 blur-3xl dark:from-cyan-900/5 dark:to-emerald-900/10"></div>
+        {/* Subtle gradient orbs (Optimized with radial gradients instead of heavy blur filters) */}
+        <div className="absolute top-[10%] right-[10%] w-96 h-96 rounded-full bg-[radial-gradient(circle,rgba(167,243,208,0.2)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(6,78,59,0.1)_0%,transparent_70%)]" style={{ transform: 'translateZ(0)' }}></div>
+        <div className="absolute bottom-[20%] left-[5%] w-80 h-80 rounded-full bg-[radial-gradient(circle,rgba(207,250,254,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(8,145,178,0.05)_0%,transparent_70%)]" style={{ transform: 'translateZ(0)' }}></div>
       </div>
 
       {/* Navbar */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm will-change-transform">
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-950/10 dark:via-transparent dark:to-teal-950/10"></div>
         <div className="container mx-auto px-4 relative">
           <div className="flex items-center justify-between h-16">
@@ -70,7 +131,7 @@ const LandingPage = () => {
             <div className="flex items-center">
               <Link to="/" className="flex items-center group">
                 <div className="relative">
-                  <img src="/logo.svg" alt="CognitoSpeak Logo" className="w-10 h-10 transition-all duration-300 group-hover:scale-105" />
+                  <img src="/logo.svg" alt="CognitoSpeak Logo" className="w-10 h-10 transition-all duration-300 group-hover:scale-105" width="40" height="40" />
                   <div className="absolute inset-0 w-10 h-10 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-lg blur-lg opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
                 </div>
                 <div className="ml-3 flex flex-col">
@@ -87,10 +148,11 @@ const LandingPage = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
               <nav className="flex space-x-6">
-                {navItems.map((item) => (
+                {sectionTargets.map((item) => (
                   <button
+                    type="button"
                     key={item.name}
-                    onClick={() => scrollToSection(item.sectionId)}
+                    onClick={() => navigateToSection(item.sectionId)}
                     className="text-sm text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-medium transition-colors cursor-pointer"
                   >
                     {item.name}
@@ -130,7 +192,7 @@ const LandingPage = () => {
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden flex items-center space-x-3">
+            <div className="md:hidden flex items-center space-x-2">
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -162,28 +224,29 @@ const LandingPage = () => {
         {isMenuOpen && (
           <div className="md:hidden bg-white dark:bg-slate-900 px-4 pt-2 pb-4 border-t border-slate-200 dark:border-slate-800">
             <nav className="flex flex-col space-y-3">
-              {navItems.map((item) => (
+              {sectionTargets.map((item) => (
                 <button
+                  type="button"
                   key={item.name}
-                  onClick={() => {
-                    scrollToSection(item.sectionId);
-                    setIsMenuOpen(false);
-                  }}
+                  onClick={() => navigateToSection(item.sectionId, true)}
                   className="py-2 text-base text-slate-600 hover:text-emerald-600 dark:text-slate-300 dark:hover:text-emerald-400 font-medium text-left w-full cursor-pointer"
                 >
                   {item.name}
                 </button>
               ))}
               <div className="pt-2 flex flex-col space-y-3">
-                <Link 
-                  to="/login" 
-                  className="py-2 px-4 rounded-md border border-slate-300 dark:border-slate-700 text-center text-slate-800 dark:text-slate-200 font-medium hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300 transition-colors"
+                <Link
+                  to="/login"
                   onClick={() => setIsMenuOpen(false)}
+                  className="relative overflow-hidden bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 hover:from-slate-800 hover:via-slate-900 hover:to-black text-white text-center font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-slate-500/20 transition-all duration-300"
                 >
-                  Sign In
+                  <span className="flex items-center justify-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </span>
                 </Link>
-                <Link 
-                  to="/signup" 
+                <Link
+                  to="/signup"
                   className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white text-center font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-emerald-500/30 transition-all duration-300"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -199,19 +262,40 @@ const LandingPage = () => {
       </header>
 
       {/* Main content */}
-      <main className="flex-grow pt-16">
-        <Hero />
-        <Features />
-        <HowItWorks />
-        <Pricing />
-        <Testimonials />
-        <FAQ />
-        <CTA />
+      <main className="relative z-10 flex-grow pt-16">
+        
+        {/* Hero — still eager visually, but code chunk is lazy loaded */}
+        <Suspense fallback={<HeroSkeleton />}>
+          <Hero />
+        </Suspense>
+
+        {/* Below-fold sections — chunks ONLY download when scrolled near */}
+        <LazySection fallback={<FeaturesSkeleton />}>
+          <Features />
+        </LazySection>
+        <LazySection fallback={<HowItWorksSkeleton />}>
+          <HowItWorks />
+        </LazySection>
+        <LazySection fallback={<PricingSkeleton />}>
+          <Pricing />
+        </LazySection>
+        <LazySection fallback={<TestimonialsSkeleton />}>
+          <Testimonials />
+        </LazySection>
+        <LazySection fallback={<FAQSkeleton />}>
+          <FAQ />
+        </LazySection>
+        <LazySection fallback={<CTASkeleton />}>
+          <CTA />
+        </LazySection>
       </main>
 
       {/* Footer */}
-      <Footer />
+      <LazySection fallback={<FooterSkeleton />}>
+        <Footer />
+      </LazySection>
     </div>
+
   );
 };
 

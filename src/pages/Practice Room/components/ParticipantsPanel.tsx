@@ -8,7 +8,7 @@ interface ParticipantsPanelProps {
   participants: RoomParticipant[];
   hostId: string;
   peerConnections: Map<string, PeerConnection>;
-  speakingUsers: Set<string>;
+  activeSpeakers: string[];
   localUserId: string;
   pinnedUserId: string | null;
   isOpen: boolean;
@@ -20,7 +20,7 @@ const ParticipantsPanel = ({
   participants,
   hostId,
   peerConnections,
-  speakingUsers,
+  activeSpeakers,
   localUserId,
   pinnedUserId,
   isOpen,
@@ -72,7 +72,7 @@ const ParticipantsPanel = ({
               {participants.map(p => {
                 const isLocal = p.userId === localUserId;
                 const isInCall = inCallIds.has(p.userId);
-                const isSpeaking = speakingUsers.has(p.userId);
+                const isSpeaking = activeSpeakers.includes(p.userId);
                 const isPinned = pinnedUserId === p.userId;
                 const isRoomHost = p.userId === hostId;
                 const initials = (p.fullName || p.username || 'U')

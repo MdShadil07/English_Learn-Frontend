@@ -8,13 +8,14 @@ import {
   Info,
   PhoneOff,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export type WarningType = 'locked' | 'kicked' | 'blocked' | 'exit' | 'error' | 'info';
+export type WarningType = 'locked' | 'kicked' | 'blocked' | 'exit' | 'error' | 'info' | 'stage-full';
 
 interface RoomWarningModalProps {
   isOpen: boolean;
@@ -46,6 +47,7 @@ const RoomWarningModal: React.FC<RoomWarningModalProps> = ({
       case 'blocked': return <ShieldAlert className="w-8 h-8 text-red-600" />;
       case 'exit': return <LogOut className="w-8 h-8 text-emerald-500" />;
       case 'error': return <PhoneOff className="w-8 h-8 text-red-500" />;
+      case 'stage-full': return <Users className="w-8 h-8 text-purple-500" />;
       default: return <Info className="w-8 h-8 text-blue-500" />;
     }
   };
@@ -57,6 +59,7 @@ const RoomWarningModal: React.FC<RoomWarningModalProps> = ({
       case 'blocked':
       case 'error': return 'from-red-500';
       case 'exit': return 'from-emerald-500';
+      case 'stage-full': return 'from-purple-500';
       default: return 'from-blue-500';
     }
   };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -104,7 +104,9 @@ const NewDashboardHome = () => {
     try {
       setIsLoadingRooms(true);
       const activeRooms = await roomService.getActiveRooms();
-      setRooms(activeRooms);
+      startTransition(() => {
+        setRooms(activeRooms);
+      });
     } catch (error) {
       console.error('Error fetching rooms:', error);
     } finally {
@@ -248,10 +250,12 @@ const NewDashboardHome = () => {
   // Render
   // ---------------------- //
   return (
-    <div className="min-h-screen w-full max-w-full p-4 sm:p-6 space-y-6 sm:space-y-8 overflow-x-hidden">
+    <div className="min-h-screen w-full max-w-full px-4 sm:px-6 pb-6 space-y-6 sm:space-y-8 overflow-x-hidden">
       
       {/* HERO */}
-      <DashboardHero user={user} greeting={greeting} />
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+        <DashboardHero user={user} greeting={greeting} />
+      </div>
 
       {/* Wrap the rest of the page in overflow-x-hidden to avoid horizontal scroll
           while allowing the HERO to overflow for decorative elements */}
@@ -395,7 +399,8 @@ const NewDashboardHome = () => {
             </Link>
           </div>
 
-          <CommunityRoomCard rooms={rooms.map(room => ({
+          <CommunityRoomCard rooms={rooms.map((room, i) => ({
+            id: room.roomId || `room-${i}`,
             name: room.topic || 'Practice Room',
             members: room.participantCount,
             level: 'All Levels',

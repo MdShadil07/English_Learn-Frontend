@@ -23,8 +23,10 @@ import {
   Search,
   Bell,
   Calendar,
+  BadgeCheck,
 } from 'lucide-react';
 import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon } from '../Icons';
+import { NotificationDropdown } from './NotificationDropdown';
 
 interface User {
   id: string;
@@ -32,6 +34,7 @@ interface User {
   fullName?: string;
   avatar?: string; // Updated to match auth controller response
   isPremium?: boolean;
+  isVerified?: boolean;
   subscriptionStatus?: 'none' | 'free' | 'basic' | 'premium' | 'pro';
   role?: 'student' | 'teacher' | 'admin';
 }
@@ -141,14 +144,7 @@ const BasicHeader: React.FC<BasicHeaderProps> = ({
             {/* Right side - Actions and User profile */}
             <div className="flex items-center gap-2">
               {/* Action buttons */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-300 hover:shadow-md hover:rounded-2xl relative"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              </motion.button>
+              <NotificationDropdown />
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -182,9 +178,12 @@ const BasicHeader: React.FC<BasicHeaderProps> = ({
                       )}
                     </div>
                     <div className="hidden sm:flex flex-col items-start">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {user?.fullName || user?.email?.split('@')[0] || 'User'}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {user?.fullName || user?.email?.split('@')[0] || 'User'}
+                        </span>
+                        {user?.isVerified && <BadgeCheck className="h-4 w-4 text-blue-500" />}
+                      </div>
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-emerald-600 dark:text-emerald-400">
                           {user?.role === 'teacher' ? 'Teacher' :

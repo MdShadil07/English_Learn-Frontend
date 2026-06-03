@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Send, Mic, MicOff, Volume2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,6 @@ interface ChatInputAreaProps {
   settings: UserSettings;
   selectedPersonality: AIPersonality;
   onKeyPress: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  characterCount?: number;
-  maxCharacters?: number;
 }
 
 const ChatInputArea: React.FC<ChatInputAreaProps> = ({
@@ -30,10 +28,22 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   onToggleRecording,
   settings,
   selectedPersonality,
-  onKeyPress,
-  characterCount = 0,
-  maxCharacters = 500
+  onKeyPress
 }) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const MIN_TEXTAREA_HEIGHT = 44;
+  const MAX_TEXTAREA_HEIGHT = 160;
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = 'auto';
+    const nextHeight = Math.min(Math.max(textarea.scrollHeight, MIN_TEXTAREA_HEIGHT), MAX_TEXTAREA_HEIGHT);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > MAX_TEXTAREA_HEIGHT ? 'auto' : 'hidden';
+  }, [input]);
+
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     onInputChange(event.target.value);
   };
@@ -43,15 +53,16 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Textarea
+            ref={textareaRef}
             value={input}
             onChange={handleInputChange}
             onKeyPress={onKeyPress}
             placeholder={`Message ${selectedPersonality.name}...`}
             disabled={loading}
             className={cn(
-              "min-h-[44px] max-h-48 resize-none overflow-y-auto bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl",
+              "min-h-[44px] resize-none overflow-hidden bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl",
               "border-emerald-200/30 dark:border-emerald-700/30 focus:border-emerald-400 dark:focus:border-emerald-600",
-              "pl-12 pr-20 rounded-2xl"
+              "pl-12 pr-4 rounded-2xl"
             )}
             rows={1}
           />
@@ -72,10 +83,6 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </Button>
 
-          {/* Character count on the right */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500">
-            {characterCount}/{maxCharacters}
-          </div>
         </div>
 
         <Button

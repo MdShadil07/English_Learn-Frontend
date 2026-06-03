@@ -10,6 +10,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 import { roomService, RoomDetails, RoomParticipant, PeerConnection } from '../../services/roomService';
+import { speakerDetector } from '../../services/SpeakerDetector';
+import { deviceCapability } from '../../services/DeviceCapability';
 import { cn } from '../../lib/utils';
 import VideoTile from './components/VideoTile';
 import ControlButton from './components/ControlButton';
@@ -72,7 +74,7 @@ const PracticeRoomPage = () => {
   const [lastMentionedId, setLastMentionedId] = useState<string | null>(
     () => sessionStorage.getItem(`lastMentionedId-${urlCode || 'room'}-${currentUserId}`) || null
   );
-  const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
+  const [activeSpeakers, setActiveSpeakers] = useState<string[]>([]);
   const [handsRaised, setHandsRaised] = useState<Set<string>>(new Set());
   const [activeReactions, setActiveReactions] = useState<{ id: number; emoji: string; userId: string; x: number }[]>([]);
 
@@ -85,6 +87,8 @@ const PracticeRoomPage = () => {
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [sessionTime, setSessionTime] = useState(0);
   const [latencies, setLatencies] = useState<Record<string, number>>({});
+  const [capability, setCapability] = useState<'LOW'|'MEDIUM'|'HIGH'|'ULTRA'>('HIGH');
+  const [remoteVideosPaused, setRemoteVideosPaused] = useState(false);
   
   // Chat & Reaction State (Centralized to survive panel close/mount)
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -138,7 +142,6 @@ const PracticeRoomPage = () => {
 
   const hasJoinedRef = useRef(false);
   const hasInitializedRef = useRef(false);
-  const analyserRefs = useRef<Map<string, { animId: number }>>(new Map());
 
   // Broadcast hand raise status when it changes
   useEffect(() => {
@@ -146,6 +149,13 @@ const PracticeRoomPage = () => {
       roomService.toggleHand(roomId, isHandRaised);
     }
   }, [isHandRaised, isInCall, roomId]);
+
+  // Track active speakers for layout (throttled)
+  useEffect(() => {
+    return speakerDetector.onActiveSpeakers((speakers) => {
+      setActiveSpeakers(speakers);
+    });
+  }, []);
 
   const handleSendReaction = (emoji: any) => {
     if (!roomId) return;
@@ -171,61 +181,6 @@ const PracticeRoomPage = () => {
   }, [isHost, room?.moderators, currentUserId]);
 
   const isParticipant = room?.participants.some(p => p.userId === currentUserId);
-
-  // ── Speaker detection ──
-  const startSpeakerDetection = useCallback((uid: string, stream: MediaStream) => {
-    try {
-      const ctx = new AudioContext();
-      const src = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.8;
-      src.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      let speaking = false;
-      let tickCount = 0;
-      const tick = () => {
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        const now = avg > 10;
-        
-        tickCount++;
-        
-        if (now !== speaking) {
-          speaking = now;
-          if (now) {
-            setSpeakingUsers(prev => { 
-              const s = new Set(prev); 
-              s.add(uid); 
-              return s; 
-            });
-          } else {
-            // Debounce removal by 1 second to drastically reduce render thrash
-            setTimeout(() => {
-              if (!speaking) {
-                setSpeakingUsers(prev => { 
-                  const s = new Set(prev); 
-                  s.delete(uid); 
-                  return s; 
-                });
-              }
-            }, 1000);
-          }
-        }
-        const id = requestAnimationFrame(tick);
-        analyserRefs.current.set(uid, { animId: id });
-      };
-      const id = requestAnimationFrame(tick);
-      analyserRefs.current.set(uid, { animId: id });
-    } catch (error) { 
-      console.error('[SpeakerDetection] Error starting detection for user:', uid, error); 
-    }
-  }, []);
-
-  const stopSpeakerDetection = useCallback((uid: string) => {
-    const e = analyserRefs.current.get(uid);
-    if (e) { cancelAnimationFrame(e.animId); analyserRefs.current.delete(uid); }
-  }, []);
 
   useEffect(() => {
     if (chatMessages.length === 0) return;
@@ -336,6 +291,39 @@ const PracticeRoomPage = () => {
     }
   }, [room, user?.id, roomId, showPrivateGate]);
 
+  // Device capability detection (heuristic)
+  useEffect(() => {
+    const detect = async () => {
+      try {
+        const cores = navigator.hardwareConcurrency || 2;
+        const downlink = (navigator as any).connection?.downlink || 10;
+        let hasWebGL = false;
+        try {
+          const canvas = document.createElement('canvas');
+          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+          hasWebGL = !!gl;
+        } catch { hasWebGL = false; }
+
+        let level: typeof capability = 'MEDIUM';
+        if (cores <= 2 || downlink < 1) level = 'LOW';
+        else if (cores <= 4 || downlink < 5) level = 'MEDIUM';
+        else if (cores <= 8 && hasWebGL) level = 'HIGH';
+        else level = 'ULTRA';
+
+        setCapability(level);
+      } catch (err) { setCapability('MEDIUM'); }
+    };
+    detect();
+  }, []);
+
+  // Pause remote videos when tab hidden
+  useEffect(() => {
+    const onVis = () => setRemoteVideosPaused(document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    onVis();
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   // ── SFU init ──
   useEffect(() => {
     if (!roomId || !isParticipant || showPrivateGate || hasInitializedRef.current) return;
@@ -347,15 +335,15 @@ const PracticeRoomPage = () => {
         if (!mounted) return;
         setPeerConnections(new Map(connections));
         connections.forEach((peer, uid) => {
-          if (uid !== currentUserId && !analyserRefs.current.has(uid)) {
-            startSpeakerDetection(uid, peer.stream);
+          if (uid !== currentUserId) {
+            speakerDetector.startDetecting(uid, peer.stream);
           }
         });
       }),
       roomService.onRoomUserLeft(({ userId }) => {
         if (!mounted) return;
         setParticipants(prev => prev.filter(p => p.userId !== userId));
-        stopSpeakerDetection(userId);
+        speakerDetector.stopDetecting(userId);
       }),
       roomService.onRoomUserJoined(async ({ userId }) => {
         if (!mounted) return;
@@ -517,13 +505,26 @@ const PracticeRoomPage = () => {
     const init = async () => {
       try {
         setIsMediaInitializing(true);
-        const stream = await roomService.initializeMedia(true, false);
-        if (!mounted) return;
-        setLocalStream(stream);
-        setIsMicOn(stream.getAudioTracks().some(t => t.enabled));
-        setIsVideoOn(stream.getVideoTracks().some(t => t.enabled));
-        startSpeakerDetection(currentUserId, stream);
-        await roomService.joinCall(roomId);
+        
+        const isHostStr = room?.hostId ? String(typeof room.hostId === 'object' ? (room.hostId as any)._id : room.hostId).toLowerCase() : '';
+        const isHost = isHostStr === String(currentUserId).toLowerCase();
+        const isMod = (room?.moderators || []).includes(currentUserId);
+        const shouldAutoStart = isHost || isMod || room?.mode === 'smallGroup';
+
+        if (shouldAutoStart) {
+          const stream = await roomService.initializeMedia(true, false);
+          if (!mounted) return;
+          setLocalStream(stream);
+          setIsMicOn(stream.getAudioTracks().some(t => t.enabled));
+          setIsVideoOn(stream.getVideoTracks().some(t => t.enabled));
+          speakerDetector.startDetecting(currentUserId, stream);
+        } else {
+          setIsMicOn(false);
+          setIsVideoOn(false);
+          isMicOnRef.current = false;
+        }
+
+        await roomService.joinCall(roomId, room?.mode);
         if (!mounted) return;
         setIsInCall(true);
         setLocalStream(roomService.getLocalStream());
@@ -539,12 +540,11 @@ const PracticeRoomPage = () => {
     };
 
     init();
-    const trackedAnalysers = new Map(analyserRefs.current);
 
     return () => {
       mounted = false;
       unsubs.forEach(fn => fn());
-      trackedAnalysers.forEach((_, uid) => stopSpeakerDetection(uid));
+      speakerDetector.stopDetecting(currentUserId);
       roomService.leaveCall(roomId).catch(() => {});
       roomService.stopMedia();
       setLocalStream(null);
@@ -552,7 +552,7 @@ const PracticeRoomPage = () => {
       setIsInCall(false);
       hasInitializedRef.current = false;
     };
-  }, [roomId, isParticipant, showPrivateGate, currentUserId, startSpeakerDetection, stopSpeakerDetection, toast, navigate]);
+  }, [roomId, isParticipant, showPrivateGate, currentUserId, toast, navigate]);
 
   // ── Private gate handler ──
   const handlePrivateGate = async (code: string) => {
@@ -576,13 +576,17 @@ const PracticeRoomPage = () => {
 
   // ── Controls ──
   const handleLeaveRoom = async () => {
+    // Navigate immediately for instantaneous UX
+    navigate('/dashboard?view=rooms', { replace: true });
+    
+    // Perform cleanup in the background
     try {
       await roomService.leaveCall(roomId!).catch(() => {});
       roomService.stopMedia();
       await roomService.leaveRoom(roomId!);
       roomService.leaveRoomSocket(roomId!);
-    } finally {
-      navigate('/dashboard?view=rooms', { replace: true });
+    } catch (err) {
+      console.error('Failed to leave room cleanly in background', err);
     }
   };
   const handleMic = async (forceState?: boolean) => { 
@@ -597,9 +601,18 @@ const PracticeRoomPage = () => {
       if (newState) {
         setIsMutedByHost(false);
       }
-    } catch (error) { 
+    } catch (error: any) { 
       console.error('[Mic] Error:', error);
-      toast({ title: 'Mic error', description: 'Failed to toggle microphone', variant: 'destructive' }); 
+      if (error.message === 'stage-full') {
+        setWarningModal({
+          isOpen: true,
+          type: 'stage-full',
+          title: 'Stage Full',
+          description: 'The maximum number of speakers has been reached. You are in Audience Mode. Please raise your hand if you wish to speak.'
+        });
+      } else {
+        toast({ title: 'Mic error', description: 'Failed to toggle microphone', variant: 'destructive' }); 
+      }
     } 
   };
   const handleCamera = async () => {
@@ -607,7 +620,19 @@ const PracticeRoomPage = () => {
       setIsVideoOn(await roomService.toggleVideo());
       const s = roomService.getLocalStream();
       if (s && s !== localStream) setLocalStream(s);
-    } catch { toast({ title: 'Camera error', variant: 'destructive' }); }
+    } catch (error: any) { 
+      console.error('[Camera] Error:', error);
+      if (error.message === 'stage-full') {
+        setWarningModal({
+          isOpen: true,
+          type: 'stage-full',
+          title: 'Stage Full',
+          description: 'The maximum number of video participants has been reached. You are in Audience Mode. Please raise your hand to turn on video.'
+        });
+      } else {
+        toast({ title: 'Camera error', variant: 'destructive' }); 
+      }
+    }
   };
   const handlePin = (uid: string) => setPinnedUserId(p => p === uid ? null : uid);
   const handleCopyCode = () => {
@@ -632,16 +657,18 @@ const PracticeRoomPage = () => {
 
   // ── Featured tile logic (Active Speakers Grid) ──
   const featuredIds = useMemo(() => {
-    const speakers = Array.from(speakingUsers).filter(uid => uid !== currentUserId);
+    const speakers = activeSpeakers.filter(uid => uid !== currentUserId);
     
     // Priority 1: Pinned user (Exclusive Focus Mode)
     if (pinnedUserId) {
       return [pinnedUserId];
     }
     
-    // Priority 2: Active speakers (up to 4)
+    const maxTiles = deviceCapability.getMaxVideoTiles();
+    
+    // Priority 2: Active speakers (up to maxTiles)
     if (speakers.length > 0) {
-      return speakers.slice(0, 4);
+      return speakers.slice(0, Math.max(1, maxTiles - 1));
     }
     
     // Priority 3: Host + You
@@ -651,7 +678,7 @@ const PracticeRoomPage = () => {
     }
     
     return [currentUserId];
-  }, [speakingUsers, pinnedUserId, currentUserId, room?.hostId, participants]);
+  }, [activeSpeakers, pinnedUserId, currentUserId, room?.hostId, participants]);
 
   const buildTileData = (uid: string) => {
     if (uid === currentUserId) {
@@ -665,14 +692,99 @@ const PracticeRoomPage = () => {
 
   const featuredList = featuredIds.map(uid => ({ userId: uid, ...buildTileData(uid) }));
 
-  // Limit thumbnails to avoid showing 400 people in a strip
+  // Simple virtualized horizontal thumbnail strip to limit DOM + decoding
+  const VirtualThumbStrip = ({
+    items,
+    itemWidth = 180,
+    containerMaxMoreCount = 0,
+    onOpenPanel,
+    paused,
+    latencies,
+    currentUserId,
+    isMicOn,
+    isVideoOn,
+    isSpeakerOn,
+    handlePin,
+    participantHostId
+  }: any) => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [startIndex, setStartIndex] = useState(0);
+    const [containerWidth, setContainerWidth] = useState(0);
+
+    useEffect(() => {
+      const measure = () => {
+        if (!containerRef.current) return;
+        setContainerWidth(containerRef.current.clientWidth || 0);
+      };
+      measure();
+      window.addEventListener('resize', measure);
+      return () => window.removeEventListener('resize', measure);
+    }, []);
+
+    const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      const left = (e.currentTarget as HTMLDivElement).scrollLeft || 0;
+      setStartIndex(Math.max(0, Math.floor(left / itemWidth)));
+    };
+
+    const visibleCount = Math.min(items.length, Math.max(1, Math.ceil(containerWidth / itemWidth) + 2));
+    const slice = items.slice(startIndex, startIndex + visibleCount);
+    const leftSpacer = startIndex * itemWidth;
+    const rightSpacer = Math.max(0, (items.length - startIndex - visibleCount) * itemWidth);
+
+    return (
+      <div ref={containerRef} onScroll={onScroll} className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide">
+        <div className="flex items-center" style={{ width: Math.max(containerWidth, items.length * itemWidth) }}>
+          <div style={{ width: leftSpacer }} />
+          {slice.map((t: any) => (
+            <div key={t.userId} style={{ width: itemWidth }} className="flex-shrink-0">
+              <VideoTile
+                userId={t.userId}
+                displayName={t.name}
+                avatar={t.avatar}
+                stream={t.stream}
+                isMuted={t.userId === currentUserId ? !isMicOn : false}
+                isVideoOff={t.userId === currentUserId ? !isVideoOn : false}
+                isPinned={pinnedUserId === t.userId}
+                isHandRaised={t.userId === currentUserId ? isHandRaised : handsRaised.has(t.userId)}
+                isHost={participantHostId === t.userId}
+                isLocal={t.isLocal}
+                isModerator={t.isModerator}
+                onPin={() => handlePin(t.userId)}
+                size="thumb"
+                latency={latencies[t.userId]}
+                masterMute={!isSpeakerOn}
+                paused={paused && !t.isLocal}
+              />
+            </div>
+          ))}
+          <div style={{ width: rightSpacer }} />
+          {containerMaxMoreCount > 0 && (
+            <div className="pl-3 pr-6">
+              <button
+                onClick={onOpenPanel}
+                className="w-24 h-20 sm:w-44 sm:h-28 rounded-2xl bg-white/5 border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 text-slate-500 hover:bg-white/10 hover:text-slate-300 transition-all cursor-pointer group"
+              >
+                <div className="p-2 rounded-xl bg-slate-800 group-hover:bg-emerald-500/10 transition-colors">
+                  <Users className="w-5 h-5 group-hover:text-emerald-400" />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">+{containerMaxMoreCount} More</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Limit thumbnails to avoid showing hundreds of people in a strip
+  const thumbLimit = capability === 'LOW' ? 4 : capability === 'MEDIUM' ? 8 : capability === 'HIGH' ? 12 : 24;
   const thumbList = pinnedUserId ? [] : [
     currentUserId,
     ...Array.from(peerConnections.keys())
   ]
     .filter(uid => !featuredIds.includes(uid))
-    .slice(0, 8)
-    .map(uid => ({ userId: uid, ...buildTileData(uid) })); // Only show top 8 non-featured participants in the strip
+    .slice(0, thumbLimit)
+    .map(uid => ({ userId: uid, ...buildTileData(uid) })); // Only show top N non-featured participants in the strip
 
   // ── Loading / Error ──
   if (isLoading) {
@@ -984,49 +1096,53 @@ const PracticeRoomPage = () => {
       </header>
 
       {/* ── MAIN ── */}
-      <div className="flex-1 min-h-0 relative bg-slate-950 overflow-hidden">
+      <div
+        className="flex-1 min-h-0 relative bg-slate-950 overflow-y-auto overscroll-y-contain scroll-smooth"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <div className={cn(
           "h-full w-full transition-all duration-500 ease-[0.22, 1, 0.36, 1] relative flex flex-col",
           (isChatOpen || isPanelOpen) ? "lg:pr-[360px] xl:pr-[400px]" : ""
         )}>
           <div className="flex-1 p-2 sm:p-4 min-h-0 relative flex flex-col gap-4">
             <div className="flex-1 min-h-0 relative">
-              <div className={cn(
+              <motion.div layout className={cn(
                 "h-full w-full grid gap-2 sm:gap-4 transition-all duration-500",
                 featuredList.length === 1 ? "grid-cols-1" : 
                 featuredList.length === 2 ? "grid-cols-1 sm:grid-cols-2" :
                 featuredList.length <= 4 ? "grid-cols-2" :
                 "grid-cols-2 lg:grid-cols-3"
               )}>
-                {featuredList.map((f, idx) => (
-                  <VideoTile
-                    key={f.userId}
-                    userId={f.userId}
-                    displayName={f.name}
-                    avatar={f.avatar}
-                    stream={f.stream}
-                    isMuted={f.userId === currentUserId ? !isMicOn : false}
-                    isVideoOff={f.userId === currentUserId ? !isVideoOn : false}
-                    isSpeaking={speakingUsers.has(f.userId)}
-                    isPinned={pinnedUserId === f.userId}
-                    isHandRaised={f.userId === currentUserId ? isHandRaised : handsRaised.has(f.userId)}
-                    isHost={room?.hostId === f.userId}
-                    isLocal={f.isLocal}
-                    isModerator={f.isModerator}
-                    onPin={() => handlePin(f.userId)}
-                    size="featured"
-                    latency={latencies[f.userId]}
-                    masterMute={!isSpeakerOn}
-                    className={cn(
-                      featuredList.length === 3 && idx === 0 ? "sm:col-span-2" : ""
-                    )}
-                  />
-                ))}
-              </div>
+                <AnimatePresence mode="popLayout">
+                  {featuredList.map((f, idx) => (
+                    <VideoTile
+                      key={f.userId}
+                      userId={f.userId}
+                      displayName={f.name}
+                      avatar={f.avatar}
+                      stream={f.stream}
+                      isMuted={f.userId === currentUserId ? !isMicOn : false}
+                      isVideoOff={f.userId === currentUserId ? !isVideoOn : false}
+                      isPinned={pinnedUserId === f.userId}
+                      isHandRaised={f.userId === currentUserId ? isHandRaised : handsRaised.has(f.userId)}
+                      isHost={room?.hostId === f.userId}
+                      isLocal={f.isLocal}
+                      isModerator={f.isModerator}
+                      onPin={() => handlePin(f.userId)}
+                      size="featured"
+                      latency={latencies[f.userId]}
+                      masterMute={!isSpeakerOn}
+                      className={cn(
+                        featuredList.length === 3 && idx === 0 ? "sm:col-span-2" : ""
+                      )}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
 
               {/* Speaker indicators (Floating) */}
               <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex flex-col gap-2 z-20 pointer-events-none">
-                {Array.from(speakingUsers).slice(0, 3).map(uid => {
+                {activeSpeakers.slice(0, 3).map(uid => {
                   const p = participantMap.get(uid);
                   return (
                     <motion.div 
@@ -1044,41 +1160,21 @@ const PracticeRoomPage = () => {
             </div>
 
             {thumbList.length > 0 && (
-              <div className="flex-shrink-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hide">
-                <div className="flex gap-3 w-max min-w-full justify-center">
-                  {thumbList.map(t => (
-                    <VideoTile
-                      key={t.userId}
-                      userId={t.userId}
-                      displayName={t.name}
-                      avatar={t.avatar}
-                      stream={t.stream}
-                      isMuted={t.userId === currentUserId ? !isMicOn : false}
-                      isVideoOff={t.userId === currentUserId ? !isVideoOn : false}
-                      isSpeaking={speakingUsers.has(t.userId)}
-                      isPinned={pinnedUserId === t.userId}
-                      isHandRaised={t.userId === currentUserId ? isHandRaised : handsRaised.has(t.userId)}
-                      isHost={room?.hostId === t.userId}
-                      isLocal={t.isLocal}
-                      isModerator={t.isModerator}
-                      onPin={() => handlePin(t.userId)}
-                      size="thumb"
-                      latency={latencies[t.userId]}
-                      masterMute={!isSpeakerOn}
-                    />
-                  ))}
-                  {participants.length > thumbList.length + featuredList.length && (
-                    <button 
-                      onClick={() => setIsPanelOpen(true)}
-                      className="w-24 h-20 sm:w-44 sm:h-28 rounded-2xl bg-white/5 border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 text-slate-500 hover:bg-white/10 hover:text-slate-300 transition-all cursor-pointer group"
-                    >
-                      <div className="p-2 rounded-xl bg-slate-800 group-hover:bg-emerald-500/10 transition-colors">
-                        <Users className="w-5 h-5 group-hover:text-emerald-400" />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">+{participants.length - thumbList.length - featuredList.length} More</span>
-                    </button>
-                  )}
-                </div>
+              <div className="flex-shrink-0 w-full overflow-x-auto overflow-y-hidden scrollbar-hide" ref={undefined}>
+                <VirtualThumbStrip
+                  items={thumbList}
+                  itemWidth={180}
+                  containerMaxMoreCount={participants.length - thumbList.length - featuredList.length}
+                  onOpenPanel={() => setIsPanelOpen(true)}
+                  paused={remoteVideosPaused}
+                  latencies={latencies}
+                  currentUserId={currentUserId}
+                  isMicOn={isMicOn}
+                  isVideoOn={isVideoOn}
+                  isSpeakerOn={isSpeakerOn}
+                  handlePin={handlePin}
+                  participantHostId={room?.hostId}
+                />
               </div>
             )}
           </div>
@@ -1121,7 +1217,7 @@ const PracticeRoomPage = () => {
               participants={participants}
               hostId={room?.hostId || ''}
               peerConnections={peerConnections}
-              speakingUsers={speakingUsers}
+              activeSpeakers={activeSpeakers}
               localUserId={currentUserId}
               pinnedUserId={pinnedUserId}
               isOpen={isPanelOpen}
@@ -1355,12 +1451,29 @@ const PracticeRoomPage = () => {
 
       <RoomWarningModal 
         isOpen={warningModal.isOpen}
-        onClose={() => navigate('/dashboard?view=rooms')}
+        onClose={() => {
+          if (warningModal.type === 'stage-full') {
+            setWarningModal(prev => ({ ...prev, isOpen: false }));
+          } else {
+            navigate('/dashboard?view=rooms');
+          }
+        }}
         type={warningModal.type}
         title={warningModal.title}
         description={warningModal.description}
-        actionLabel="Go to Dashboard"
-        onAction={() => navigate('/dashboard?view=rooms')}
+        actionLabel={warningModal.type === 'stage-full' ? "I Understand" : "Go to Dashboard"}
+        onAction={() => {
+          if (warningModal.type === 'stage-full') {
+            setWarningModal(prev => ({ ...prev, isOpen: false }));
+          } else {
+            navigate('/dashboard?view=rooms');
+          }
+        }}
+        secondaryActionLabel={warningModal.type === 'stage-full' ? "Raise Hand" : undefined}
+        secondaryAction={warningModal.type === 'stage-full' ? () => {
+          handleToggleHand();
+          setWarningModal(prev => ({ ...prev, isOpen: false }));
+        } : undefined}
       />
 
       <RoomSettingsPanel 

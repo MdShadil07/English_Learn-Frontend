@@ -32,6 +32,7 @@ export interface User {
   proficiencyLevel: string;
   role: string;
   isEmailVerified: boolean;
+  isVerified?: boolean;
   createdAt: string;
   lastLoginAt?: string;
   tier: 'free' | 'pro' | 'premium';
@@ -97,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         subscriptionStatus?: string;
         avatar_url?: string;
         subscriptionDetails?: SubscriptionDetails;
+        isVerified?: boolean;
       };
       type ExtendedProfile = Record<string, unknown> & {
         isPremium?: boolean;
@@ -177,7 +179,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             targetLanguage: String(result.data.profile?.targetLanguage || result.data.user?.targetLanguage || 'English'),
             proficiencyLevel: String(result.data.profile?.proficiencyLevel || result.data.user?.proficiencyLevel || 'beginner'),
             role: result.data.user?.role || 'student',
-            isEmailVerified: true, // Assume verified if we have profile data
+            isEmailVerified: Boolean(result.data.user?.isEmailVerified ?? true),
+            isVerified: Boolean(
+              result.data.user?.isVerified ??
+              (result.data.profile as { isVerified?: boolean } | undefined)?.isVerified ??
+              false
+            ),
             createdAt: result.data.user?.createdAt || new Date().toISOString(),
             lastLoginAt: result.data.user?.lastLoginAt,
             // Google OAuth fields
@@ -195,9 +202,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               (result.data.user?.tier === 'premium' || result.data.profile?.tier === 'premium') ||
               // Fallback to isPremium or subscriptionStatus
               ((result.data.user && hasIsPremium(result.data.user) && result.data.user.isPremium) ||
-              (result.data.profile && hasIsPremium(result.data.profile) && result.data.profile.isPremium) ||
-              (result.data.user && hasSubscriptionStatus(result.data.user) && result.data.user.subscriptionStatus === 'premium') ||
-              (result.data.profile && hasSubscriptionStatus(result.data.profile) && result.data.profile.subscriptionStatus === 'premium'))
+                (result.data.profile && hasIsPremium(result.data.profile) && result.data.profile.isPremium) ||
+                (result.data.user && hasSubscriptionStatus(result.data.user) && result.data.user.subscriptionStatus === 'premium') ||
+                (result.data.profile && hasSubscriptionStatus(result.data.profile) && result.data.profile.subscriptionStatus === 'premium'))
             )
               ? 'premium'
               : (
@@ -230,6 +237,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Attach computed flags to the transformed user object before returning
           (transformedUser as any).isPremium = !!computedIsPremium;
           (transformedUser as any).isPro = !!computedIsPro;
+          (transformedUser as any).isVerified = Boolean(
+            result.data.user?.isVerified ??
+            (result.data.profile as { isVerified?: boolean } | undefined)?.isVerified ??
+            false
+          );
           (transformedUser as any).subscriptionStatus =
             (result.data.user && (result.data.user as any).subscriptionStatus) ||
             (result.data.profile && (result.data.profile as any).subscriptionStatus) ||
@@ -428,9 +440,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const testPopup = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
       if (!testPopup) {
         console.warn('⚠️ Popup blocker detected. Google OAuth may not work.');
-        return { 
-          success: false, 
-          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try signing in with Google again' 
+        return {
+          success: false,
+          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try signing in with Google again'
         };
       }
       testPopup.close();
@@ -443,8 +455,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           callback: async (response) => {
             if (response.error) {
               console.error('Google OAuth error:', response.error);
-              const errorMessage = response.error === 'popup_closed' 
-                ? 'Google sign-in was cancelled' 
+              const errorMessage = response.error === 'popup_closed'
+                ? 'Google sign-in was cancelled'
                 : 'Failed to sign in with Google';
               resolve({ success: false, message: errorMessage });
               return;
@@ -453,36 +465,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             try {
               // Send the ID token to backend for verification
               const result = await authService.googleSignIn(response.access_token || response.id_token);
-              
+
               if (result.success && result.data) {
                 // Store tokens
                 localStorage.setItem('accessToken', result.data.tokens.accessToken);
                 localStorage.setItem('refreshToken', result.data.tokens.refreshToken);
-                
+
                 // Update user state
                 updateUser(result.data.user);
-                
+
                 // Invalidate and refetch user data to ensure consistency
                 await refetchUserData();
-                
+
                 resolve({ success: true, message: 'Successfully signed in with Google!' });
               } else {
                 // Handle specific error codes for account linking
                 if (result.code === 'ACCOUNT_NOT_LINKED') {
-                  resolve({ 
-                    success: false, 
+                  resolve({
+                    success: false,
                     message: 'Your Google account needs to be linked. Please sign in with your email/password first, then link your Google account in profile settings.',
                     code: result.code
                   });
                 } else if (result.code === 'EMAIL_EXISTS_NOT_LINKED') {
-                  resolve({ 
-                    success: false, 
+                  resolve({
+                    success: false,
                     message: 'An account with this email already exists. Please sign in with your email/password first, then link your Google account in profile settings.',
                     code: result.code
                   });
                 } else if (result.code === 'GOOGLE_ID_MISMATCH') {
-                  resolve({ 
-                    success: false, 
+                  resolve({
+                    success: false,
                     message: 'Security alert: This Google account is already linked to a different account. Please contact support.',
                     code: result.code
                   });
@@ -501,9 +513,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (error?.type === 'popup_closed' || error?.message?.includes('Popup window closed')) {
               resolve({ success: false, message: 'Google sign-in was cancelled. Please try again.' });
             } else if (error?.type === 'popup_failed_to_open' || error?.message?.includes('Failed to open popup window')) {
-              resolve({ 
-                success: false, 
-                message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar (usually top-right)\n2. Select "Always allow popups from this site" or "Allow"\n3. Refresh the page and try signing in with Google again\n\nIf you still see this error, try:\n- Disabling your popup blocker temporarily\n- Using a different browser\n- Using incognito/private mode' 
+              resolve({
+                success: false,
+                message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar (usually top-right)\n2. Select "Always allow popups from this site" or "Allow"\n3. Refresh the page and try signing in with Google again\n\nIf you still see this error, try:\n- Disabling your popup blocker temporarily\n- Using a different browser\n- Using incognito/private mode'
               });
             } else {
               resolve({ success: false, message: 'Failed to sign in with Google. Please try again.' });
@@ -538,9 +550,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const testPopup = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
       if (!testPopup) {
         console.warn('⚠️ Popup blocker detected. Google OAuth may not work.');
-        return { 
-          success: false, 
-          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try linking your Google account again' 
+        return {
+          success: false,
+          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try linking your Google account again'
         };
       }
       testPopup.close();
@@ -553,8 +565,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           callback: async (response) => {
             if (response.error) {
               console.error('Google OAuth error:', response.error);
-              const errorMessage = response.error === 'popup_closed' 
-                ? 'Google linking was cancelled' 
+              const errorMessage = response.error === 'popup_closed'
+                ? 'Google linking was cancelled'
                 : 'Failed to link Google account';
               resolve({ success: false, message: errorMessage });
               return;
@@ -563,7 +575,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             try {
               // Send the token to backend for linking
               const result = await authService.linkGoogleAccount(response.access_token || response.id_token);
-              
+
               if (result.success) {
                 // Update user state with linked Google info
                 await refetchUserData();
@@ -582,9 +594,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (error?.type === 'popup_closed' || error?.message?.includes('Popup window closed')) {
               resolve({ success: false, message: 'Google linking was cancelled. Please try again.' });
             } else if (error?.type === 'popup_failed_to_open' || error?.message?.includes('Failed to open popup window')) {
-              resolve({ 
-                success: false, 
-                message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar (usually top-right)\n2. Select "Always allow popups from this site" or "Allow"\n3. Refresh the page and try linking your Google account again\n\nIf you still see this error, try:\n- Disabling your popup blocker temporarily\n- Using a different browser\n- Using incognito/private mode' 
+              resolve({
+                success: false,
+                message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar (usually top-right)\n2. Select "Always allow popups from this site" or "Allow"\n3. Refresh the page and try linking your Google account again\n\nIf you still see this error, try:\n- Disabling your popup blocker temporarily\n- Using a different browser\n- Using incognito/private mode'
               });
             } else {
               resolve({ success: false, message: 'Failed to link Google account. Please try again.' });

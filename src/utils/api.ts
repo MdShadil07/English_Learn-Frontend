@@ -98,12 +98,21 @@ const createApiFunction = <T = unknown>(
           throw new Error('401: Authentication required');
         }
 
+        // Try to get specific error code
+        let errorCode = '';
+        try {
+          const result = await response.clone().json();
+          if (result && result.code && result.code.startsWith('ACCOUNT_')) {
+            errorCode = `?error=${result.code.toLowerCase().replace('account_', '')}`;
+          }
+        } catch (e) {}
+
         // Clear invalid token and redirect to login
         localStorage.removeItem('token');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('userData');
-        window.location.href = '/login';
+        window.location.href = `/login${errorCode}`;
         throw new Error('Authentication required');
       }
 
@@ -346,6 +355,10 @@ export const api = {
       createApiFunction('GET', `/pronunciation/solo-practice/session/${sessionId}/attempt/${attemptId}`)(),
     recommendPassage: (data: { exerciseType?: string; cefrLevel?: string; phonemeTargets?: string[]; mtiTargets?: string[] }) =>
       createApiFunction('POST', '/pronunciation/passages/recommend')(data),
+    analyzeCoach: (data: { attempt: Record<string, unknown> }) =>
+      createApiFunction('POST', '/pronunciation/coach/analyze')(data),
+    getCoachProfile: () =>
+      createApiFunction('GET', '/pronunciation/coach/profile')(),
   },
 
   // Accuracy analysis endpoints

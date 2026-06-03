@@ -59,4 +59,10 @@ export const pronunciationService = {
 
   recommendPassage: (data?: PronunciationSessionCreateInput) =>
     api.pronunciation.recommendPassage(data || {}),
+
+  analyzeCoach: (attempt: Record<string, unknown>) =>
+    api.pronunciation.analyzeCoach({ attempt }),
+
+  getCoachProfile: () =>
+    api.pronunciation.getCoachProfile(),
 };

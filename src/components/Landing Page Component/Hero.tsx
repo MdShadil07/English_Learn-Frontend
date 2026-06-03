@@ -44,9 +44,9 @@ const GlobalNetworkArcs = () => {
             strokeWidth="0.8"
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ 
+            animate={{
               pathLength: [0, 1, 1],
-              opacity: [0, 1, 0] 
+              opacity: [0, 1, 0]
             }}
             transition={{
               duration: arc.duration,
@@ -80,18 +80,20 @@ const RealisticGlobe = () => {
     <div className="relative w-[280px] h-[280px] sm:w-[380px] sm:h-[380px] lg:w-[460px] lg:h-[460px] flex items-center justify-center z-20 will-change-transform">
       {/* Outer Atmosphere Glow - Hardware Accelerated via Radial Gradients instead of Box Blurs */}
       <div className="absolute inset-[-20%] bg-[radial-gradient(circle,rgba(45,212,191,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(45,212,191,0.1)_0%,transparent_70%)] rounded-full pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
-      
+
       {/* 3D Sphere Base */}
       <div className="relative w-full h-full rounded-full overflow-hidden shadow-[inset_-30px_-30px_60px_rgba(0,0,0,0.8),inset_10px_10px_40px_rgba(255,255,255,0.3),0_0_40px_rgba(45,212,191,0.4)] dark:shadow-[inset_-30px_-30px_60px_rgba(0,0,0,0.9),inset_10px_10px_40px_rgba(255,255,255,0.1),0_0_40px_rgba(45,212,191,0.2)] bg-[#0f172a]">
-        
-        {/* Scrolling World Map */}
-        <div 
-          className="absolute inset-0 w-[200%] h-full opacity-80"
+
+        {/* Scrolling World Map - Optimized via Hardware-Accelerated Masking instead of heavy CSS filters */}
+        <div
+          className="absolute inset-0 w-[200%] h-full opacity-80 bg-teal-300 dark:bg-emerald-500"
           style={{
-            backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')`,
-            backgroundSize: '50% 100%',
-            backgroundRepeat: 'repeat-x',
-            filter: 'invert(1) sepia(1) hue-rotate(120deg) saturate(3) brightness(1.5)',
+            WebkitMaskImage: `url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')`,
+            WebkitMaskSize: '50% 100%',
+            WebkitMaskRepeat: 'repeat-x',
+            maskImage: `url('https://upload.wikimedia.org/wikipedia/commons/e/ec/World_map_blank_without_borders.svg')`,
+            maskSize: '50% 100%',
+            maskRepeat: 'repeat-x',
             animation: 'rotateGlobe 30s linear infinite',
           }}
         />
@@ -119,9 +121,9 @@ const RealisticGlobe = () => {
               transform: 'translateZ(0)',
             }}
             animate={prefersReducedMotion ? {} : { opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
-            transition={{ 
-              duration: isTouchDevice ? 2 : 1.5 + (i % 2), 
-              repeat: Infinity, 
+            transition={{
+              duration: isTouchDevice ? 2 : 1.5 + (i % 2),
+              repeat: Infinity,
               delay: i * 0.3,
               ease: "easeInOut"
             }}
@@ -133,7 +135,7 @@ const RealisticGlobe = () => {
       </div>
 
       {/* Floating Status Pill */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.5, duration: 0.8 }}
@@ -217,7 +219,7 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-screen bg-[#f8fbff] dark:bg-[#070b14] font-sans overflow-hidden flex items-center pt-8 pb-20 selection:bg-emerald-100 dark:selection:bg-emerald-900/50 selection:text-emerald-900 dark:selection:text-emerald-200 transition-colors duration-500 ease-in-out">
-      
+
       {/* Global CSS Animations */}
       <style>{`
         @keyframes rotateGlobe {
@@ -234,7 +236,7 @@ export default function Hero() {
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Dotted Grid Pattern */}
         <div className="absolute inset-0 text-slate-500 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(currentColor 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
-        
+
         {/* Hardware-Accelerated Gradients (Replaces heavy CSS Blurs) */}
         <div className="absolute top-[-10%] left-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,rgba(20,184,166,0.08)_0%,transparent_60%)] dark:bg-[radial-gradient(circle,rgba(20,184,166,0.05)_0%,transparent_60%)]" style={{ transform: 'translateZ(0)' }}></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.08)_0%,transparent_60%)] dark:bg-[radial-gradient(circle,rgba(6,182,212,0.05)_0%,transparent_60%)]" style={{ transform: 'translateZ(0)' }}></div>
@@ -242,16 +244,16 @@ export default function Hero() {
 
       <div className="max-w-[1440px] w-full mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          
+
           {/* --- LEFT COLUMN: TYPOGRAPHY & CTAS --- */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="lg:col-span-5 flex flex-col justify-center text-center lg:text-left pt-10 lg:pt-0 max-w-2xl mx-auto lg:mx-0 relative z-30"
           >
             {/* Badge */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -262,7 +264,7 @@ export default function Hero() {
             </motion.div>
 
             {/* Headline */}
-            <motion.h1 
+            <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
@@ -275,7 +277,7 @@ export default function Hero() {
             </motion.h1>
 
             {/* Description */}
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
@@ -285,7 +287,7 @@ export default function Hero() {
             </motion.p>
 
             {/* Buttons */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.5 }}
@@ -304,7 +306,7 @@ export default function Hero() {
             </motion.div>
 
             {/* Social Proof */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.7 }}
@@ -325,7 +327,7 @@ export default function Hero() {
 
           {/* --- RIGHT COLUMN: GLOBE & ACTIVE CONNECTIONS --- */}
           <div className="lg:col-span-7 relative w-full h-[500px] sm:h-[600px] lg:h-[700px] flex items-center justify-center z-10 mt-10 lg:mt-0">
-            
+
             {/* SVG Dynamic Data Streams Overlay - Pure CSS Colors to avoid JS Re-renders */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 hidden sm:block" viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
@@ -351,20 +353,20 @@ export default function Hero() {
               {users.map((user, i) => {
                 const pathD = `M ${user.svgStart.x} ${user.svgStart.y} C ${user.svgStart.x > 50 ? 60 : 40} ${user.svgStart.y}, ${user.svgStart.x > 50 ? 60 : 40} 50, 50 50`;
                 const gradientId = i === 0 ? "url(#gradientSarah)" : i === 1 ? "url(#gradientJames)" : i === 2 ? "url(#gradientRaj)" : "url(#gradientEmma)";
-                
+
                 return (
                   <g key={`stream-${user.id}`} className="opacity-70 dark:opacity-90 text-slate-300/60 dark:text-slate-700/60">
                     {/* Base conduit line - Uses currentColor configured via Tailwind text- utilities on the group */}
                     <path d={pathD} fill="none" stroke="currentColor" strokeWidth="0.2" />
                     {/* Flowing Data Packet */}
-                    <path 
-                      d={pathD} 
-                      fill="none" 
-                      stroke={gradientId} 
-                      strokeWidth="0.4" 
-                      strokeDasharray="5 1000" 
+                    <path
+                      d={pathD}
+                      fill="none"
+                      stroke={gradientId}
+                      strokeWidth="0.4"
+                      strokeDasharray="5 1000"
                       strokeLinecap="round"
-                      style={{ animation: `dashFlow ${2 + i * 0.3}s linear infinite` }} 
+                      style={{ animation: `dashFlow ${2 + i * 0.3}s linear infinite` }}
                     />
                   </g>
                 );
@@ -374,51 +376,51 @@ export default function Hero() {
             {/* Holographic Pedestal Base - Optimized */}
             <div className="absolute bottom-4 sm:bottom-12 lg:bottom-16 left-1/2 -translate-x-1/2 w-full max-w-[600px] h-[200px] pointer-events-none flex flex-col items-center justify-end z-10">
               <div className="absolute bottom-0 w-[80%] h-[150px] bg-[radial-gradient(ellipse,rgba(94,234,212,0.2)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse,rgba(20,184,166,0.1)_0%,transparent_70%)] rounded-full transition-colors duration-500" style={{ transform: 'translateZ(0)' }}></div>
-              
-              <motion.div 
-                animate={{ opacity: [0.3, 0.6, 0.3] }} 
+
+              <motion.div
+                animate={{ opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="w-[85%] h-[120px] border border-cyan-300/30 dark:border-cyan-500/20 rounded-[100%] shadow-[0_0_30px_rgba(45,212,191,0.2)_inset,0_20px_40px_rgba(45,212,191,0.2)] dark:shadow-[0_0_30px_rgba(45,212,191,0.1)_inset,0_20px_40px_rgba(45,212,191,0.1)] absolute bottom-[10px] transition-colors duration-500" 
+                className="w-[85%] h-[120px] border border-cyan-300/30 dark:border-cyan-500/20 rounded-[100%] shadow-[0_0_30px_rgba(45,212,191,0.2)_inset,0_20px_40px_rgba(45,212,191,0.2)] dark:shadow-[0_0_30px_rgba(45,212,191,0.1)_inset,0_20px_40px_rgba(45,212,191,0.1)] absolute bottom-[10px] transition-colors duration-500"
               />
-              <motion.div 
-                animate={{ opacity: [0.5, 0.8, 0.5] }} 
+              <motion.div
+                animate={{ opacity: [0.5, 0.8, 0.5] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                className="w-[65%] h-[90px] border-2 border-emerald-300/50 dark:border-emerald-500/30 rounded-[100%] shadow-[0_0_40px_rgba(52,211,153,0.4)] dark:shadow-[0_0_40px_rgba(52,211,153,0.2)] absolute bottom-[30px] transition-colors duration-500" 
+                className="w-[65%] h-[90px] border-2 border-emerald-300/50 dark:border-emerald-500/30 rounded-[100%] shadow-[0_0_40px_rgba(52,211,153,0.4)] dark:shadow-[0_0_40px_rgba(52,211,153,0.2)] absolute bottom-[30px] transition-colors duration-500"
               />
-              <div className="w-[45%] h-[60px] border-[3px] border-teal-200/80 dark:border-teal-500/50 rounded-[100%] shadow-[0_0_50px_rgba(45,212,191,0.8),inset_0_0_20px_rgba(255,255,255,0.5)] dark:shadow-[0_0_50px_rgba(45,212,191,0.4),inset_0_0_20px_rgba(255,255,255,0.1)] bg-teal-100/20 dark:bg-teal-900/30 backdrop-blur-sm absolute bottom-[50px] flex items-center justify-center transition-colors duration-500">
-                <div className="w-[80%] h-[60%] bg-white/50 dark:bg-white/20 rounded-[100%] shadow-[0_0_30px_#fff] blur-[4px]"></div>
+              <div className="w-[45%] h-[60px] border-[3px] border-teal-200/80 dark:border-teal-500/50 rounded-[100%] shadow-[0_0_50px_rgba(45,212,191,0.8),inset_0_0_20px_rgba(255,255,255,0.5)] dark:shadow-[0_0_50px_rgba(45,212,191,0.4),inset_0_0_20px_rgba(255,255,255,0.1)] bg-teal-100/20 dark:bg-teal-900/30 absolute bottom-[50px] flex items-center justify-center transition-colors duration-500">
+                <div className="w-[80%] h-[60%] rounded-[100%] bg-[radial-gradient(ellipse,rgba(255,255,255,0.6)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse,rgba(255,255,255,0.2)_0%,transparent_70%)]"></div>
               </div>
-              <div className="absolute bottom-[80px] w-[30%] h-[200px] bg-gradient-to-t from-teal-200/30 dark:from-teal-500/10 to-transparent blur-[20px] rounded-full mix-blend-screen transition-colors duration-500"></div>
+              <div className="absolute bottom-[80px] w-[30%] h-[200px] bg-[radial-gradient(ellipse_at_bottom,rgba(94,234,212,0.3)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_bottom,rgba(20,184,166,0.1)_0%,transparent_70%)] rounded-full transition-colors duration-500"></div>
             </div>
 
             {/* Orbiting Tech Rings */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden sm:flex">
-               <motion.div 
-                 animate={{ rotateZ: 360 }}
-                 transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                 className="absolute w-[120%] h-[120%] border-[1.5px] border-dashed border-cyan-400/20 dark:border-cyan-400/10 rounded-full"
-                 style={{ transform: 'rotateX(75deg) rotateY(-10deg) translateZ(0)' }}
-               />
-               <motion.div 
-                 animate={{ rotateZ: -360 }}
-                 transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
-                 className="absolute w-[130%] h-[130%] border-[1px] border-emerald-300/30 dark:border-emerald-400/10 rounded-full"
-                 style={{ transform: 'rotateX(70deg) rotateY(15deg) translateZ(0)' }}
-               />
-               {/* Orbital satellites */}
-               <motion.div
-                  animate={{ rotateZ: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="absolute w-[125%] h-[125%]"
-                  style={{ transform: 'rotateX(72deg) translateZ(0)' }}
-               >
-                 <div className="absolute top-0 left-1/2 w-2 h-2 bg-white dark:bg-slate-200 rounded-full shadow-[0_0_10px_#fff]"></div>
-                 <div className="absolute bottom-0 right-1/4 w-1.5 h-1.5 bg-teal-200 dark:bg-teal-400 rounded-full shadow-[0_0_8px_#5eead4]"></div>
-               </motion.div>
+              <motion.div
+                animate={{ rotateZ: 360 }}
+                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[120%] h-[120%] border-[1.5px] border-dashed border-cyan-400/20 dark:border-cyan-400/10 rounded-full"
+                style={{ transform: 'rotateX(75deg) rotateY(-10deg) translateZ(0)' }}
+              />
+              <motion.div
+                animate={{ rotateZ: -360 }}
+                transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[130%] h-[130%] border-[1px] border-emerald-300/30 dark:border-emerald-400/10 rounded-full"
+                style={{ transform: 'rotateX(70deg) rotateY(15deg) translateZ(0)' }}
+              />
+              {/* Orbital satellites */}
+              <motion.div
+                animate={{ rotateZ: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[125%] h-[125%]"
+                style={{ transform: 'rotateX(72deg) translateZ(0)' }}
+              >
+                <div className="absolute top-0 left-1/2 w-2 h-2 bg-white dark:bg-slate-200 rounded-full shadow-[0_0_10px_#fff]"></div>
+                <div className="absolute bottom-0 right-1/4 w-1.5 h-1.5 bg-teal-200 dark:bg-teal-400 rounded-full shadow-[0_0_8px_#5eead4]"></div>
+              </motion.div>
             </div>
 
             {/* The 3D Globe */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 1, ease: "easeOut" }}
@@ -442,31 +444,29 @@ export default function Hero() {
                   initial={{ opacity: 0, scale: 0.8, y: 5 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: user.delay + 0.3 }}
-                  className={`absolute bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl shadow-teal-500/10 dark:shadow-black/50 border border-slate-100 dark:border-slate-700 whitespace-nowrap transform transition-all duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 ${
-                    user.bubblePosition === 'top' ? 'bottom-[calc(100%+16px)]' :
+                  className={`absolute bg-white/95 dark:bg-slate-800/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl shadow-teal-500/10 dark:shadow-black/50 border border-slate-100 dark:border-slate-700 whitespace-nowrap transform transition-all duration-300 group-hover:-translate-y-2 group-hover:scale-105 z-20 ${user.bubblePosition === 'top' ? 'bottom-[calc(100%+16px)]' :
                     user.bubblePosition === 'bottom' ? 'top-[calc(100%+16px)]' :
-                    user.bubblePosition === 'left' ? 'right-[calc(100%+16px)] top-0' :
-                    'left-[calc(100%+16px)] top-0'
-                  }`}
+                      user.bubblePosition === 'left' ? 'right-[calc(100%+16px)] top-0' :
+                        'left-[calc(100%+16px)] top-0'
+                    }`}
                 >
                   <p className={`text-sm font-bold ${user.bubbleColor} flex items-center gap-2`}>
                     {user.message}
                   </p>
-                  
+
                   {/* Bubble Pointer */}
-                  <div className={`absolute w-3 h-3 bg-white/95 dark:bg-slate-800/95 border-slate-100 dark:border-slate-700 transform rotate-45 ${
-                    user.bubblePosition === 'top' ? '-bottom-1.5 left-1/2 -translate-x-1/2 border-r border-b' :
+                  <div className={`absolute w-3 h-3 bg-white/95 dark:bg-slate-800/95 border-slate-100 dark:border-slate-700 transform rotate-45 ${user.bubblePosition === 'top' ? '-bottom-1.5 left-1/2 -translate-x-1/2 border-r border-b' :
                     user.bubblePosition === 'bottom' ? '-top-1.5 left-1/2 -translate-x-1/2 border-l border-t' :
-                    user.bubblePosition === 'left' ? '-right-1.5 top-1/2 -translate-y-1/2 border-r border-t' :
-                    '-left-1.5 top-1/2 -translate-y-1/2 border-l border-b'
-                  }`}></div>
+                      user.bubblePosition === 'left' ? '-right-1.5 top-1/2 -translate-y-1/2 border-r border-t' :
+                        '-left-1.5 top-1/2 -translate-y-1/2 border-l border-b'
+                    }`}></div>
                 </motion.div>
 
                 {/* Avatar */}
                 <div className="relative">
                   {/* Avatar Connection Pulse Glow */}
-                  <div className="absolute inset-0 rounded-full bg-emerald-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" style={{ filter: 'blur(10px)' }}></div>
-                  
+                  <div className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.5)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse"></div>
+
                   <div className="w-[60px] h-[60px] sm:w-[72px] sm:h-[72px] rounded-full border-[3px] border-white dark:border-slate-800 bg-gradient-to-br from-teal-400 to-emerald-400 p-[2px] shadow-2xl overflow-hidden transform transition-all duration-300 group-hover:scale-110 group-hover:shadow-teal-500/30 cursor-pointer relative z-10">
                     <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" crossOrigin="anonymous" />
                   </div>
@@ -488,7 +488,7 @@ export default function Hero() {
           </div>
         </div>
       </div>
-      
+
       {/* Bottom Fade Transition into the next section */}
       <div className="absolute bottom-0 left-0 w-full h-32 md:h-48 bg-gradient-to-t from-[#f8fbff] dark:from-[#070b14] to-transparent z-20 pointer-events-none transition-colors duration-500 ease-in-out"></div>
     </section>

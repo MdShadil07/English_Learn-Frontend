@@ -476,6 +476,44 @@ class AuthService {
       };
     }
   }
+
+  async requestPasswordReset(email: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        return { success: false, message: result.message || 'Failed to request password reset' };
+      }
+      return result;
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, newPassword }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        return { success: false, message: result.message || 'Failed to reset password' };
+      }
+      return result;
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
 }
 
 export const authService = new AuthService();

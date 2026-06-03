@@ -75,6 +75,19 @@ const AIChatSettingsPanel: React.FC<AIChatSettingsPanelProps> = ({
 
                   <div className="flex items-center justify-between py-2">
                     <div className="flex-1 pr-3">
+                      <label className="text-sm font-medium">Show Per-Message Snapshot (Mobile)</label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Open mobile accuracy overlay after each message</p>
+                    </div>
+                    <Switch
+                      checked={Boolean(settings.showPerMessageSnapshot)}
+                      onCheckedChange={(checked) =>
+                        setSettings((prev) => ({ ...prev, showPerMessageSnapshot: checked }))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex-1 pr-3">
                       <label className="text-sm font-medium">Auto Translate</label>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Translate responses automatically</p>
                     </div>

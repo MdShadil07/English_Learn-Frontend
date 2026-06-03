@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AuthCard, AuthInput, AuthButton, AuthDivider, AuthFooter } from '@/components/auth';
-import { Mail, Lock, ArrowRight, Github, Chrome } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Github, Chrome, AlertCircle } from 'lucide-react';
 import { authService } from '@/services/authService';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const authError = searchParams.get('error');
+
   const { toast } = useToast();
   const { refreshUser, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -140,9 +144,9 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/50 dark:from-slate-950 dark:via-emerald-950/10 dark:to-teal-950/20 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 -z-10">
-        {/* Large gradient orbs */}
-        <div className="absolute -top-[40%] -right-[60%] w-[100rem] h-[100rem] rounded-full bg-gradient-to-tr from-emerald-100/40 to-teal-100/40 blur-3xl dark:from-emerald-900/20 dark:to-teal-900/20"></div>
-        <div className="absolute -bottom-[30%] -left-[60%] w-[80rem] h-[80rem] rounded-full bg-gradient-to-br from-emerald-100/40 to-green-100/40 blur-3xl dark:from-emerald-900/20 dark:to-green-900/20"></div>
+        {/* Large gradient orbs optimized with radial-gradient instead of heavy blur */}
+        <div className="absolute -top-[40%] -right-[60%] w-[100rem] h-[100rem] rounded-full bg-[radial-gradient(circle,rgba(167,243,208,0.3)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(6,78,59,0.2)_0%,transparent_70%)]" style={{ transform: 'translateZ(0)' }}></div>
+        <div className="absolute -bottom-[30%] -left-[60%] w-[80rem] h-[80rem] rounded-full bg-[radial-gradient(circle,rgba(167,243,208,0.3)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(6,78,59,0.2)_0%,transparent_70%)]" style={{ transform: 'translateZ(0)' }}></div>
       </div>
 
       <div className="w-full max-w-lg mx-auto relative z-10">
@@ -150,6 +154,37 @@ const Login = () => {
           title="Welcome Back"
           subtitle="Sign in to continue your English learning journey"
         >
+          {authError && (
+            <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800/50 text-red-800 dark:text-red-300">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  {authError === 'suspended' && (
+                    <>
+                      <p className="font-semibold mb-1">Account Suspended</p>
+                      <p>Your account has been temporarily suspended due to a violation of our terms.</p>
+                    </>
+                  )}
+                  {authError === 'banned' && (
+                    <>
+                      <p className="font-semibold mb-1">Account Banned</p>
+                      <p>Your account has been permanently banned.</p>
+                    </>
+                  )}
+                  {authError === 'deleted' && (
+                    <>
+                      <p className="font-semibold mb-1">Account Deleted</p>
+                      <p>This account has been deleted and is no longer accessible.</p>
+                    </>
+                  )}
+                  <Link to="/support" className="inline-block mt-3 px-4 py-2 bg-red-100 dark:bg-red-800/50 hover:bg-red-200 dark:hover:bg-red-800 rounded-lg text-red-700 dark:text-red-200 font-medium transition-colors">
+                    Contact Support for Review
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Social Login Options */}
           <div className="space-y-3 mb-6">
             <Button

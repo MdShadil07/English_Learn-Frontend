@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { Crown, Hand, MicOff, Pin, PinOff, VideoOff, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import { cn } from '../../../lib/utils';
+import { roomService } from '../../../services/roomService';
 
 interface VideoTileProps {
   userId: string;
@@ -10,7 +12,6 @@ interface VideoTileProps {
   stream: MediaStream | null;
   isMuted: boolean;
   isVideoOff: boolean;
-  isSpeaking: boolean;
   isPinned: boolean;
   isHost: boolean;
   isLocal: boolean;
@@ -23,14 +24,13 @@ interface VideoTileProps {
   isModerator?: boolean;
 }
 
-const VideoTile = ({
+const VideoTile = React.forwardRef<HTMLDivElement, VideoTileProps>(({
   userId,
   displayName,
   avatar,
   stream,
   isMuted,
   isVideoOff,
-  isSpeaking,
   isPinned,
   isHost,
   isLocal,
@@ -41,31 +41,91 @@ const VideoTile = ({
   isHandRaised,
   masterMute,
   isModerator,
-}: VideoTileProps) => {
+  // when true, force pause of video (used for background optimization)
+  paused,
+}, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    containerRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [ref]);
+
+  useEffect(() => {
+    import('../../../services/SpeakerDetector').then(({ speakerDetector }) => {
+      speakerDetector.onAudioLevel((uid, level, isSpeaking) => {
+        if (uid !== userId || !glowRef.current) return;
+        if (isSpeaking) {
+          glowRef.current.style.opacity = '1';
+        } else {
+          glowRef.current.style.opacity = '0';
+        }
+      });
+    });
+  }, [userId]);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el || !stream) return;
-    if (el.srcObject !== stream) {
+    if (!el) return;
+    if (stream && el.srcObject !== stream) {
       el.srcObject = stream;
-      el.play().catch(() => {});
     }
-  }, [stream]);
+
+    // try to play if visible and not paused
+    const tryPlay = async () => {
+      if (!stream || paused) return;
+      try { await el.play(); } catch { /* ignored */ }
+    };
+
+    tryPlay();
+  }, [stream, paused]);
+
+  // IntersectionObserver to pause offscreen video (saves decode and bandwidth)
+  useEffect(() => {
+    const el = containerRef.current;
+    const vid = videoRef.current;
+    if (!el || !vid) return;
+    const obs = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && !paused) {
+          vid.play().catch(() => {});
+          if (!isLocal) roomService.resumeConsumer(userId, 'video');
+        } else {
+          try { vid.pause(); } catch {};
+          if (!isLocal) roomService.pauseConsumer(userId, 'video');
+        }
+      }
+    }, { threshold: 0.25 });
+    obs.observe(el);
+    return () => { obs.disconnect(); };
+  }, [paused, isLocal, userId]);
 
   const isFeatured = size === 'featured';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className={cn(
-      'relative group rounded-2xl overflow-hidden flex-shrink-0 transition-all duration-300',
-      'bg-slate-900/90 dark:bg-slate-950/90 border border-slate-700/50 dark:border-slate-800/50',
-      isFeatured ? 'w-full h-full' : 'w-24 h-20 sm:w-44 sm:h-28 cursor-pointer',
-      isSpeaking && !isPinned && 'ring-1 sm:ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.3)]',
-      isPinned && 'ring-1 sm:ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.25)]',
-      !isFeatured && 'hover:ring-1 sm:hover:ring-2 hover:ring-emerald-400/50 hover:scale-[1.02]',
-      className
-    )}>
+    <motion.div 
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      ref={setRefs} 
+      className={cn(
+        'relative group rounded-2xl overflow-hidden flex-shrink-0 transition-all duration-300',
+        'bg-slate-900/90 dark:bg-slate-950/90 border border-slate-700/50 dark:border-slate-800/50',
+        isFeatured ? 'w-full h-full' : 'w-24 h-20 sm:w-44 sm:h-28 cursor-pointer',
+        isPinned && 'ring-1 sm:ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.25)]',
+        !isFeatured && 'hover:ring-1 sm:hover:ring-2 hover:ring-emerald-400/50 hover:scale-[1.02]',
+        className
+      )}
+    >
       <video
         ref={videoRef}
         autoPlay
@@ -90,7 +150,12 @@ const VideoTile = ({
         </div>
       )}
 
-      {isSpeaking && <div className="absolute inset-0 border-2 border-emerald-400/60 rounded-2xl pointer-events-none animate-pulse" />}
+      {/* Ref-controlled speaking glow (bypasses React state) */}
+      <div 
+        ref={glowRef}
+        className="absolute inset-0 border-2 sm:border-[3px] border-emerald-400/80 rounded-2xl pointer-events-none shadow-[0_0_20px_rgba(52,211,153,0.3)] transition-opacity duration-150"
+        style={{ opacity: 0 }}
+      />
 
       <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-slate-950/90 to-transparent pointer-events-none" />
 
@@ -114,9 +179,21 @@ const VideoTile = ({
             {isLocal ? 'You' : displayName}
           </span>
           {isHandRaised && (
-             <span className="flex items-center p-0.5 rounded bg-amber-500/20 border border-amber-400/20">
-               <Hand className="w-2.5 h-2.5 text-amber-400 fill-amber-400/20" />
-             </span>
+            <AnimatePresence>
+              <motion.span 
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  opacity: 1,
+                  boxShadow: ["0px 0px 0px rgba(250, 204, 21, 0)", "0px 0px 10px rgba(250, 204, 21, 0.4)", "0px 0px 0px rgba(250, 204, 21, 0)"]
+                }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                className="flex items-center p-0.5 rounded bg-amber-500/20 border border-amber-400/20 z-10"
+              >
+                <Hand className="w-2.5 h-2.5 text-amber-400 fill-amber-400/20" />
+              </motion.span>
+            </AnimatePresence>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -157,8 +234,10 @@ const VideoTile = ({
           {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
-};
+});
 
-export default VideoTile;
+VideoTile.displayName = 'VideoTile';
+
+export default React.memo(VideoTile);

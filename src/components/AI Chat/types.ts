@@ -1,5 +1,11 @@
 import { Dispatch, SetStateAction } from 'react';
-import { AIPersonalityIconId } from '@/components/Icons/AIPersonalityIcons';
+
+export type AIPersonalityIconId =
+  | 'basic-tutor'
+  | 'conversation-coach'
+  | 'grammar-expert'
+  | 'business-mentor'
+  | 'cultural-guide';
 
 export interface AIPersonality {
   id: string;
@@ -67,6 +73,8 @@ export interface UserSettings {
   personality: string;
   showAccuracy: boolean;
   autoTranslate: boolean;
+  // When true, the mobile per-message accuracy snapshot drawer opens after each message
+  showPerMessageSnapshot?: boolean;
   theme: 'light' | 'dark' | 'auto';
 }
 

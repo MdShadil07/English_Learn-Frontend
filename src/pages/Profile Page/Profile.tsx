@@ -31,7 +31,8 @@ import {
   Play,
   BarChart3,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  BadgeCheck
 } from 'lucide-react';
 import { UserProfile } from '@/types/user';
 import { useQuery } from '@tanstack/react-query';
@@ -126,6 +127,7 @@ const Profile: React.FC = () => {
     avatar: user?.avatar || null, // Use AuthContext avatar - single source of truth
     level: 1, // Default level since no stats available
     isPremium: resolvedTier === 'premium',
+    isVerified: Boolean(user?.isVerified ?? profileData.user?.isVerified ?? false),
     subscriptionStatus: profileData.user?.subscriptionStatus || profileData.profile?.subscriptionStatus || mapTierToStatus(resolvedTier),
     role: (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student') as 'student' | 'teacher' | 'admin',
     bio: profileData.user?.bio || profileData.profile?.bio || '',
@@ -242,6 +244,7 @@ const Profile: React.FC = () => {
           fullName: user?.fullName || 'Alex Johnson',
           avatar: user?.avatar, // Use avatar from AuthContext for consistency
           isPremium: profile?.isPremium,
+          isVerified: profile?.isVerified,
           subscriptionStatus: profile?.subscriptionStatus,
           role: (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student') as 'student' | 'teacher' | 'admin',
         }}

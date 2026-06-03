@@ -2,13 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import NewDashboardLayout from '../../components/dashboard/NewDashboardLayout';
 import NewDashboardHome from '../../components/dashboard/NewDashboardHome';
-import GrammarView from '../../components/dashboard/features/GrammarView';
-// Update the import path below to the correct relative path if the file exists elsewhere, for example:
-import VocabularyView from '../../components/dashboard/features/VocabularyView';
-// Or, if the file is missing, create VocabularyView.tsx in the expected directory.
-import WritingView from '../../components/dashboard/features/WritingView';
-// import ReadingView from '@/components/dashboard/features/ReadingView';
-import ReadingView from '../../components/dashboard/features/ReadingView';
+import GrammarView from '../Core Learning/Grammer/GrammarView';
+import VocabularyView from '../Core Learning/Vocabulary/VocabularyView';
+import WritingView from '../Core Learning/writing/WritingView';
+import ReadingView from '../Core Learning/Readin/ReadingView';
 import RoomsView from '../../components/dashboard/features/RoomsView';
 import NotesView from '../../components/dashboard/features/NotesView';
 import CommunityView from '../../components/dashboard/features/CommunityView';

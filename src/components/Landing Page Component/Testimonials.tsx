@@ -135,7 +135,7 @@ const Testimonials = () => {
   if (!isMounted) return null;
 
   return (
-    <section id="testimonials" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-slate-950 relative overflow-hidden transition-colors duration-500 font-sans">
+    <section id="testimonials" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-slate-950 relative overflow-hidden transition-colors duration-500 font-sans scroll-mt-24 lg:scroll-mt-32">
       
       {/* --- Optimized Background Elements (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">

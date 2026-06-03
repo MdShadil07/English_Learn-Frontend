@@ -7,7 +7,8 @@ import {
   TrendingUp,
   BookOpen,
   Brain,
-  Sparkles
+  Sparkles,
+  BadgeCheck
 } from 'lucide-react';
 import { UserProfile } from '@/types/user';
 import { PremiumIcon, BasicIcon } from '@/components/Icons';
@@ -164,9 +165,17 @@ const ProfileHero: React.FC<ProfileHeroProps> = ({ profile }) => {
               >
                 {/* User Name, Role, and Plan */}
                 <div className="text-center lg:text-left">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white mb-1.5 sm:mb-2">
-                    {profile.fullName}
-                  </h1>
+                  <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mb-1.5 sm:mb-2">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white">
+                      {profile.fullName}
+                    </h1>
+                    {profile.isVerified && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
+                        <BadgeCheck className="h-4 w-4" />
+                        Verified
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5 sm:gap-2 md:gap-3">
                     <span className={`px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] md:text-xs font-semibold ${
                       profile.role === 'student'

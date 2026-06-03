@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -18,34 +18,31 @@ const sizeClasses = {
   '2xl': 'w-12 h-12',
 };
 
-export const Logo: React.FC<LogoProps> = ({
+const LogoComponent: React.FC<LogoProps> = ({
   size = 'md',
   className,
   variant = 'adaptive',
   animated = true,
   sidebarState = 'expanded'
 }) => {
-  // Dynamic color handling based on variant and theme
-  const getColorClasses = () => {
-    switch (variant) {
-      case 'white':
-        return 'text-white';
-      case 'black':
-        return 'text-black';
-      case 'adaptive':
-        return 'text-current';
-      default:
-        return 'text-white';
-    }
-  };
+  const colorClass =
+    variant === 'white'
+      ? 'text-white'
+      : variant === 'black'
+        ? 'text-black'
+        : 'text-current';
+
+  const motionClasses = animated
+    ? 'motion-safe:hover:scale-110 motion-safe:hover:rotate-2 motion-safe:hover:drop-shadow-lg'
+    : '';
 
   return (
     <div
       className={cn(
-        "flex items-center justify-center transition-all duration-500 ease-out cursor-pointer",
+        'flex items-center justify-center transition-[transform,filter] duration-500 ease-out cursor-pointer will-change-transform',
         sizeClasses[size],
-        animated && "hover:scale-110 hover:rotate-2 hover:drop-shadow-lg",
-        sidebarState === 'collapsed' && "hover:scale-125",
+        motionClasses,
+        sidebarState === 'collapsed' && animated && 'motion-safe:hover:scale-125',
         className
       )}
       role="img"
@@ -56,14 +53,15 @@ export const Logo: React.FC<LogoProps> = ({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={cn(
-          'w-full h-full drop-shadow-sm transition-all duration-300',
-          animated && "hover:drop-shadow-md",
-          variant === 'adaptive' && "text-inherit",
-          getColorClasses()
+          'w-full h-full drop-shadow-sm transition-[transform,filter] duration-300 will-change-transform',
+          animated && 'motion-safe:hover:drop-shadow-md',
+          variant === 'adaptive' && 'text-inherit',
+          colorClass
         )}
         style={{
           filter: variant === 'adaptive' ? 'inherit' : undefined,
         }}
+        shapeRendering="geometricPrecision"
       >
         {/* Background Circle with subtle gradient */}
         <defs>
@@ -242,3 +240,5 @@ export const Logo: React.FC<LogoProps> = ({
     </div>
   );
 };
+
+export const Logo = memo(LogoComponent);

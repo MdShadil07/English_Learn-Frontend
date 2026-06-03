@@ -1,129 +1,34 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { ThemeProvider } from "next-themes";
+import { lazy, Suspense } from "react";
+import PageSkeleton from "./components/ui/PageSkeleton";
+import AuthSkeleton from "./components/ui/AuthSkeleton";
 
+// ── Eager load ONLY the landing page (first user-visible route) ──────────────
 import Index from "./pages/Landing Page/Index.tsx";
-import Login from "./pages/Auth/Login.tsx";
-import Signup from "./pages/Auth/Signup.tsx";
-import ForgotPassword from "./pages/Auth/ForgotPassword.tsx";
-import NewDashboard from "./pages/Dashboard Page/NewDashboard.tsx";
-import Profile from "./pages/Profile Page/Profile.tsx";
-import EditProfile from "./pages/Edit Profile Page/EditProfile.tsx";
-import Settings from "./pages/Settings Page/Settings.tsx";
-import NotFound from "./pages/NotFound.tsx";
-import AIChatPage from "./pages/AI Chat Page/AIChatPage";
-import PricingPage from "./pages/pricing/PricingPage";
-import CheckoutReturn from "./pages/payment/CheckoutReturn";
-import PracticeRoomPage from "./pages/Practice Room/PracticeRoomPage";
-import PronunciationStudio from "./pages/Pronunciation/PronunciationStudio";
-import LiveCallPage from "./pages/Pronunciation/LiveCallPage";
-import DemoVideoPage from "./pages/DemoVideo/DemoVideoPage";
-import DocumentationCenter from "./pages/Documentation Page/DocumentationCenter";
 
-const queryClient = new QueryClient();
+// ── Lazy load ALL other pages AND their heavy providers (Auth, Supabase, etc) ──
+const HeavyApp = lazy(() => import("./HeavyApp"));
+
+const FallbackRouter = () => {
+  const path = window.location.pathname;
+  const isAuthRoute = path.startsWith('/login') || path.startsWith('/signup') || path.startsWith('/forgot-password') || path.startsWith('/reset-password') || path.startsWith('/auth');
+  return isAuthRoute ? <AuthSkeleton /> : <PageSkeleton />;
+};
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" storageKey="theme" themes={['light', 'dark']}>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/login" element={<Login />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <NewDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-profile"
-              element={
-                <ProtectedRoute>
-                  <EditProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-             <Route
-               path="/ai-chat"
-               element={
-                 <ProtectedRoute>
-                   <AIChatPage />
-                 </ProtectedRoute>
-               }
-             />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/docs" element={<DocumentationCenter />} />
-            <Route path="/documentation" element={<DocumentationCenter />} />
-            <Route
-              path="/payment/checkout-return"
-              element={
-                <ProtectedRoute>
-                  <CheckoutReturn />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/practice-room/:roomId"
-              element={
-                <ProtectedRoute>
-                  <PracticeRoomPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pronunciation"
-              element={
-                <ProtectedRoute>
-                  <PronunciationStudio />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pronunciation/live-call"
-              element={
-                <ProtectedRoute>
-                  <LiveCallPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/demo" element={<DemoVideoPage />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+    <BrowserRouter>
+      <Suspense fallback={<FallbackRouter />}>
+        <Routes>
+          {/* Landing page — eagerly loaded, completely isolated from Supabase/Auth/QueryClient */}
+          <Route path="/" element={<Index />} />
+
+          {/* All other routes are handled by the heavy app chunk */}
+          <Route path="/*" element={<HeavyApp />} />
+        </Routes>
+      </Suspense>
+    </BrowserRouter>
   </ThemeProvider>
 );
 

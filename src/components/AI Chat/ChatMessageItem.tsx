@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 import { AIPersonality, Message, UserSettings } from './types';
-import { getPersonalityIcon } from '@/components/Icons/AIPersonalityIcons';
+import { getPersonalityLogo } from '@/components/Icons/AIPersonalityLogos';
 import { FormattedAIMessage, hasFormatting } from './FormattedAIMessage';
 import { ThinkingIndicator } from './ThinkingIndicator';
 
@@ -27,7 +27,7 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   userName = 'You',
   userAvatar
 }) => {
-  const PersonalityIcon = getPersonalityIcon(selectedPersonality.iconId);
+  const PersonalityIcon = getPersonalityLogo(selectedPersonality.iconId);
   const displayName = message.role === 'user' ? userName : selectedPersonality.name;
   const userInitial = userName.trim().charAt(0).toUpperCase() || 'U';
   
@@ -46,10 +46,10 @@ const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     >
       {message.role === 'assistant' && (
         <div
-          className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-gradient-to-br from-white to-emerald-50/80 dark:from-slate-800 dark:to-slate-700/80 shadow-lg border-2 border-emerald-200/70 dark:border-emerald-600/50 ring-1 ring-emerald-100/40 dark:ring-emerald-800/30"
+          className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-gradient-to-br from-white/70 via-white/30 to-slate-100/50 dark:from-slate-900/75 dark:via-slate-900/55 dark:to-slate-800/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_20px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_20px_rgba(0,0,0,0.24)] border border-white/70 dark:border-white/10 ring-1 ring-black/5 dark:ring-white/5 backdrop-blur-xl transition-transform duration-200 hover:scale-105"
           aria-hidden="true"
         >
-          <PersonalityIcon size={22} className="text-emerald-600 dark:text-emerald-400" />
+          <PersonalityIcon size={18} className="text-emerald-600 dark:text-emerald-400" />
         </div>
       )}
 

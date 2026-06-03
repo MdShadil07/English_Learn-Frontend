@@ -205,6 +205,15 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
                       />
 
                       <SettingItem
+                        title="Show Per-Message Snapshot (Mobile)"
+                        description="Open mobile accuracy overlay after each message"
+                        checked={Boolean(settings.showPerMessageSnapshot)}
+                        onCheckedChange={(checked) =>
+                          setSettings((prev) => ({ ...prev, showPerMessageSnapshot: checked }))
+                        }
+                      />
+
+                      <SettingItem
                         title="Auto Translate"
                         description="Translate responses automatically"
                         checked={settings.autoTranslate}
@@ -279,57 +288,59 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
                   </TabsContent>
 
                   {/* Voice Settings */}
-                  <TabsContent value="voice" className="min-w-0 max-w-full space-y-6 overflow-hidden">
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
-                        Voice Output
-                      </h3>
+                  <TabsContent value="voice" className="min-w-0 max-w-full overflow-hidden">
+                    <div className="mx-auto flex w-full max-w-[17rem] min-w-0 flex-col gap-6 overflow-hidden">
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Voice Output
+                        </h3>
 
-                      <SettingItem
-                        title="Voice Responses"
-                        description="AI speaks responses aloud"
-                        checked={settings.voiceEnabled}
-                        onCheckedChange={(checked) =>
-                          setSettings((prev) => ({ ...prev, voiceEnabled: checked }))
-                        }
-                      />
-                    </div>
-
-                    {settings.voiceEnabled && (
-                      <>
-                        <Separator />
-
-                        <EnhancedVoiceSettings
-                          voices={voices}
-                          selectedVoice={selectedVoice || null}
-                          speechRate={speechRate}
-                          speechPitch={speechPitch}
-                          speechVolume={speechVolume}
-                          userTier={userTier}
-                          currentPersonalityId={currentPersonalityId}
-                          onVoiceSelect={onVoiceSelect || (() => {})}
-                          onSpeechRateChange={onSpeechRateChange || (() => {})}
-                          onSpeechPitchChange={setSpeechPitch}
-                          onSpeechVolumeChange={setSpeechVolume}
-                          onTestVoice={onTestVoice || (() => {})}
+                        <SettingItem
+                          title="Voice Responses"
+                          description="AI speaks responses aloud"
+                          checked={settings.voiceEnabled}
+                          onCheckedChange={(checked) =>
+                            setSettings((prev) => ({ ...prev, voiceEnabled: checked }))
+                          }
                         />
-                      </>
-                    )}
+                      </div>
 
-                    <Separator />
+                      {settings.voiceEnabled && (
+                        <>
+                          <Separator />
+
+                          <EnhancedVoiceSettings
+                            voices={voices}
+                            selectedVoice={selectedVoice || null}
+                            speechRate={speechRate}
+                            speechPitch={speechPitch}
+                            speechVolume={speechVolume}
+                            userTier={userTier}
+                            currentPersonalityId={currentPersonalityId}
+                            onVoiceSelect={onVoiceSelect || (() => {})}
+                            onSpeechRateChange={onSpeechRateChange || (() => {})}
+                            onSpeechPitchChange={setSpeechPitch}
+                            onSpeechVolumeChange={setSpeechVolume}
+                            onTestVoice={onTestVoice || (() => {})}
+                          />
+                        </>
+                      )}
+
+                      <Separator />
 
                       <div className="space-y-2">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
-                        Voice Input
-                      </h3>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                          Voice Input
+                        </h3>
 
-                      <SettingItem
-                        title="Voice Input"
-                        description="Use microphone for text input"
-                        checked={isRecording}
-                        onCheckedChange={onToggleRecording}
-                        icon={<Mic className="h-4 w-4" />}
-                      />
+                        <SettingItem
+                          title="Voice Input"
+                          description="Use microphone for text input"
+                          checked={isRecording}
+                          onCheckedChange={onToggleRecording}
+                          icon={<Mic className="h-4 w-4" />}
+                        />
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -470,6 +481,15 @@ const AIChatSettingsSidebar: React.FC<AIChatSettingsSidebarProps> = ({
                           checked={settings.showAccuracy}
                           onCheckedChange={(checked) =>
                             setSettings((prev) => ({ ...prev, showAccuracy: checked }))
+                          }
+                        />
+
+                        <SettingItem
+                          title="Show Per-Message Snapshot (Mobile)"
+                          description="Open mobile accuracy overlay after each message"
+                          checked={Boolean(settings.showPerMessageSnapshot)}
+                          onCheckedChange={(checked) =>
+                            setSettings((prev) => ({ ...prev, showPerMessageSnapshot: checked }))
                           }
                         />
 

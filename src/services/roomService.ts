@@ -7,12 +7,31 @@
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
 import * as mediasoup from 'mediasoup-client';
-import type { Device, Transport, Producer, Consumer } from 'mediasoup-client';
+import type { Device } from 'mediasoup-client';
+// Some builds / typings for mediasoup-client do not export Transport/Producer/Consumer
+// as named types in every environment. Provide local fallbacks to keep this file
+// type-checkable while still using the runtime `mediasoup` import above.
+type Transport = any;
+type Producer = any;
+type Consumer = any;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Resolve Vite `import.meta.env` at runtime in a way that avoids TypeScript
+// compile-time errors when the compiler's `--module` setting doesn't allow
+// direct `import.meta` usage (common in some toolchains).
+function tryReadViteEnvVar(name: string): string | undefined {
+  try {
+    // Evaluate at runtime to avoid TS parsing import.meta during compile
+    // eslint-disable-next-line no-eval
+    const env = eval('import.meta.env');
+    return env?.[name];
+  } catch {
+    // Fall back to global injection points if present
+    try { return (globalThis as any)?.__VITE_ENV?.[name]; } catch { return undefined; }
+  }
+}
 
-// Industry-standard: SFU URL from env, never hardcoded
-const SFU_URL = import.meta.env.VITE_SFU_URL || 'http://localhost:3001';
+const API_URL = tryReadViteEnvVar('VITE_API_URL') || 'http://localhost:5000/api';
+const SFU_URL = tryReadViteEnvVar('VITE_SFU_URL') || 'http://localhost:3001';
 
 // ─── Public Interfaces ──────────────────────────────────────────────────────
 
@@ -39,6 +58,7 @@ export interface RoomDetails {
   participantCount: number;
   isFull: boolean;
   sfuUrl?: string;
+  mode?: 'smallGroup' | 'classroom' | 'webinar';
   blockedUsers?: RoomParticipant[];
 }
 
@@ -54,6 +74,7 @@ export interface CreateRoomData {
   bannerIsBold?: boolean;
   bannerIsItalic?: boolean;
   bannerFontSize?: number;
+  mode?: 'smallGroup' | 'classroom' | 'webinar';
 }
 
 export interface RoomMessage {
@@ -286,7 +307,7 @@ class RoomService {
     if (this.socket?.connected || this.socket?.active) return;
 
     this.socket = io(
-      import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000',
+      (tryReadViteEnvVar('VITE_API_URL')?.replace('/api', '') || 'http://localhost:5000'),
       { auth: { token }, transports: ['websocket', 'polling'] }
     );
 
@@ -378,15 +399,64 @@ class RoomService {
   // SFU Socket (Mediasoup negotiation — dedicated connection to SFU server)
   // ────────────────────────────────────────────────────────────────────────────
 
-  private connectToSFU(): Promise<void> {
-    if (this.sfuSocket?.connected) return Promise.resolve();
+  private async resolveSFUUrl(roomId: string): Promise<string> {
+    if (this.dynamicSfuUrl) return this.dynamicSfuUrl;
+
+    const preferredRegion = this.getPreferredSfuRegion();
+    try {
+      const res = await axios.get(`${SFU_URL}/assign`, {
+        params: {
+          roomId: roomId || undefined,
+          region: preferredRegion || undefined,
+        },
+      });
+      const assignedUrl = res.data?.url;
+      if (assignedUrl && typeof assignedUrl === 'string') {
+        this.dynamicSfuUrl = assignedUrl;
+        return assignedUrl;
+      }
+    } catch (err) {
+      console.warn('[roomService] SFU assignment failed, falling back to env SFU URL', err);
+    }
+    return SFU_URL;
+  }
+
+  private getPreferredSfuRegion(): string | null {
+    try {
+      const locale = navigator.language || navigator.languages?.[0] || '';
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const normalized = `${locale || ''}|${timeZone || ''}`.toLowerCase();
+
+      if (normalized.includes('in') || normalized.includes('mumbai') || normalized.includes('kolkata') || normalized.includes('delhi')) {
+        return 'ap-south-1';
+      }
+      if (normalized.includes('jp') || normalized.includes('tokyo') || normalized.includes('osaka')) {
+        return 'ap-northeast-1';
+      }
+      if (normalized.includes('sg') || normalized.includes('singapore')) {
+        return 'ap-southeast-1';
+      }
+      if (normalized.includes('eu') || normalized.includes('de') || normalized.includes('fr') || normalized.includes('uk') || normalized.includes('london') || normalized.includes('paris')) {
+        return 'eu-west-1';
+      }
+      if (normalized.includes('us') || normalized.includes('america') || normalized.includes('ny') || normalized.includes('san') || normalized.includes('la') || normalized.includes('toronto')) {
+        return 'us-east-1';
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  private async connectToSFU(): Promise<void> {
+    if (this.sfuSocket?.connected) return;
 
     const token = this.getAuthToken();
-    if (!token) return Promise.reject(new Error('Authentication required for SFU'));
+    if (!token) throw new Error('Authentication required for SFU');
 
     this.sfuSocket?.disconnect();
 
-    const targetSfuUrl = this.dynamicSfuUrl || SFU_URL;
+    const targetSfuUrl = await this.resolveSFUUrl(this.currentRoomId || '');
 
     this.sfuSocket = io(targetSfuUrl, {
       auth: { token },
@@ -660,6 +730,8 @@ class RoomService {
     if (!this.sfuSocket || !this.recvTransport || !this.device || !this.currentRoomId) return;
     if (this.consumedProducerIds.has(producerId)) return;
 
+    const kind = this.knownRoomProducers.find(p => p.id === producerId)?.kind || 'video';
+
     return new Promise<void>((resolve) => {
       this.sfuSocket!.emit(
         'sfu:consume',
@@ -668,8 +740,9 @@ class RoomService {
           transportId:     this.recvTransport!.id,
           producerId,
           rtpCapabilities: this.device!.rtpCapabilities,
+          kind,
           viewContext,
-          kind:            undefined, // SFU infers kind from producerId
+          // SFU relies on kind for gating rules
         },
         async (data: any) => {
           // BLOCKER-1 (client): Server gated this video consumer — not an active speaker.
@@ -740,6 +813,7 @@ class RoomService {
         {
           roomId:          this.currentRoomId,
           producerId,
+          kind:            'video',
           transportId:     this.recvTransport!.id,
           rtpCapabilities: this.device!.rtpCapabilities,
         },
@@ -773,7 +847,7 @@ class RoomService {
   private handleRemoteProducerClosed(producerId: string, producerUserId: string): void {
     this.consumedProducerIds.delete(producerId);
 
-    for (const [consumerId, consumer] of this.consumers.entries()) {
+    for (const [consumerId, consumer] of Array.from(this.consumers.entries())) {
       if ((consumer as any).producerId === producerId) {
         consumer.close();
         this.consumers.delete(consumerId);
@@ -800,7 +874,7 @@ class RoomService {
   // Join / Leave Call
   // ────────────────────────────────────────────────────────────────────────────
 
-  async joinCall(roomId: string): Promise<void> {
+  async joinCall(roomId: string, roomMode?: string): Promise<void> {
     this.currentRoomId = roomId;
 
     // Step 1: Connect dedicated SFU socket (VITE_SFU_URL)
@@ -809,7 +883,7 @@ class RoomService {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Timed out negotiating with SFU')), 15000);
 
-      this.sfuSocket!.emit('sfu:getRouterRtpCapabilities', { roomId }, async (data: any) => {
+      this.sfuSocket!.emit('sfu:getRouterRtpCapabilities', { roomId, roomMode }, async (data: any) => {
         try {
           if (data?.error) throw new Error(data.error);
 
@@ -1022,6 +1096,28 @@ class RoomService {
       catch (err) { console.error('[Mediasoup] Video toggle error:', err); }
     }
     return videoTrack.enabled;
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Consumer Pausing (Frontend Virtualization)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  pauseConsumer(userId: string, kind: string = 'video'): void {
+    if (!this.sfuSocket || !this.currentRoomId) return;
+    this.sfuSocket.emit('sfu:pauseConsumerByUserId', {
+      roomId: this.currentRoomId,
+      targetUserId: userId,
+      kind
+    });
+  }
+
+  resumeConsumer(userId: string, kind: string = 'video'): void {
+    if (!this.sfuSocket || !this.currentRoomId) return;
+    this.sfuSocket.emit('sfu:resumeConsumerByUserId', {
+      roomId: this.currentRoomId,
+      targetUserId: userId,
+      kind
+    });
   }
 
   // ────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,10 @@ import { pronunciationService } from '@/services/pronunciationService';
 import { pronunciationUploadService } from '@/services/pronunciationUploadService';
 import PronunciationRecorder from '@/components/Pronunciation Page/PronunciationRecorder';
 import type { PronunciationRecordingPayload } from '@/types/pronunciation';
+import PhenomenaPanel from '@/components/Pronunciation Page/PhenomenaPanel';
+import CommunicationCoach from '@/components/Pronunciation Page/CommunicationCoach';
+import GamificationPanel from '@/components/Pronunciation Page/GamificationPanel';
+import MouthAnimationSequencer from '@/components/Pronunciation Page/Visuals/MouthAnimationSequencer';
 
 // --- MOCK BUTTON COMPONENT ---
 const Button = ({ children, onClick, className = "", variant = "default", disabled = false }) => {
@@ -107,6 +111,16 @@ const getAnalysisTip = (analysis) => {
     return 'Listen carefully to the target pronunciation and repeat with confidence.';
   }
 
+  const alignedWord = String(analysis.alignedWord || '').trim();
+  const targetWord = String(analysis.word || '').trim();
+  if (!alignedWord && (analysis.issueType === 'omission' || analysis.score === 0)) {
+    return `The target word "${targetWord}" was likely omitted. Slow down and pronounce the full word clearly.`;
+  }
+
+  if (alignedWord && targetWord && alignedWord.toLowerCase() !== targetWord.toLowerCase()) {
+    return `You said "${alignedWord}" instead of "${targetWord}". Focus on consonant sequence and vowel quality.`;
+  }
+
   const issue = analysis.issueType || 'pronunciation';
   if (issue === 'clarity') {
     return `Use a clearer mouth shape for "${analysis.word}" and keep the consonants crisp.`;
@@ -145,7 +159,8 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisStepIndex, setAnalysisStepIndex] = useState(0);
 
-  const pollIntervalRef = useRef(null);
+  const pollIntervalRef = useRef<number | null>(null);
+  const pollTimeoutRef = useRef<number | null>(null);
   const hasInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -165,6 +180,10 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
     if (pollIntervalRef.current) {
       window.clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
+    }
+    if (pollTimeoutRef.current) {
+      window.clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
     }
 
     setSessionInfo(null);
@@ -243,8 +262,9 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
       });
       const attempt = response?.data;
       setAttemptResult(attempt);
-      if (attempt?._id) {
-        pollAttemptStatus(attempt._id);
+      const pollSessionId = sessionInfo?._id || sessionInfo?.id;
+      if (attempt?._id && pollSessionId) {
+        pollAttemptStatus(pollSessionId, attempt._id);
       }
     } catch (error) {
       console.error('Submit attempt error:', error);
@@ -256,28 +276,45 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
     }
   };
 
-  const pollAttemptStatus = (attemptId) => {
+
+  const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
       window.clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
     }
+    if (pollTimeoutRef.current) {
+      window.clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+  }, []);
+
+  const isTerminalAttemptState = (attempt: { status?: string; workflowState?: string; processingStage?: string } | null | undefined): boolean => {
+    if (!attempt) return false;
+    const terminal = ['completed', 'failed', 'retry_required', 'cancelled'];
+    return terminal.includes(attempt.status || '') ||
+           terminal.includes(attempt.workflowState || '') ||
+           terminal.includes(attempt.processingStage || '');
+  };
+
+  const pollAttemptStatus = (sessionId: string, attemptId: string) => {
+    stopPolling();
+
+    // Safety timeout — stop polling after 3 minutes and show an error
+    pollTimeoutRef.current = window.setTimeout(() => {
+      stopPolling();
+      setErrorMessage('Analysis is taking longer than expected. Please refresh and try again.');
+      setSessionState('idle');
+    }, 3 * 60 * 1000);
 
     pollIntervalRef.current = window.setInterval(async () => {
       try {
-        const sessionId = sessionInfo?._id || sessionInfo?.id;
-        if (!sessionId) {
-          return;
-        }
         const response = await pronunciationService.getAttempt(sessionId, attemptId);
         const attempt = response?.data;
         if (attempt) {
           setAttemptResult(attempt);
-          if (attempt.status === 'completed' || attempt.status === 'failed' || attempt.status === 'retry_required') {
+          if (isTerminalAttemptState(attempt)) {
             setSessionState('results');
-            if (pollIntervalRef.current) {
-              window.clearInterval(pollIntervalRef.current);
-              pollIntervalRef.current = null;
-            }
+            stopPolling();
           }
         }
       } catch (error) {
@@ -324,25 +361,86 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
     }
   };
 
+  const validation = attemptResult?.trustSignals?.validation;
+  const classification = attemptResult?.attemptClassification || validation?.classification;
+
   const historyTranscript = (passage?.text || defaultPassageText).split(/\s+/).map((word) => {
     const normalized = word.replace(/[.,!?;:]/g, '');
-    const analysis = attemptResult?.wordAnalysis?.find((item) => item.word?.toLowerCase() === normalized.toLowerCase());
+    const normalizedLower = normalized.toLowerCase();
+    const analysis = attemptResult?.wordAnalysis?.find((item) => {
+      const normalizedAnalysisWord = item.word?.toLowerCase() || '';
+      const normalizedAlignedWord = item.alignedWord?.toLowerCase() || '';
+      return normalizedAnalysisWord === normalizedLower || normalizedAlignedWord === normalizedLower;
+    });
     const score = analysis?.score ?? 100;
+    const classification = attemptResult?.attemptClassification || validation?.classification;
+    const isTrustRejected = Boolean(classification && classification !== 'valid_reading');
     const status = analysis
       ? score >= 90
         ? 'perfect'
         : score >= 75
         ? 'warning'
         : 'error'
+      : isTrustRejected
+      ? classification === 'partial_reading'
+        ? 'warning'
+        : 'error'
       : sessionState === 'results'
-      ? 'warning'
+      ? 'perfect'
       : 'perfect';
+
+    const expectedPhonemes = analysis?.expectedPhonemes || [];
+    const actualPhonemes = analysis?.actualPhonemes || [];
+    const alignmentConfidence = analysis ? (analysis?.alignmentConfidence ?? undefined) : undefined;
+    const confidenceLevel = alignmentConfidence >= 0.82 ? 'high' : alignmentConfidence >= 0.6 ? 'medium' : 'low';
+
+    const alignedWord = String(analysis?.alignedWord || '').trim();
+    const targetWord = String(normalized || '').trim();
+    const isOmitted = Boolean(analysis && !alignedWord && (analysis.issueType === 'omission' || analysis.score === 0));
+    const isSubstitution = Boolean(analysis && alignedWord && alignedWord.toLowerCase() !== normalizedLower);
+    const isLowConfidence = typeof alignmentConfidence === 'number' && alignmentConfidence < 0.6;
+
+    const wordPhenomena = (attemptResult?.phenomena || []).filter((p) => {
+      const id = String(p?.id || '').toLowerCase();
+      const name = String(p?.name || '').toLowerCase();
+      const evidence = Array.isArray(p?.evidence) ? p.evidence.join(' ').toLowerCase() : '';
+      return id.includes(normalizedLower) || name.includes(normalizedLower) || evidence.includes(normalizedLower);
+    }).slice(0, 3);
+
+    let diagnosisTitle = 'Pronunciation deviation';
+    let diagnosisReason = 'This word differs from the expected pronunciation profile.';
+    let phenomenaMissingReason = 'No stable phenomenon was attached for this word.';
+
+    if (isOmitted) {
+      diagnosisTitle = 'Word omitted';
+      diagnosisReason = `Target word "${targetWord}" was not reliably detected in your speech.`;
+      phenomenaMissingReason = 'Phenomena is empty here because the word was omitted, so no spoken phoneme pattern could be extracted.';
+    } else if (isSubstitution) {
+      diagnosisTitle = 'Word substitution';
+      diagnosisReason = `Target "${targetWord}" was recognized as "${alignedWord}".`;
+      phenomenaMissingReason = 'Phenomena is empty because this looks like a lexical substitution at low confidence rather than a stable phonological pattern.';
+    } else if (isLowConfidence) {
+      diagnosisTitle = 'Low alignment confidence';
+      diagnosisReason = `The system could not align this word confidently (confidence ${Math.round((alignmentConfidence || 0) * 100)}%).`;
+      phenomenaMissingReason = 'Phenomena is empty because low alignment confidence prevents trustworthy phoneme-level pattern extraction.';
+    }
 
     return {
       word,
       status,
-      ipa: analysis?.expectedPhonemes?.join(' ') || '',
-      userIpa: analysis?.actualPhonemes?.join(' ') || '',
+      ipa: expectedPhonemes.length ? expectedPhonemes.join(' ') : '—',
+      userIpa: actualPhonemes.length ? actualPhonemes.join(' ') : '—',
+      alignmentConfidence,
+      confidenceLevel,
+      alignedWord: alignedWord || null,
+      diagnosisTitle,
+      diagnosisReason,
+      phenomenaForWord: wordPhenomena,
+      phenomenaMissingReason,
+      phonemes: {
+        expected: expectedPhonemes,
+        actual: actualPhonemes,
+      },
       tip: analysis ? getAnalysisTip(analysis) : 'Focus on clarity and rhythm while reading each sentence aloud.',
     };
   });
@@ -354,9 +452,8 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
   };
 
   const issueWords = attemptResult?.wordAnalysis?.filter((item) => item.score < 90) ?? [];
-  const validation = attemptResult?.trustSignals?.validation;
-  const classification = attemptResult?.attemptClassification || validation?.classification;
   const isValidationOnlyAttempt = Boolean(classification && classification !== 'valid_reading');
+  const severity = attemptResult?.trustSignals?.severity?.label || (attemptResult?.severity >= 4 ? 'critical' : attemptResult?.severity >= 3 ? 'major' : attemptResult?.severity >= 2 ? 'moderate' : 'minor');
   const focusWords = issueWords.slice(0, 3).map((item) => item.word).join(', ') || 'pronunciation accuracy';
   const analysisStatus = isValidationOnlyAttempt
     ? (classificationLabels[classification] || 'Validation required')
@@ -375,6 +472,31 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
   const isAttemptFailed = attemptResult?.status === 'failed' || attemptResult?.status === 'retry_required';
 
   const transcriptData = historyTranscript.length ? historyTranscript : defaultTranscriptData;
+  const getConfidenceMeta = (confidence?: number) => {
+    if (typeof confidence !== 'number') {
+      return { label: 'Not scored', tone: 'text-slate-600 bg-slate-100 border-slate-200 dark:text-slate-300 dark:bg-slate-800/40 dark:border-slate-700/60' };
+    }
+    const value = confidence;
+    if (value >= 0.82) {
+      return { label: 'High confidence', tone: 'text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:border-emerald-800/50' };
+    }
+    if (value >= 0.6) {
+      return { label: 'Uncertain', tone: 'text-amber-700 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-800/50' };
+    }
+    return { label: 'Unreliable', tone: 'text-rose-700 bg-rose-100 border-rose-200 dark:text-rose-300 dark:bg-rose-900/30 dark:border-rose-800/50' };
+  };
+  const getSeverityMeta = (value?: string) => {
+    switch (value) {
+      case 'critical':
+        return { label: 'Critical', tone: 'text-rose-700 bg-rose-100 border-rose-200 dark:text-rose-300 dark:bg-rose-900/30 dark:border-rose-800/50' };
+      case 'major':
+        return { label: 'Major', tone: 'text-orange-700 bg-orange-100 border-orange-200 dark:text-orange-300 dark:bg-orange-900/30 dark:border-orange-800/50' };
+      case 'moderate':
+        return { label: 'Moderate', tone: 'text-amber-700 bg-amber-100 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-800/50' };
+      default:
+        return { label: 'Minor', tone: 'text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:border-emerald-800/50' };
+    }
+  };
   const analysisSteps = [
     {
       title: 'Preparing your audio',
@@ -693,6 +815,13 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
 
                       {/* --- RIGHT COLUMN: INTERACTIVE TRANSCRIPT --- */}
                       <div className="lg:col-span-8 flex flex-col gap-6 h-full">
+                        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                          <PhenomenaPanel attempt={attemptResult} />
+                          <CommunicationCoach attempt={attemptResult} />
+                        </div>
+                        <div className="mb-4">
+                          <GamificationPanel attempt={attemptResult} />
+                        </div>
                         <div className="bg-slate-50/80 dark:bg-slate-900/50 rounded-[2.5rem] p-6 md:p-8 border border-slate-200/60 dark:border-slate-800/60 shadow-sm flex-1 relative overflow-hidden flex flex-col">
                           
                           <div className="flex justify-between items-center mb-6">
@@ -766,7 +895,10 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
                                       : 'bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 cursor-pointer'
                                   } ${activeWord?.word === item.word ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-slate-400 dark:ring-slate-500 scale-105' : ''}`}
                                 >
-                                  {item.word}
+                                  <span className="flex flex-col items-center leading-none gap-1">
+                                    <span>{item.word}</span>
+                                    <span className={`text-[9px] md:text-[10px] px-2 py-0.5 rounded-full border ${getConfidenceMeta(item.alignmentConfidence).tone}`}>{getConfidenceMeta(item.alignmentConfidence).label}</span>
+                                  </span>
                                 </motion.button>
                               ))}
                             </div>
@@ -793,15 +925,33 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
                                     <div className="flex items-center gap-6 bg-white dark:bg-slate-900 p-4 px-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm flex-shrink-0 w-full sm:w-auto justify-center">
                                       <div className="text-center">
                                         <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">Target</div>
-                                        <div className="text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400">/{activeWord.ipa}/</div>
+                                        {activeWord.ipa && activeWord.ipa !== '—' ? (
+                                          <div className="text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400">/{activeWord.ipa}/</div>
+                                        ) : (
+                                          <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">No expected phonemes available</div>
+                                        )}
                                       </div>
                                       <div className="w-px h-10 bg-slate-200 dark:bg-slate-700"></div>
                                       <div className="text-center">
                                         <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1.5">You Said</div>
-                                        <div className={`text-xl font-mono font-bold ${activeWord.status === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                                          /{activeWord.userIpa}/
-                                        </div>
+                                        {activeWord.userIpa && activeWord.userIpa !== '—' ? (
+                                          <div className={`text-xl font-mono font-bold ${activeWord.status === 'error' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                            /{activeWord.userIpa}/
+                                          </div>
+                                        ) : (
+                                          <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">No spoken phonemes captured</div>
+                                        )}
                                       </div>
+                                    </div>
+
+                                    <div className="w-full sm:w-auto rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs bg-white/70 dark:bg-slate-900/60">
+                                      <div><span className="font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Target Word:</span> <span className="font-semibold text-slate-800 dark:text-slate-100">{activeWord.word}</span></div>
+                                      <div className="mt-1"><span className="font-extrabold text-slate-500 uppercase tracking-widest text-[10px]">Detected Word:</span> <span className="font-semibold text-slate-800 dark:text-slate-100">{activeWord.alignedWord || 'Not detected'}</span></div>
+                                    </div>
+
+                                    <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest ${getConfidenceMeta(activeWord.alignmentConfidence).tone}`}>
+                                      <span className="h-2 w-2 rounded-full bg-current"></span>
+                                      {getConfidenceMeta(activeWord.alignmentConfidence).label}
                                     </div>
 
                                     {/* Feedback Tip */}
@@ -813,6 +963,33 @@ export default function SoloPracticeModal({ isOpen = true, onClose = () => {} })
                                       <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                                         {activeWord.tip}
                                       </p>
+                                      <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/50 p-3">
+                                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">{activeWord.diagnosisTitle || 'Word diagnosis'}</p>
+                                        <p className="mt-1 text-xs text-slate-700 dark:text-slate-200">{activeWord.diagnosisReason || 'No diagnosis details available.'}</p>
+                                      </div>
+                                      <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/60 p-3">
+                                        <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Expected vs Spoken Phenomena</p>
+                                        {Array.isArray(activeWord.phenomenaForWord) && activeWord.phenomenaForWord.length ? (
+                                          <div className="mt-2 space-y-2">
+                                            {activeWord.phenomenaForWord.map((ph, i) => (
+                                              <div key={`${ph.id || ph.name || 'phen'}-${i}`} className="text-xs">
+                                                <p className="font-bold text-slate-800 dark:text-slate-100">{ph.name}</p>
+                                                <p className="text-slate-600 dark:text-slate-300">{Array.isArray(ph.evidence) ? ph.evidence.join(' ') : 'No evidence text.'}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{activeWord.phenomenaMissingReason || 'Phenomena is empty because this word did not produce a stable reusable pattern in this attempt.'}</p>
+                                        )}
+                                      </div>
+                                      <div className="mt-3">
+                                        <MouthAnimationSequencer
+                                          cue={activeWord.animationCue}
+                                          expected={activeWord?.phonemes?.expected || []}
+                                          actual={activeWord?.phonemes?.actual || []}
+                                          word={activeWord.word}
+                                        />
+                                      </div>
                                       <button 
                                         onClick={() => handlePlayNativeAudio(activeWord.word)}
                                         className="mt-4 text-[11px] font-extrabold flex items-center gap-1.5 text-[#0f172a] dark:text-white bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"

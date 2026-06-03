@@ -3,7 +3,17 @@ import { motion } from 'framer-motion';
 import { Users, Clock, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const CommunityRoomCard = ({ rooms = [] }) => {
+interface RoomItem {
+  id?: string;
+  name: string;
+  members: number;
+  level: string;
+  status: 'live' | 'scheduled';
+  banner?: string;
+  description?: string;
+}
+
+const CommunityRoomCard = ({ rooms = [] }: { rooms: RoomItem[] }) => {
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const displayRooms = safeRooms.slice(0, 4);
 
@@ -31,7 +41,7 @@ const CommunityRoomCard = ({ rooms = [] }) => {
 
         return (
           <motion.div 
-            key={room.name || index} 
+            key={room.id ?? `room-${index}`} 
             initial={{ opacity: 0, x: -30 }} 
             animate={{ opacity: 1, x: 0 }} 
             transition={{ delay: index * 0.1 }}

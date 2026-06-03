@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Flame, Trophy } from 'lucide-react';
+import { Flame, Trophy, BadgeCheck } from 'lucide-react';
 import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon, ProPlanIcon } from '@/components/Icons/SubscriptionIcons';
 import { SubscriptionCard } from '../Global Component/SubscriptionCard';
 
@@ -16,6 +16,7 @@ interface ProfileSideBarUserCardProps {
       currentStreak: number;
       totalXP: number;
     };
+    isVerified?: boolean;
     subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro';
   };
 }
@@ -56,7 +57,10 @@ export const ProfileSideBarUserCard: React.FC<ProfileSideBarUserCardProps> = ({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate text-base">{profile.fullName}</h3>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate text-base">{profile.fullName}</h3>
+                {profile.isVerified && <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />}
+              </div>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-slate-600 dark:text-slate-400">Level {profile.level}</p>
                 <div className="w-1 h-1 rounded-full bg-slate-400"></div>

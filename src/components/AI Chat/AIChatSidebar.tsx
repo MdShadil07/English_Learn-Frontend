@@ -33,8 +33,12 @@ export interface AccuracyResult {
     level?: string;
   };
   netXP?: number;
+  readability?: any;
+  tone?: any;
+  style?: any;
+  premiumFeatures?: any;
 }
-import { getPersonalityIcon } from '../Icons/AIPersonalityIcons';
+import { getConversationPersonalityLogo, getPersonalityLogo } from '../Icons/AIPersonalityLogos';
 
 interface AIChatSidebarProps {
   conversations: Conversation[];
@@ -252,28 +256,29 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                     <div className="space-y-2.5 pb-4">
                               {conversations.map((conversation) => {
                         const personality = getPersonality(conversation.personalityId);
+                        const PersonalityIcon = getConversationPersonalityLogo(personality?.iconId ?? 'basic-tutor');
                                 return (
                                   <button
                                     key={conversation.id}
                                     type="button"
                                     className={cn(
-                                      'flex w-full max-w-full items-start gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-transform duration-150 will-change-transform',
-                                      'border-emerald-200/50 bg-white/85 shadow-sm dark:border-emerald-800/50 dark:bg-slate-900/70',
-                                      'hover:translate-x-0.5 hover:shadow-lg dark:hover:border-emerald-600/60',
+                                      'group flex w-full max-w-full items-start gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all duration-200 will-change-transform',
+                                      'border-emerald-200/40 bg-white/82 shadow-sm backdrop-blur-xl dark:border-emerald-800/40 dark:bg-slate-900/68',
+                                      'hover:-translate-y-0.5 hover:shadow-lg dark:hover:border-emerald-600/50',
                                       activeConversation?.id === conversation.id &&
-                                        'border-emerald-400 bg-gradient-to-br from-emerald-50/90 via-teal-50/85 to-cyan-50/90 shadow-xl dark:border-emerald-500'
+                                        'border-white/60 bg-gradient-to-br from-white/92 via-emerald-50/70 to-slate-50/90 shadow-[0_14px_35px_rgba(15,23,42,0.12)] ring-1 ring-emerald-400/15 dark:border-white/10 dark:from-slate-900/80 dark:via-emerald-950/35 dark:to-slate-900/75 dark:shadow-[0_14px_35px_rgba(0,0,0,0.35)] dark:ring-emerald-400/10'
                                     )}
                                     onClick={() => onSelectConversation(conversation)}
                                   >
-                            <div
-                              className={cn(
-                                'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-xs font-semibold text-white shadow-inner shadow-emerald-900/20',
-                                personality?.gradient ?? 'from-emerald-400 to-teal-500'
-                              )}
+                                    <div
+                                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-white/70 via-white/30 to-slate-100/50 dark:from-slate-900/75 dark:via-slate-900/55 dark:to-slate-800/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_8px_16px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.22)] border border-white/70 dark:border-white/10 ring-1 ring-black/5 dark:ring-white/5 backdrop-blur-xl transition-transform duration-200 group-hover:scale-105 group-active:scale-95"
                                       style={{ transform: 'translateZ(0)' }}
-                            >
-                              {personality?.avatar ?? '🤖'}
-                            </div>
+                                    >
+                                      <PersonalityIcon
+                                        size={18}
+                                        className="text-emerald-600 dark:text-emerald-300"
+                                      />
+                                    </div>
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex items-center justify-between gap-1.5">
                                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -327,7 +332,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                     <div className="space-y-3">
                       {personalities.map((personality) => {
                         const isSelected = personality.id === selectedPersonalityId;
-                        const PersonalityIcon = getPersonalityIcon(personality.iconId);
+                        const PersonalityIcon = getPersonalityLogo(personality.iconId);
                         return (
                           <button
                             key={personality.id}
@@ -341,7 +346,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                             )}
                             style={{ transform: 'translateZ(0)' }}
                           >
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white to-emerald-50/80 dark:from-slate-800 dark:to-slate-700/80 shadow-lg border-2 border-emerald-200/70 dark:border-emerald-600/50 ring-1 ring-emerald-100/50 dark:ring-emerald-800/30">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-white/70 via-white/30 to-slate-100/50 dark:from-slate-900/75 dark:via-slate-900/55 dark:to-slate-800/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_20px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_20px_rgba(0,0,0,0.24)] border border-white/70 dark:border-white/10 ring-1 ring-black/5 dark:ring-white/5 backdrop-blur-xl transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
                               <PersonalityIcon size={22} className="text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div className="flex-1 min-w-0 overflow-hidden">
@@ -682,6 +687,89 @@ const SidebarAccuracyCard: React.FC<{
             ))}
           </div>
         )}
+
+        {/* Advanced NLP Insights */}
+        {(accuracy.readability || accuracy.tone || accuracy.style || accuracy.vocabularyAnalysis || accuracy.premiumFeatures) && (
+          <div className="pt-4 border-t border-amber-200/30 dark:border-amber-800/30 flex flex-col gap-3">
+            <h3 className="text-[10px] font-bold text-amber-900 dark:text-amber-100 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              Advanced Insights
+            </h3>
+            
+            {accuracy.readability && (
+              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Readability</span>
+                  <span className="text-xs font-black dark:text-amber-100">{accuracy.readability.fleschReadingEase ?? 'N/A'}</span>
+                </div>
+                <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70 leading-snug">{accuracy.readability.recommendation || accuracy.readability.averageLevel}</p>
+              </div>
+            )}
+
+            {accuracy.tone && (
+              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Tone Analysis</span>
+                  <span className="text-xs font-black dark:text-amber-100 capitalize">{accuracy.tone.overall ?? 'Neutral'}</span>
+                </div>
+                <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70">Formality: {accuracy.tone.formalityScore}% | Assert: {accuracy.tone.assertivenessScore}%</p>
+                {accuracy.tone.recommendations && accuracy.tone.recommendations.length > 0 && (
+                  <div className="mt-1.5 pt-1.5 border-t border-amber-200/40 dark:border-amber-800/40">
+                    <ul className="text-[9px] text-amber-700/90 dark:text-amber-300/90 list-disc pl-3 flex flex-col gap-0.5">
+                      {accuracy.tone.recommendations.map((rec: string, i: number) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {accuracy.vocabularyAnalysis && accuracy.vocabularyAnalysis.suggestions && accuracy.vocabularyAnalysis.suggestions.length > 0 && (
+              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Vocab Enhancements</span>
+                </div>
+                <ul className="text-[9px] text-amber-700/80 dark:text-amber-300/80 flex flex-col gap-1.5 mt-1">
+                  {accuracy.vocabularyAnalysis.suggestions.map((sug: any, i: number) => (
+                    <li key={i} className="flex flex-col">
+                      <span className="font-semibold text-amber-800 dark:text-amber-200">"{sug.original}" ➔ {sug.suggested.join(', ')}</span>
+                      {sug.reason && <span className="opacity-80 mt-0.5 leading-snug">{sug.reason}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {accuracy.style && (
+              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Writing Style</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                   <div className="flex justify-between text-[9px] text-amber-700/80 dark:text-amber-300/80">
+                     <span>Passive Voice:</span>
+                     <span className="font-semibold">{accuracy.style.passiveVoiceUsage ?? 0}%</span>
+                   </div>
+                   <div className="flex justify-between text-[9px] text-amber-700/80 dark:text-amber-300/80">
+                     <span>Sentence Variance:</span>
+                     <span className="font-semibold">{accuracy.style.sentenceLengthVariance ?? 0}</span>
+                   </div>
+                </div>
+              </div>
+            )}
+            
+            {accuracy.premiumFeatures && accuracy.premiumFeatures.premiumBadges && accuracy.premiumFeatures.premiumBadges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {accuracy.premiumFeatures.premiumBadges.map((badge: string, i: number) => (
+                   <span key={i} className="text-[9px] font-bold bg-amber-100/80 text-amber-700 px-2 py-0.5 rounded-full dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50">
+                     {badge}
+                   </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -725,7 +813,7 @@ const StatPill: React.FC<{ label: string; value: React.ReactNode; tone: 'emerald
 
 // Memoize heavy subcomponents to avoid unnecessary re-renders
 const MemoSidebarUserCard = memo(SidebarUserCard);
-const MemoSidebarAccuracyCard = memo(SidebarAccuracyCard);
+export const MemoSidebarAccuracyCard = memo(SidebarAccuracyCard);
 const MemoEmptyStateCard = memo(EmptyStateCard);
 const MemoStatPill = memo(StatPill);
 

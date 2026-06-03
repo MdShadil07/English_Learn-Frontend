@@ -11,6 +11,8 @@ import {
   MonitorOff
 } from 'lucide-react';
 
+import { Hand } from 'lucide-react';
+
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
@@ -54,7 +56,14 @@ const VideoTile: React.FC<VideoTileProps> = ({
   }, [stream]);
 
   return (
-    <Card className={cn("relative overflow-hidden bg-gray-900 border-gray-700", className)}>
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className={cn("relative overflow-hidden bg-gray-900 border-gray-700 rounded-xl h-full w-full", className)}
+    >
       {stream && !isVideoOff ? (
         <video
           ref={videoRef}
@@ -93,7 +102,29 @@ const VideoTile: React.FC<VideoTileProps> = ({
           {isVideoOff && <VideoOff className="w-4 h-4 text-red-500" />}
         </div>
       </div>
-    </Card>
+      {/* Hand Raised Pulsing Badge */}
+      <AnimatePresence>
+        {participant?.isHandRaised && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ 
+              scale: [1, 1.1, 1],
+              opacity: 1,
+              boxShadow: ["0px 0px 0px rgba(250, 204, 21, 0)", "0px 0px 20px rgba(250, 204, 21, 0.6)", "0px 0px 0px rgba(250, 204, 21, 0)"]
+            }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ 
+              duration: 1.5, 
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute top-2 right-2 bg-yellow-500 rounded-full p-1.5 z-10"
+          >
+            <Hand className="w-4 h-4 text-white" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -370,29 +401,32 @@ const VideoCall: React.FC<VideoCallProps> = ({
                 gridTemplateRows: `repeat(${gridRows}, 1fr)`
               }}
             >
-              {/* Local video */}
-              <VideoTile
-                userId="local"
-                stream={isScreenSharing ? screenStream || localStream : localStream}
-                isLocal={true}
-                isMuted={!isMicOn}
-                isVideoOff={!isVideoOn && !isScreenSharing}
-                className="min-h-[200px]"
-              />
-
-              {/* Remote videos */}
-              {activeStreams.map((peer) => {
-                const participant = participants.find(p => p.userId === peer.userId);
-                return (
-                  <VideoTile
-                    key={peer.userId}
-                    userId={peer.userId}
-                    stream={peer.stream}
-                    participant={participant}
-                    className="min-h-[200px]"
-                  />
-                );
-              })}
+              <AnimatePresence mode="popLayout">
+                {/* Local video */}
+                <VideoTile
+                  key="local"
+                  userId="local"
+                  stream={isScreenSharing ? screenStream || localStream : localStream}
+                  isLocal={true}
+                  isMuted={!isMicOn}
+                  isVideoOff={!isVideoOn && !isScreenSharing}
+                  className="min-h-[200px]"
+                />
+  
+                {/* Remote videos */}
+                {activeStreams.map((peer) => {
+                  const participant = participants.find(p => p.userId === peer.userId);
+                  return (
+                    <VideoTile
+                      key={peer.userId}
+                      userId={peer.userId}
+                      stream={peer.stream}
+                      participant={participant}
+                      className="min-h-[200px]"
+                    />
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
 

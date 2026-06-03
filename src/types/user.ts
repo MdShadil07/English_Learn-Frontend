@@ -8,6 +8,7 @@ export interface UserProfile {
   avatar?: string; // Updated to match auth controller response
   level: number;
   isPremium: boolean;
+  isVerified?: boolean;
   subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro' | 'expired';
   subscriptionDetails?: SubscriptionDetails;
   role: 'student' | 'teacher' | 'admin';

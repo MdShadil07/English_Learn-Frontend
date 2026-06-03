@@ -98,7 +98,7 @@ const HowItWorks = () => {
   if (!isMounted) return null;
 
   return (
-    <section className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden font-sans transition-colors duration-500" id="how-it-works">
+    <section className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden font-sans transition-colors duration-500 scroll-mt-24 lg:scroll-mt-32" id="how-it-works">
 
       {/* --- Optimized Background Elements (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -400,7 +400,7 @@ const HowItWorks = () => {
               <p className="text-lg text-slate-500 dark:text-slate-400 mb-8 leading-relaxed font-medium">
                 Join live practice rooms, compete in global leaderboards, and make friends. Learning is faster when you do it together in a supportive, interconnected environment.
               </p>
-              <button 
+              <button
                 onClick={() => setIsCommunityRulesOpen(true)}
                 className="text-teal-600 dark:text-teal-400 text-base font-bold flex items-center gap-2 hover:opacity-80 transition-opacity group"
               >
@@ -578,9 +578,9 @@ const HowItWorks = () => {
 
       </div>
 
-      <CommunityRulesModal 
-        isOpen={isCommunityRulesOpen} 
-        onClose={() => setIsCommunityRulesOpen(false)} 
+      <CommunityRulesModal
+        isOpen={isCommunityRulesOpen}
+        onClose={() => setIsCommunityRulesOpen(false)}
       />
     </section>
   );

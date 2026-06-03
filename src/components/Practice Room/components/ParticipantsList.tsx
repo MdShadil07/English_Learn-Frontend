@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Crown, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Virtuoso } from 'react-virtuoso';
 
 import { RoomDetails } from '../../../services/roomService';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
@@ -38,79 +39,82 @@ const ParticipantsList = ({
         </Badge>
       </div>
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {participants.map((participant, index) => (
-          <motion.div
-            key={participant.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`flex items-center justify-between p-3 rounded-lg border ${
-              participant.id === currentUserId
-                ? 'bg-blue-50 border-blue-200'
-                : 'bg-gray-50 border-gray-200'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={participant.avatar} alt={participant.name} />
-                  <AvatarFallback>
-                    {participant.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+      <div className="h-96 w-full mt-4">
+        <Virtuoso
+          style={{ height: '100%', width: '100%' }}
+          data={participants}
+          itemContent={(index, participant) => (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0 }}
+              className={`flex items-center justify-between p-3 rounded-lg border mb-2 ${
+                participant.id === currentUserId
+                  ? 'bg-blue-50 border-blue-200'
+                  : 'bg-gray-50 border-gray-200'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={participant.avatar} alt={participant.name} />
+                    <AvatarFallback>
+                      {participant.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                {/* Speaking Indicator */}
+                  {/* Speaking Indicator */}
+                  {participant.isSpeaking && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                      <Volume2 className="h-2 w-2 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      {participant.name}
+                    </span>
+                    {participant.isHost && (
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                    )}
+                    {participant.id === currentUserId && (
+                      <Badge variant="secondary" className="text-xs">
+                        You
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    {participant.isMuted ? (
+                      <MicOff className="h-3 w-3 text-red-500" />
+                    ) : (
+                      <Mic className="h-3 w-3 text-green-500" />
+                    )}
+                    <span className="text-xs text-gray-500">
+                      {participant.isMuted ? 'Muted' : 'Unmuted'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Indicators */}
+              <div className="flex items-center gap-2">
+                {participant.isHost && (
+                  <Badge variant="outline" className="text-xs">
+                    Host
+                  </Badge>
+                )}
                 {participant.isSpeaking && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                    <Volume2 className="h-2 w-2 text-white" />
+                  <div className="flex items-center gap-1 text-green-600">
+                    <Volume2 className="h-3 w-3" />
+                    <span className="text-xs">Speaking</span>
                   </div>
                 )}
               </div>
-
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">
-                    {participant.name}
-                  </span>
-                  {participant.isHost && (
-                    <Crown className="h-4 w-4 text-yellow-500" />
-                  )}
-                  {participant.id === currentUserId && (
-                    <Badge variant="secondary" className="text-xs">
-                      You
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  {participant.isMuted ? (
-                    <MicOff className="h-3 w-3 text-red-500" />
-                  ) : (
-                    <Mic className="h-3 w-3 text-green-500" />
-                  )}
-                  <span className="text-xs text-gray-500">
-                    {participant.isMuted ? 'Muted' : 'Unmuted'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Status Indicators */}
-            <div className="flex items-center gap-2">
-              {participant.isHost && (
-                <Badge variant="outline" className="text-xs">
-                  Host
-                </Badge>
-              )}
-              {participant.isSpeaking && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <Volume2 className="h-3 w-3" />
-                  <span className="text-xs">Speaking</span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          )}
+        />
       </div>
 
       {/* Room Capacity Warning */}

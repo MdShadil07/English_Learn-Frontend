@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
 import {
   Globe,
@@ -94,6 +94,28 @@ export default function PracticeRoomHero({
   onCreateClick?: () => void;
   onBrowseClick?: () => void;
 }) {
+  const floatingParticles = useMemo(() => {
+    return Array.from({ length: 8 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 10 + 10,
+      delay: Math.random() * 5,
+    }));
+  }, []);
+
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const updateDesktopState = () => setIsDesktop(mediaQuery.matches);
+
+    updateDesktopState();
+    mediaQuery.addEventListener('change', updateDesktopState);
+    return () => mediaQuery.removeEventListener('change', updateDesktopState);
+  }, []);
+
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
@@ -110,14 +132,17 @@ export default function PracticeRoomHero({
   });
 
   return (
-    <section className="bg-transparent pt-4 lg:pt-6 pb-12 lg:pb-24 relative overflow-hidden font-sans transition-colors duration-500 ease-in-out">
+    <section
+      className="bg-transparent pt-4 lg:pt-6 pb-12 lg:pb-24 relative overflow-hidden font-sans transition-colors duration-500 ease-in-out"
+      style={{ contain: 'layout paint' }}
+    >
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-14 relative">
         
         {/* Main Container with Glassmorphic Border */}
-        <div className="relative rounded-[3rem] p-6 sm:p-8 lg:p-12 border border-slate-200/80 dark:border-slate-800/60 bg-white/60 dark:bg-[#0a0f1c]/80 backdrop-blur-3xl shadow-xl dark:shadow-2xl overflow-visible transition-colors duration-300">
+        <div className="relative rounded-[3rem] p-6 sm:p-8 lg:p-12 border border-slate-200/80 dark:border-slate-800/60 bg-white/60 dark:bg-[#0a0f1c]/80 backdrop-blur-3xl shadow-xl dark:shadow-2xl overflow-visible transition-colors duration-300 transform-gpu">
           
           <AmbientLighting />
-          <FloatingParticles />
+          <FloatingParticles particles={floatingParticles} />
 
           <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-8 relative z-10">
             
@@ -168,12 +193,12 @@ export default function PracticeRoomHero({
               
               {/* Stunning Ambient Glow Behind the Image */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                <div className="w-[80%] h-[80%] max-w-[600px] bg-gradient-to-tr from-teal-500/20 via-emerald-500/10 to-cyan-500/20 dark:from-teal-500/30 dark:via-emerald-500/20 dark:to-cyan-500/30 rounded-full blur-[80px] dark:blur-[100px] mix-blend-multiply dark:mix-blend-screen animate-pulse transition-colors" />
+                <div className="w-[80%] h-[80%] max-w-[600px] bg-gradient-to-tr from-teal-500/20 via-emerald-500/10 to-cyan-500/20 dark:from-teal-500/30 dark:via-emerald-500/20 dark:to-cyan-500/30 rounded-full blur-[80px] dark:blur-[100px] mix-blend-multiply dark:mix-blend-screen animate-pulse lg:animate-none transition-colors" />
               </div>
 
               {/* Vector Art Container (Directly Floating Image) */}
               <motion.div 
-                className="relative z-10 w-full max-w-[800px]"
+                className="relative z-10 w-full max-w-[800px] transform-gpu will-change-transform"
                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 1, type: "spring", bounce: 0.3 }}
@@ -181,9 +206,9 @@ export default function PracticeRoomHero({
                 <motion.img 
                   src="/practice.png" 
                   alt="Practice Room 3D Environment"
-                  className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform duration-700"
-                  animate={{ y: [-10, 10, -10] }}
-                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform-gpu will-change-transform hover:scale-105 transition-transform duration-700"
+                  animate={isDesktop ? { y: 0 } : { y: [-10, 10, -10] }}
+                  transition={isDesktop ? { duration: 0.2 } : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 />
               </motion.div>
             </div>
