@@ -33,6 +33,21 @@ function tryReadViteEnvVar(name: string): string | undefined {
 const API_URL = tryReadViteEnvVar('VITE_API_URL') || 'http://localhost:5000/api';
 const SFU_URL = tryReadViteEnvVar('VITE_SFU_URL') || 'http://localhost:3001';
 
+/**
+ * Derive the base socket/server URL from VITE_SOCKET_URL (preferred) or
+ * strip the trailing "/api" path from VITE_API_URL as a safe fallback.
+ * Using a dedicated VITE_SOCKET_URL is recommended in production to avoid
+ * ambiguity when the word "api" appears elsewhere in the host name.
+ */
+function getSocketBaseUrl(): string {
+  const explicit = tryReadViteEnvVar('VITE_SOCKET_URL');
+  if (explicit) return explicit;
+
+  const apiUrl = tryReadViteEnvVar('VITE_API_URL') || 'http://localhost:5000/api';
+  // Remove the trailing "/api" segment only — not any earlier occurrence
+  return apiUrl.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+}
+
 // ─── Public Interfaces ──────────────────────────────────────────────────────
 
 export interface RoomDetails {
@@ -307,7 +322,7 @@ class RoomService {
     if (this.socket?.connected || this.socket?.active) return;
 
     this.socket = io(
-      (tryReadViteEnvVar('VITE_API_URL')?.replace('/api', '') || 'http://localhost:5000'),
+      getSocketBaseUrl(),
       { auth: { token }, transports: ['websocket', 'polling'] }
     );
 

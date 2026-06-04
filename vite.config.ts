@@ -6,11 +6,22 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    // '0.0.0.0' binds to all interfaces (IPv4 + IPv6) on Windows reliably.
+    // '::' (IPv6 wildcard) can cause 404s when Chrome connects via IPv4 localhost.
+    host: '0.0.0.0',
     port: 8080,
+    strictPort: true, // Fail loudly if 8080 is taken — don't silently pick a different port
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: process.env.VITE_API_URL
+          ? process.env.VITE_API_URL.replace('/api', '')
+          : 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
+      '/socket.io': {
+        target: process.env.VITE_SOCKET_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         ws: true,

@@ -11,15 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
-/node_modules
-/.pnp
-node_modules/
-.pnp.js
 
-.env
-.env.*.local
-.env.example
-.env.prodcution.example
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -30,3 +22,11 @@ node_modules/
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files — never commit secrets
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
