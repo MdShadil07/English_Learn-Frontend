@@ -1,7 +1,7 @@
 // accuracyService.ts
 // Service to fetch latest accuracy data from backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL as string;
 
 const getAuthToken = (): string | null => {
   return localStorage.getItem('accessToken') || localStorage.getItem('token');

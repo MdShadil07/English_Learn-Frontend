@@ -158,7 +158,7 @@ const CATEGORY_CONFIG = [
 // API FUNCTIONS
 // ========================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL as string;
 
 async function fetchRealtimeProgress(): Promise<RealtimeProgressResponse> {
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token');

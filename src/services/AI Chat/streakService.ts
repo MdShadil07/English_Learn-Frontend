@@ -404,7 +404,7 @@ export class StreakService {
   static async syncWithBackend(userId: string, streakData: StreakData): Promise<void> {
     try {
       // Use VITE_API_URL from environment so this works in production after deployment
-      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
+      const apiBase = (import.meta as any).env?.VITE_API_URL as string;
       const response = await fetch(`${apiBase}/progress/streak`, {
         method: 'PUT',
         headers: {

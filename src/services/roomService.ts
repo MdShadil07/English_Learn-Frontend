@@ -15,23 +15,8 @@ type Transport = any;
 type Producer = any;
 type Consumer = any;
 
-// Resolve Vite `import.meta.env` at runtime in a way that avoids TypeScript
-// compile-time errors when the compiler's `--module` setting doesn't allow
-// direct `import.meta` usage (common in some toolchains).
-function tryReadViteEnvVar(name: string): string | undefined {
-  try {
-    // Evaluate at runtime to avoid TS parsing import.meta during compile
-    // eslint-disable-next-line no-eval
-    const env = eval('import.meta.env');
-    return env?.[name];
-  } catch {
-    // Fall back to global injection points if present
-    try { return (globalThis as any)?.__VITE_ENV?.[name]; } catch { return undefined; }
-  }
-}
-
-const API_URL = tryReadViteEnvVar('VITE_API_URL') || 'http://localhost:5000/api';
-const SFU_URL = tryReadViteEnvVar('VITE_SFU_URL') || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL as string;
+const SFU_URL = import.meta.env.VITE_SFU_URL as string;
 
 /**
  * Derive the base socket/server URL from VITE_SOCKET_URL (preferred) or
@@ -40,12 +25,12 @@ const SFU_URL = tryReadViteEnvVar('VITE_SFU_URL') || 'http://localhost:3001';
  * ambiguity when the word "api" appears elsewhere in the host name.
  */
 function getSocketBaseUrl(): string {
-  const explicit = tryReadViteEnvVar('VITE_SOCKET_URL');
+  const explicit = import.meta.env.VITE_SOCKET_URL;
   if (explicit) return explicit;
 
-  const apiUrl = tryReadViteEnvVar('VITE_API_URL') || 'http://localhost:5000/api';
+  const apiUrl = import.meta.env.VITE_API_URL as string;
   // Remove the trailing "/api" segment only — not any earlier occurrence
-  return apiUrl.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+  return apiUrl.replace(/\/api\/?$/, '') as string;
 }
 
 // ─── Public Interfaces ──────────────────────────────────────────────────────

@@ -197,7 +197,7 @@ export class ProfilePictureService {
       };
 
       // Use the optimized backend endpoint for fallback
-      const backendUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/profile/avatar-optimized`;
+      const backendUrl = `${import.meta.env.VITE_API_URL as string}/profile/avatar-optimized`;
       const accessToken = localStorage.getItem('accessToken');
 
       console.log('🔑 Backend upload - Token available:', !!accessToken);

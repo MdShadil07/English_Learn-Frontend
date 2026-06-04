@@ -140,7 +140,7 @@ export const analyzeMessageAccuracy = async (
   if (options?.previousAccuracy) body.previousAccuracy = options.previousAccuracy;
   if (options?.userId) body.userId = options.userId;
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const apiBase = import.meta.env.VITE_API_URL as string;
   try {
     const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
     const response = await fetch(`${apiBase}/accuracy/analyze`, {
