@@ -1,0 +1,16 @@
+{
+  "animationId": "l-animation",
+  "phoneme": "L",
+  "mistake": "L Simplification",
+  "severity": "medium",
+  "animation": "l-animation",
+  "practiceWords": ["light", "leaf", "little"],
+  "tonguePlacement": "Raise the tongue tip to the alveolar ridge.",
+  "airflow": "Let air move around the sides of the tongue.",
+  "steps": [
+    { "label": "Start", "position": "open-mouth", "caption": "Open the mouth just enough for the tongue to rise.", "durationMs": 600 },
+    { "label": "Transition", "position": "tongue-up", "caption": "Lift the tongue tip behind the upper teeth.", "durationMs": 800 },
+    { "label": "Release", "position": "wide-smile", "caption": "Let air flow around the sides of the tongue.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Keep the L clean and light.", "durationMs": 700 }
+  ]
+}

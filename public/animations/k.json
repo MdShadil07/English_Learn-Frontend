@@ -1,0 +1,16 @@
+{
+  "animationId": "k-animation",
+  "phoneme": "K",
+  "mistake": "Velar Fronting",
+  "severity": "medium",
+  "animation": "k-animation",
+  "practiceWords": ["keep", "kite", "cold"],
+  "tonguePlacement": "Lift the back of the tongue toward the soft palate.",
+  "airflow": "Hold the closure, then release cleanly.",
+  "steps": [
+    { "label": "Start", "position": "closed-lips", "caption": "Close the mouth to prepare the release.", "durationMs": 600 },
+    { "label": "Lift", "position": "tongue-back", "caption": "Lift the back of the tongue toward the soft palate.", "durationMs": 800 },
+    { "label": "Release", "position": "release-burst", "caption": "Release the stop with a clean burst.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Keep the release crisp and back in the mouth.", "durationMs": 700 }
+  ]
+}

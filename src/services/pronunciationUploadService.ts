@@ -1,6 +1,6 @@
 import { API_BASE_URL, getAuthToken } from '@/utils/api';
 import { pronunciationService } from '@/services/pronunciationService';
-import { pronunciationUploadDb } from '@/utils/Pronunciation/indexedDb';
+import { pronunciationUploadDb } from '@/utils/pronunciation/indexedDb';
 import type {
   PendingPronunciationUpload,
   PronunciationRecordingPayload,

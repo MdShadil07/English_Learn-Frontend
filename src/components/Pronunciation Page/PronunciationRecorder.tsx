@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Loader2, Mic, RefreshCcw, Square, UploadCloud, Volume2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Mic, RefreshCcw, Square, UploadCloud, Volume2, Activity, Target, Info } from 'lucide-react';
+import { WavyBackground } from './soloPractice';
 import type { PronunciationRecordingPayload, RecorderUiState, RecordingValidationSummary } from '@/types/pronunciation';
 
 interface PronunciationRecorderProps {
@@ -66,6 +67,7 @@ export default function PronunciationRecorder({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const persistentStreamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -81,6 +83,41 @@ export default function PronunciationRecorder({
   useEffect(() => {
     onStateChange?.(uiState);
   }, [onStateChange, uiState]);
+
+  useEffect(() => {
+    let active = true;
+    const initMic = async () => {
+      try {
+        if (navigator.mediaDevices?.getUserMedia) {
+           const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              channelCount: 1,
+              sampleRate: 48000,
+            },
+          });
+          if (active) {
+            persistentStreamRef.current = stream;
+          } else {
+            stream.getTracks().forEach(t => t.stop());
+          }
+        }
+      } catch (err) {
+        console.warn('Pre-initializing mic failed:', err);
+      }
+    };
+    initMic();
+
+    return () => {
+      active = false;
+      if (persistentStreamRef.current) {
+        persistentStreamRef.current.getTracks().forEach(t => t.stop());
+        persistentStreamRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     secondsRef.current = seconds;
@@ -139,7 +176,7 @@ export default function PronunciationRecorder({
     audioContextRef.current = null;
     analyserRef.current = null;
     sourceNodeRef.current = null;
-    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    // Do not stop the stream tracks here, as we reuse persistentStreamRef!
     mediaStreamRef.current = null;
   };
 
@@ -290,15 +327,19 @@ export default function PronunciationRecorder({
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 48000,
-        },
-      });
+      let stream = persistentStreamRef.current;
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+            sampleRate: 48000,
+          },
+        });
+        persistentStreamRef.current = stream;
+      }
 
       const mimeType = selectSupportedMimeType();
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
@@ -385,7 +426,7 @@ export default function PronunciationRecorder({
       },
     };
 
-    setUiState('uploading');
+    setUiState('processing');
     try {
       await onSubmitRecording(payload);
     } catch (error) {
@@ -398,64 +439,92 @@ export default function PronunciationRecorder({
   const qualityLabel = getInputQuality(averageLevel, silenceRatio, clippedSamplesRatio);
   const isUploadBlocked = validationState ? !validationState.isValid : false;
 
+  // Decorative Radial Ticks around the record button
+  const TickMarks = ({ reverse = false }: { reverse?: boolean }) => (
+    <div className={`hidden sm:flex items-center gap-1.5 md:gap-2 opacity-30 dark:opacity-50 ${reverse ? 'flex-row-reverse' : ''}`}>
+      {[...Array(14)].map((_, i) => {
+        const height = 4 + (i % 4) * 3;
+        return (
+          <div 
+            key={i} 
+            className="w-[2px] rounded-full bg-slate-400 dark:bg-slate-500 transition-all duration-300" 
+            style={{ height: `${height}px` }} 
+          />
+        );
+      })}
+    </div>
+  );
+
+  // Dynamic Recording Waveform
+  const AnimatedWaveform = ({ isRecording }: { isRecording: boolean }) => (
+    <div className="flex items-center justify-center gap-[3px] sm:gap-1 h-12 md:h-16 w-full px-4">
+      {[...Array(40)].map((_, i) => {
+        const centerDist = Math.abs(20 - i);
+        const baseHeight = Math.max(10, 100 - (centerDist * 4));
+        const animateHeight = isRecording 
+          ? [`${baseHeight * 0.2}%`, `${baseHeight}%`, `${baseHeight * 0.3}%`] 
+          : `${baseHeight * 0.15}%`;
+        
+        return (
+          <motion.div
+            key={i}
+            className={`w-1 rounded-full ${
+              isRecording 
+                ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]' 
+                : 'bg-slate-300 dark:bg-indigo-500/40'
+            }`}
+            animate={{ height: animateHeight }}
+            transition={{ 
+              duration: isRecording ? 0.3 + Math.random() * 0.3 : 0.5, 
+              repeat: isRecording ? Infinity : 0, 
+              ease: "easeInOut" 
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="w-full relative flex flex-col items-center">
-      <div className="min-h-10 mb-4 flex items-center justify-center">
-        {uiState === 'recording' && (
-          <div className="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-1.5 text-rose-600 shadow-sm dark:border-rose-800/50 dark:bg-rose-900/20 dark:text-rose-400">
-            <span className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse"></span>
-            <span className="text-xs font-bold tracking-widest">{`${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`}</span>
-          </div>
-        )}
-        {uiState === 'uploading' && (
-          <div className="flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-teal-600 dark:border-teal-800/50 dark:bg-teal-900/20 dark:text-teal-400">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-xs font-bold uppercase tracking-widest">{uploadProgress < 100 ? `Uploading ${uploadProgress}%` : 'Upload complete'}</span>
-          </div>
-        )}
-        {uiState === 'idle' && (
-          <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5 text-slate-500 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/60 dark:text-slate-300">
-            <Mic className="h-3.5 w-3.5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Mic ready when you are</span>
-          </div>
-        )}
-        {uiState === 'review' && (
-          <div className="flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-amber-700 shadow-sm dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
-            <Volume2 className="h-3.5 w-3.5" />
-            <span className="text-xs font-bold uppercase tracking-widest">Review before upload</span>
-          </div>
-        )}
+      
+      {/* Mic Ready Indicator */}
+      <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 px-5 py-2.5 rounded-full shadow-sm mb-6">
+        <Mic className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          {uiState === 'recording' ? 'Listening...' : uiState === 'uploading' ? `Uploading ${uploadProgress}%` : uiState === 'review' ? 'Review recording' : 'Mic ready when you are'}
+        </span>
+        <span className={`w-2.5 h-2.5 rounded-full ${uiState === 'recording' ? 'bg-red-500 animate-ping' : uiState === 'idle' ? 'bg-green-500' : 'bg-amber-500'}`}></span>
       </div>
 
-      <div className="mb-8 w-full rounded-[2rem] border border-slate-200/70 bg-slate-50/80 px-5 py-6 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
-        <div className="flex h-24 items-end justify-center gap-1">
-          {waveformBars.map((bar, index) => (
-            <motion.div
-              key={`${index}-${bar}`}
-              animate={{ height: `${Math.max(12, bar * 100)}%` }}
-              transition={{ duration: 0.18 }}
-              className={`w-2 rounded-full ${
-                uiState === 'recording'
-                  ? 'bg-emerald-500'
-                  : uiState === 'uploading'
-                  ? 'bg-teal-500'
-                  : 'bg-slate-300 dark:bg-slate-700'
-              }`}
-            />
-          ))}
+      {/* Quality Metrics & Visualizer Box */}
+      <div className="w-full max-w-4xl relative overflow-hidden rounded-3xl bg-slate-50 dark:bg-[#0c101c] border border-slate-200 dark:border-slate-800/80 py-6 md:py-8 flex flex-col items-center shadow-sm mb-8">
+        <WavyBackground position="left" />
+        <WavyBackground position="right" />
+        
+        <div className="relative z-10 w-full mb-6">
+          <AnimatedWaveform isRecording={uiState === 'recording'} />
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          <span className="rounded-full bg-white px-3 py-1 shadow-sm dark:bg-slate-800">Mic quality: {qualityLabel}</span>
-          <span className="rounded-full bg-white px-3 py-1 shadow-sm dark:bg-slate-800">Quality score: {audioQualityScore}/100</span>
-          <span className="rounded-full bg-white px-3 py-1 shadow-sm dark:bg-slate-800">SNR: {speechToNoiseRatio.toFixed(1)} dB</span>
-          <span className="rounded-full bg-white px-3 py-1 shadow-sm dark:bg-slate-800">Silence: {Math.round(silenceRatio * 100)}%</span>
-          <span className="rounded-full bg-white px-3 py-1 shadow-sm dark:bg-slate-800">Clip risk: {Math.round(clippedSamplesRatio * 100)}%</span>
+        <div className="relative z-10 flex flex-wrap justify-center gap-2 md:gap-4 px-4">
+          {[
+            { icon: Activity, label: "Mic Quality", value: qualityLabel.toUpperCase(), valColor: qualityLabel === 'poor' ? "text-rose-500 dark:text-rose-400" : "text-emerald-500 dark:text-emerald-400" },
+            { icon: Target, label: "Quality Score", value: `${audioQualityScore} / 100` },
+            { icon: Activity, label: "SNR", value: `${speechToNoiseRatio.toFixed(1)} DB`, valColor: "text-blue-500 dark:text-blue-400" },
+            { icon: Volume2, label: "Silence", value: `${Math.round(silenceRatio * 100)}%` },
+            { icon: AlertTriangle, label: "Clip Risk", value: `${Math.round(clippedSamplesRatio * 100)}%` },
+          ].map((metric, i) => (
+            <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-700/50 px-3 py-1.5 md:px-4 md:py-2 rounded-xl shadow-sm">
+              <metric.icon className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[10px] md:text-[11px] font-bold text-slate-500 dark:text-slate-400">{metric.label}</span>
+              <span className={`text-[10px] md:text-[11px] font-bold ${metric.valColor || 'text-slate-700 dark:text-slate-200'}`}>{metric.value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {uiState === 'review' && previewUrl && (
-        <div className="mb-6 w-full rounded-[1.5rem] border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60">
+        <div className="mb-6 w-full max-w-4xl rounded-[1.5rem] border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60 z-20 relative">
           <audio controls className="w-full" src={previewUrl} />
           {!!warnings.length && (
             <div className="mt-4 rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 text-left shadow-sm dark:border-amber-800/50 dark:bg-[linear-gradient(135deg,rgba(120,53,15,0.22),rgba(15,23,42,0.8))]">
@@ -466,21 +535,13 @@ export default function PronunciationRecorder({
                 <div>
                   <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
                     <span className="text-sm font-extrabold">{isUploadBlocked ? 'Recording needs a retry' : 'Recording warnings'}</span>
-                    <span className="rounded-full border border-amber-200 bg-white px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-amber-700 dark:border-amber-700/60 dark:bg-slate-900/50 dark:text-amber-300">
-                      {isUploadBlocked ? 'Upload blocked' : 'Upload can continue'}
-                    </span>
                   </div>
                   <p className="mt-1 text-sm font-medium leading-relaxed text-amber-800/90 dark:text-amber-100/90">
-                    {isUploadBlocked
-                      ? 'This recording does not contain a reliable enough voice signal yet. Please retry with clearer speech or a closer microphone position.'
-                      : 'Your audio may still be analyzed. These tips can help improve pronunciation accuracy on the next try, especially on low-volume mobile recordings.'}
+                    {isUploadBlocked ? 'This recording does not contain a reliable enough voice signal yet. Please retry with clearer speech.' : 'Your audio may still be analyzed. These tips can help improve accuracy.'}
                   </p>
                 </div>
               </div>
               <div className="rounded-2xl border border-amber-100 bg-white/80 p-4 dark:border-amber-900/30 dark:bg-slate-950/30">
-                <div className="mb-2 flex items-center gap-2 text-amber-700 dark:text-amber-300">
-                  <span className="text-xs font-extrabold uppercase tracking-widest">What we noticed</span>
-                </div>
                 <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
                   {warnings.map((warning) => (
                     <li key={warning} className="flex items-start gap-2">
@@ -495,32 +556,51 @@ export default function PronunciationRecorder({
         </div>
       )}
 
-      <div className="flex justify-center relative">
-        {uiState === 'recording' && (
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(244,63,94,0.3)_0%,transparent_70%)] animate-pulse"></div>
-        )}
-        <button
-          onClick={uiState === 'recording' ? stopRecording : startRecording}
-          disabled={disabled || isBusy || uiState === 'review' || uiState === 'uploading'}
-          className={`relative z-10 flex h-24 w-24 items-center justify-center rounded-full text-white shadow-2xl transition-all duration-300 ${
-            uiState === 'recording'
-              ? 'scale-110 bg-rose-500 shadow-rose-500/30'
-              : 'bg-slate-900 hover:scale-105 hover:shadow-slate-900/20 dark:bg-white dark:text-slate-900'
-          } ${disabled || isBusy || uiState === 'review' || uiState === 'uploading' ? 'cursor-not-allowed opacity-60' : ''}`}
-        >
-          {uiState === 'recording' ? <Square className="h-8 w-8 fill-current" /> : <Mic className="h-9 w-9" />}
-        </button>
+      {/* Main Record Action Area */}
+      <div className="flex flex-col items-center mt-2 w-full">
+        <div className="flex items-center justify-center gap-6 md:gap-12 w-full">
+          <TickMarks />
+          
+          {/* Big Record Button */}
+          <div className="relative flex items-center justify-center">
+            {uiState === 'recording' && (
+              <>
+                <div className="absolute inset-0 rounded-full bg-purple-500/20 animate-ping"></div>
+                <div className="absolute inset-[-20px] rounded-full border border-purple-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+              </>
+            )}
+            <button 
+              onClick={uiState === 'recording' ? stopRecording : startRecording}
+              disabled={disabled || isBusy || uiState === 'review' || uiState === 'uploading'}
+              className={`relative z-10 w-24 h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95 ${
+                uiState === 'recording'
+                  ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-[0_0_30px_rgba(168,85,247,0.5)]' 
+                  : 'bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 text-white shadow-slate-900/20 border-4 border-indigo-500/30 dark:border-indigo-400/30'
+              } ${disabled || isBusy || uiState === 'uploading' ? 'cursor-not-allowed opacity-60' : ''}`}
+            >
+              {uiState === 'recording' ? (
+                 <div className="w-8 h-8 bg-white rounded-md animate-pulse"></div>
+              ) : (
+                 <Mic className="w-10 h-10 md:w-12 md:h-12 text-indigo-300 dark:text-indigo-400" />
+              )}
+            </button>
+          </div>
+
+          <TickMarks reverse />
+        </div>
+
+        <div className="text-center mt-8 space-y-2">
+          <p className="text-base font-bold text-slate-800 dark:text-slate-200">
+            {uiState === 'recording' ? 'Recording in progress...' : uiState === 'review' ? 'Review your recording' : uiState === 'uploading' ? 'Uploading...' : 'Tap to start recording and keep the mic on while you read'}
+          </p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
+            <Info className="w-4 h-4" /> {uiState === 'recording' ? `Recording: ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}` : 'Speak clearly, take your time, and enjoy the practice.'}
+          </p>
+        </div>
       </div>
 
-      <p className="mt-6 h-4 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 md:text-xs">
-        {uiState === 'idle' && 'Tap to start recording and keep the mic on while you read'}
-        {uiState === 'recording' && 'Mic is live. Tap again only after you finish the full passage'}
-        {uiState === 'review' && 'Retry if needed, then upload for backend pronunciation analysis'}
-        {uiState === 'uploading' && 'Uploading audio in background-safe chunks'}
-      </p>
-
       {uiState === 'review' && (
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={handleRetry}
             disabled={isBusy}

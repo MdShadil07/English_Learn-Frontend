@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { pronunciationService } from '@/services/pronunciationService';
 import { useAuth } from '@/contexts/AuthContext';
+import { AlertTriangle } from 'lucide-react';
+
 
 export default function CommunicationCoach({ attempt }) {
   const { user } = useAuth();
@@ -60,6 +62,8 @@ export default function CommunicationCoach({ attempt }) {
     ? 'Gemini Flash'
     : analysis?.source === 'heuristic-fallback'
     ? 'Fallback coach'
+    : analysis?.source === 'error-fallback'
+    ? 'Service Error'
     : 'Coach';
 
   return (
@@ -72,6 +76,14 @@ export default function CommunicationCoach({ attempt }) {
       </div>
       {state === 'locked' ? (
         <p className="text-xs text-amber-600 mt-3">{message}</p>
+      ) : analysis?.source === 'error-fallback' ? (
+        <div className="mt-3 rounded-lg border border-rose-200/70 bg-rose-50/70 dark:border-rose-900/40 dark:bg-rose-950/20 p-3 text-xs text-rose-900 dark:text-rose-100 flex items-start gap-2">
+           <AlertTriangle className="w-4 h-4 text-rose-500 mt-0.5 flex-shrink-0" />
+           <div>
+             <span className="font-extrabold uppercase tracking-widest text-[10px] block mb-1">Service Unavailable</span>
+             {analysis.narrative}
+           </div>
+        </div>
       ) : analysis ? (
         <div className="mt-3 text-sm space-y-3">
           <p className="font-medium text-slate-800 dark:text-slate-100 leading-relaxed">{analysis.narrative}</p>

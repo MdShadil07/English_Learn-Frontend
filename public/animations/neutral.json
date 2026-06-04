@@ -1,0 +1,15 @@
+{
+  "animationId": "neutral-animation",
+  "phoneme": "NEUTRAL",
+  "mistake": "General placement",
+  "severity": "low",
+  "animation": "neutral-animation",
+  "practiceWords": ["slowly", "clearly", "carefully"],
+  "tonguePlacement": "Keep the jaw and tongue relaxed.",
+  "airflow": "Use smooth, even airflow.",
+  "steps": [
+    { "label": "Neutral", "position": "neutral-mouth", "caption": "Relax the face and jaw.", "durationMs": 700 },
+    { "label": "Open", "position": "open-mouth", "caption": "Open the mouth gently.", "durationMs": 700 },
+    { "label": "Flow", "position": "airflow-indicator", "caption": "Keep the airflow steady.", "durationMs": 700 }
+  ]
+}

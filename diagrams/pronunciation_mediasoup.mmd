@@ -1,0 +1,49 @@
+%% Pronunciation job flow and Mediasoup sequence
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant S3
+  participant Queue
+  participant Worker
+  participant Inference
+  participant LangTool
+  participant Socket
+
+  Client->>API: POST /upload-session (create session)
+  API->>S3: create presigned URLs
+  S3-->>Client: presigned URLs
+  Client->>S3: upload chunks
+  Client->>API: POST /upload-session/complete
+  API->>Queue: enqueue PronunciationJob (S3 key)
+  Queue-->>Worker: job delivered
+  Worker->>S3: download audio
+  Worker->>Worker: ffmpeg preprocess
+  Worker->>Inference: call Whisper/ASR service
+  Inference-->>Worker: transcript + timings
+  Worker->>LangTool: grammar & style checks
+  LangTool-->>Worker: grammar results
+  Worker->>MongoDB: save analysis & update user profile
+  Worker->>Socket: emit job:completed
+  Socket-->>Client: notify completion
+  Client->>API: GET /pronunciation/result
+  API->>MongoDB: fetch result
+  API-->>Client: return analysis
+
+
+%% Mediasoup join flow
+sequenceDiagram
+  participant Client
+  participant Socket
+  participant Mediasoup
+
+  Client->>Socket: join room request
+  Socket->>Mediasoup: create Router (if needed)
+  Socket->>Mediasoup: createTransport
+  Mediasoup-->>Socket: transport params
+  Socket-->>Client: transport params
+  Client->>Mediasoup: connect transport + produce track
+  Mediasoup-->>Socket: producer created
+  Socket-->>OtherClients: new-producer event
+  OtherClients->>Mediasoup: consume track
+```

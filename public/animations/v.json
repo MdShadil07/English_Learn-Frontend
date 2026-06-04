@@ -1,0 +1,16 @@
+{
+  "animationId": "v-animation",
+  "phoneme": "V",
+  "mistake": "V Devoicing",
+  "severity": "medium",
+  "animation": "v-animation",
+  "practiceWords": ["very", "voice", "victory"],
+  "tonguePlacement": "Touch the upper teeth lightly to the lower lip.",
+  "airflow": "Keep a steady voiced airflow.",
+  "steps": [
+    { "label": "Start", "position": "neutral-mouth", "caption": "Relax the jaw and let the lips stay slightly open.", "durationMs": 600 },
+    { "label": "Contact", "position": "lower-lip-bite", "caption": "Bring the upper teeth to the lower lip.", "durationMs": 800 },
+    { "label": "Voice", "position": "open-mouth", "caption": "Keep voice on while letting air move gently.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Hold the voiced fricative shape.", "durationMs": 700 }
+  ]
+}

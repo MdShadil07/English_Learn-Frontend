@@ -20,32 +20,60 @@
   <!-- Preconnect & preload critical font to improve LCP -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Theme script to prevent flash of wrong theme -->
+  <script>
+    (function () {
+      function setTheme(theme) {
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+
+      // Read theme from localStorage
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme) {
+          setTheme(theme);
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          setTheme('dark');
+        }
+      } catch (e) {
+        console.error('Failed to load theme:', e);
+      }
+    })();
+  </script>
 </head>
 
 <body>
   <div id="root"></div>
 
   <!-- Author info bar (lightweight, visible before JS loads) -->
-  <div id="author-info" role="contentinfo" aria-label="About the author" style="position:fixed;right:12px;bottom:12px;z-index:9999;background:rgba(255,255,255,0.92);color:#0f172a;padding:10px 14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.12);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;max-width:320px;line-height:1.2;font-size:13px">
+  <div id="author-info" role="contentinfo" aria-label="About the author"
+    style="position:fixed;right:12px;bottom:12px;z-index:9999;background:rgba(255,255,255,0.92);color:#0f172a;padding:10px 14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.12);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;max-width:320px;line-height:1.2;font-size:13px">
     <div style="display:flex;gap:10px;align-items:center;position:relative">
       <img src="/logo.svg" alt="Learn logo" style="width:36px;height:36px;border-radius:8px;flex-shrink:0" />
       <div style="flex:1">
         <div style="font-weight:600;color:#0f172a;margin-bottom:2px">Md Shadil</div>
-        <div style="color:#334155">Built this AI-powered English learning app to help people who struggle with English — integrates AI tools, real-time performance monitoring and voice features.</div>
+        <div style="color:#334155">Built this AI-powered English learning app to help people who struggle with English —
+          integrates AI tools, real-time performance monitoring and voice features.</div>
       </div>
-      <button id="author-info-close" aria-label="Close author info" style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:14px;padding:4px;line-height:1">✕</button>
+      <button id="author-info-close" aria-label="Close author info"
+        style="position:absolute;top:6px;right:6px;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:14px;padding:4px;line-height:1">✕</button>
     </div>
   </div>
 
   <script>
-    (function(){
+    (function () {
       try {
         var bar = document.getElementById('author-info');
         var btn = document.getElementById('author-info-close');
         if (!bar) return;
-        if (btn) btn.addEventListener('click', function(){ bar.style.display = 'none'; });
+        if (btn) btn.addEventListener('click', function () { bar.style.display = 'none'; });
         // Auto-dismiss after 7 seconds
-        setTimeout(function(){ if (bar) bar.style.display = 'none'; }, 7000);
+        setTimeout(function () { if (bar) bar.style.display = 'none'; }, 7000);
       } catch (e) { /* ignore in old browsers */ }
     })();
   </script>

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-
+import { useToast } from '@/hooks/use-toast';
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -9,13 +9,19 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     // If not authenticated and not loading, redirect to login
     if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication required",
+        description: "Please login first to access this page.",
+        variant: "destructive" // Using destructive or default based on preference, default might be better
+      });
       navigate('/login');
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, toast]);
 
   // Show loading while authentication is being checked
   if (isLoading) {

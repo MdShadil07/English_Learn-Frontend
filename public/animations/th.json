@@ -1,0 +1,16 @@
+{
+  "animationId": "th-animation",
+  "phoneme": "TH",
+  "mistake": "TH Fronting",
+  "severity": "medium",
+  "animation": "th-animation",
+  "practiceWords": ["think", "three", "thirty"],
+  "tonguePlacement": "Tongue slightly between the teeth.",
+  "airflow": "Gentle and continuous airflow.",
+  "steps": [
+    { "label": "Start", "position": "neutral-mouth", "caption": "Relax the face and jaw.", "durationMs": 600 },
+    { "label": "Transition", "position": "tongue-forward", "caption": "Move the tongue tip toward the teeth.", "durationMs": 700 },
+    { "label": "Correct", "position": "tongue-between-teeth", "caption": "Keep the tongue lightly between the teeth.", "durationMs": 800 },
+    { "label": "Airflow", "position": "airflow-indicator", "caption": "Let air stream gently through the gap.", "durationMs": 700 }
+  ]
+}

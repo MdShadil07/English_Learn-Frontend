@@ -1,4 +1,4 @@
-export type RecorderUiState = 'idle' | 'recording' | 'review' | 'uploading';
+export type RecorderUiState = 'idle' | 'recording' | 'review' | 'uploading' | 'processing';
 
 export interface RecordingValidationSummary {
   isValid: boolean;

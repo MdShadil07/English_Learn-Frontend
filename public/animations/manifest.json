@@ -1,0 +1,27 @@
+{
+  "masterPositions": [
+    "neutral-mouth",
+    "closed-lips",
+    "open-mouth",
+    "rounded-lips",
+    "wide-smile",
+    "lower-lip-bite",
+    "tongue-forward",
+    "tongue-between-teeth",
+    "tongue-up",
+    "tongue-back",
+    "airflow-indicator",
+    "release-burst"
+  ],
+  "sequences": [
+    "th.json",
+    "r.json",
+    "l.json",
+    "v.json",
+    "w.json",
+    "sh.json",
+    "k.json",
+    "p.json",
+    "neutral.json"
+  ]
+}

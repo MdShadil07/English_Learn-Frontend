@@ -615,11 +615,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check authentication status
   const isAuthenticated = !!user && !error;
+  const hasToken = !!localStorage.getItem('accessToken');
 
   const value: AuthContextType = {
     user,
     isAuthenticated,
-    isLoading: isLoading || (!user && !error), // Loading if no user data and no error
+    isLoading: hasToken ? (isLoading || (!user && !error)) : false,
     signOut,
     refreshUser,
     updateUser,

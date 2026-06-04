@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <style>
+    .box{fill:#ffffff;stroke:#0b1220;stroke-width:1.2}
+    .title{font:700 14px sans-serif; fill:#0b1220}
+    .label{font:400 13px sans-serif; fill:#0b1220}
+    .arrow{stroke:#0b1220;stroke-width:1.2;marker-end:url(#a)}
+  </style>
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 z" fill="#0b1220" />
+    </marker>
+  </defs>
+
+  <rect x="40" y="40" width="220" height="100" rx="6" class="box"/>
+  <text x="60" y="68" class="title">Client</text>
+  <text x="60" y="92" class="label">Record audio, upload chunks</text>
+
+  <rect x="320" y="40" width="240" height="100" rx="6" class="box"/>
+  <text x="340" y="68" class="title">API</text>
+  <text x="340" y="92" class="label">Presign URLs, enqueue job</text>
+
+  <rect x="640" y="40" width="220" height="100" rx="6" class="box"/>
+  <text x="660" y="68" class="title">S3</text>
+  <text x="660" y="92" class="label">Store audio chunks</text>
+
+  <line x1="260" y1="90" x2="320" y2="90" class="arrow"/>
+  <line x1="560" y1="90" x2="640" y2="90" class="arrow"/>
+
+  <!-- Queue / Worker -->
+  <rect x="40" y="200" width="240" height="120" rx="6" class="box"/>
+  <text x="60" y="230" class="title">Queue / Worker</text>
+  <text x="60" y="254" class="label">BullMQ + Redis</text>
+  <text x="60" y="276" class="label">ffmpeg preprocess</text>
+
+  <rect x="320" y="200" width="240" height="120" rx="6" class="box"/>
+  <text x="340" y="230" class="title">Inference</text>
+  <text x="340" y="254" class="label">Whisper (ASR)</text>
+  <text x="340" y="276" class="label">LanguageTool (Grammar)</text>
+
+  <rect x="640" y="200" width="240" height="120" rx="6" class="box"/>
+  <text x="660" y="230" class="title">MongoDB</text>
+  <text x="660" y="254" class="label">Save analysis & profile</text>
+
+  <line x1="440" y1="140" x2="440" y2="200" class="arrow"/>
+  <line x1="540" y1="140" x2="540" y2="200" class="arrow"/>
+
+  <!-- Mediasoup section -->
+  <rect x="40" y="380" width="240" height="120" rx="6" class="box"/>
+  <text x="60" y="410" class="title">Mediasoup Client</text>
+  <text x="60" y="434" class="label">WebRTC produce / consume</text>
+
+  <rect x="320" y="380" width="240" height="120" rx="6" class="box"/>
+  <text x="340" y="410" class="title">Mediasoup Server (SFU)</text>
+  <text x="340" y="434" class="label">Router, Transports, Producers</text>
+
+  <rect x="640" y="380" width="240" height="120" rx="6" class="box"/>
+  <text x="660" y="410" class="title">Socket.io</text>
+  <text x="660" y="434" class="label">Signaling + Events</text>
+
+  <line x1="260" y1="440" x2="320" y2="440" class="arrow"/>
+  <line x1="560" y1="440" x2="640" y2="440" class="arrow"/>
+
+  <!-- arrows between layers -->
+  <line x1="180" y1="140" x2="180" y2="200" class="arrow"/>
+  <text x="200" y="172" class="label">Job enqueue</text>
+
+  <line x1="180" y1="320" x2="180" y2="380" class="arrow"/>
+  <text x="200" y="350" class="label">Real-time signaling</text>
+
+</svg>

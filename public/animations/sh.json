@@ -1,0 +1,16 @@
+{
+  "animationId": "sh-animation",
+  "phoneme": "SH",
+  "mistake": "SH Channeling",
+  "severity": "medium",
+  "animation": "sh-animation",
+  "practiceWords": ["she", "ship", "shadow"],
+  "tonguePlacement": "Lift the tongue blade slightly back from the ridge.",
+  "airflow": "Keep the air narrow and soft.",
+  "steps": [
+    { "label": "Start", "position": "rounded-lips", "caption": "Round the lips slightly to shape the fricative.", "durationMs": 600 },
+    { "label": "Transition", "position": "tongue-up", "caption": "Raise the tongue blade behind the ridge.", "durationMs": 800 },
+    { "label": "Channel", "position": "open-mouth", "caption": "Keep a narrow airway for the hiss.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Let the air hiss cleanly through.", "durationMs": 700 }
+  ]
+}

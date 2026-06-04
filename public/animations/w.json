@@ -1,0 +1,16 @@
+{
+  "animationId": "w-animation",
+  "phoneme": "W",
+  "mistake": "W Lip Rounding",
+  "severity": "low",
+  "animation": "w-animation",
+  "practiceWords": ["water", "window", "warm"],
+  "tonguePlacement": "Round the lips while keeping the tongue relaxed.",
+  "airflow": "Release the sound smoothly into the vowel.",
+  "steps": [
+    { "label": "Start", "position": "neutral-mouth", "caption": "Start from a relaxed mouth shape.", "durationMs": 600 },
+    { "label": "Round", "position": "rounded-lips", "caption": "Round the lips before the vowel begins.", "durationMs": 700 },
+    { "label": "Transition", "position": "open-mouth", "caption": "Open into the vowel without losing the round shape.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Let the sound glide into the word.", "durationMs": 700 }
+  ]
+}

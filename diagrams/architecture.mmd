@@ -1,0 +1,60 @@
+%% High-level architecture diagram for Learn English
+```mermaid
+graph TD
+    User((User))
+    subgraph Frontend [Frontend Client - React / Vite]
+        UI[UI Components: Radix & Tailwind]
+        WebRTC[Mediasoup Client (WebRTC)]
+        SocketClient[Socket.io Client]
+        HTTPClient[Axios REST Client]
+    end
+
+    subgraph External_Services [External Services]
+        S3[(AWS S3)]
+        GoogleAuth[Google OAuth]
+        Razorpay[Razorpay]
+    end
+
+    subgraph Backend [Node.js + Express API]
+        Router[API Router & Controllers]
+        Auth[Auth: JWT + Refresh Tokens]
+        WSServer[Socket.io Server]
+        SFU[Mediasoup SFU]
+        UploadService[Upload Presign Service]
+    end
+
+    subgraph Data_Tier [Data & Cache]
+        Mongo[(MongoDB)]
+        Redis[(Redis: Cache & BullMQ backend)]
+    end
+
+    subgraph Worker_Tier [Workers]
+        Queue[BullMQ / Job Queue]
+        Worker[Background Worker Processes]
+    end
+
+    User --> Frontend
+    UI --> HTTPClient
+    UI --> WebRTC
+    UI --> SocketClient
+
+    HTTPClient -->|REST API| Router
+    SocketClient -->|WS| WSServer
+    WebRTC -->|Media| SFU
+
+    Router --> Mongo
+    Router --> Redis
+    Router --> UploadService
+    UploadService --> S3
+    Router --> Razorpay
+    Auth --> GoogleAuth
+
+    Router --> Queue
+    Queue --> Worker
+    Worker --> Mongo
+    Worker --> S3
+    Worker -->|Inference| Worker
+
+    WSServer --> Redis
+    WSServer --> Router
+```

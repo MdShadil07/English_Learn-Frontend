@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600">
+  <style>
+    .box{fill:#f8fafc;stroke:#0f172a;stroke-width:1.5}
+    .title{font:700 16px sans-serif; fill:#0f172a}
+    .label{font:400 13px sans-serif; fill:#0b1220}
+    .arrow{stroke:#0b1220;stroke-width:1.4;marker-end:url(#arrow)}
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#0b1220" />
+    </marker>
+  </defs>
+
+  <!-- Frontend -->
+  <rect x="40" y="40" width="260" height="120" rx="8" class="box"/>
+  <text x="70" y="68" class="title">Frontend</text>
+  <text x="70" y="90" class="label">React + Vite</text>
+  <text x="70" y="110" class="label">Tailwind / Radix UI</text>
+  <text x="70" y="130" class="label">Socket.io client / mediasoup-client</text>
+
+  <!-- Backend -->
+  <rect x="370" y="40" width="260" height="120" rx="8" class="box"/>
+  <text x="400" y="68" class="title">API Backend</text>
+  <text x="400" y="90" class="label">Node.js + Express (TypeScript)</text>
+  <text x="400" y="110" class="label">JWT auth, Socket.io</text>
+  <text x="400" y="130" class="label">Mediasoup SFU</text>
+
+  <!-- Worker -->
+  <rect x="700" y="40" width="260" height="120" rx="8" class="box"/>
+  <text x="730" y="68" class="title">Worker & Inference</text>
+  <text x="730" y="90" class="label">BullMQ + Redis</text>
+  <text x="730" y="110" class="label">ffmpeg, Whisper, LanguageTool</text>
+
+  <!-- Data Tier -->
+  <rect x="200" y="220" width="220" height="120" rx="8" class="box"/>
+  <text x="230" y="248" class="title">Data Tier</text>
+  <text x="230" y="268" class="label">MongoDB (primary)</text>
+  <text x="230" y="288" class="label">Redis (cache/queues)</text>
+
+  <!-- External Services -->
+  <rect x="540" y="220" width="220" height="120" rx="8" class="box"/>
+  <text x="570" y="248" class="title">External Services</text>
+  <text x="570" y="268" class="label">AWS S3 (storage)</text>
+  <text x="570" y="288" class="label">Razorpay, Google OAuth</text>
+
+  <!-- Arrows -->
+  <line x1="300" y1="100" x2="370" y2="100" class="arrow"/>
+  <line x1="630" y1="100" x2="700" y2="100" class="arrow"/>
+
+  <line x1="500" y1="160" x2="500" y2="220" class="arrow"/>
+  <line x1="500" y1="280" x2="420" y2="280" class="arrow"/>
+  <line x1="580" y1="280" x2="640" y2="280" class="arrow"/>
+
+  <!-- Labels on arrows -->
+  <text x="340" y="88" class="label">REST / WebSocket</text>
+  <text x="610" y="88" class="label">Job enqueue (BullMQ)</text>
+  <text x="460" y="200" class="label">DB / Cache</text>
+  <text x="620" y="200" class="label">S3 uploads</text>
+
+</svg>

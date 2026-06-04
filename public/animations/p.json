@@ -1,0 +1,16 @@
+{
+  "animationId": "p-animation",
+  "phoneme": "P",
+  "mistake": "Lip Closure Timing",
+  "severity": "medium",
+  "animation": "p-animation",
+  "practiceWords": ["pen", "paper", "please"],
+  "tonguePlacement": "Close both lips fully before release.",
+  "airflow": "Release a short burst of air.",
+  "steps": [
+    { "label": "Start", "position": "closed-lips", "caption": "Close both lips completely.", "durationMs": 600 },
+    { "label": "Hold", "position": "closed-lips", "caption": "Hold the closure for a beat.", "durationMs": 700 },
+    { "label": "Release", "position": "release-burst", "caption": "Burst the sound out with a crisp release.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Keep the release short and clear.", "durationMs": 700 }
+  ]
+}

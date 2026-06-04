@@ -1,0 +1,16 @@
+{
+  "animationId": "r-animation",
+  "phoneme": "R",
+  "mistake": "R Reduction",
+  "severity": "medium",
+  "animation": "r-animation",
+  "practiceWords": ["red", "rain", "road"],
+  "tonguePlacement": "Pull the tongue back without touching the roof.",
+  "airflow": "Keep the sound smooth and controlled.",
+  "steps": [
+    { "label": "Start", "position": "open-mouth", "caption": "Open the mouth slightly.", "durationMs": 600 },
+    { "label": "Transition", "position": "tongue-back", "caption": "Draw the tongue back and curl or bunch it.", "durationMs": 800 },
+    { "label": "Shape", "position": "rounded-lips", "caption": "Keep the lips relaxed and the sound colored.", "durationMs": 800 },
+    { "label": "Sound", "position": "airflow-indicator", "caption": "Hold a steady, voiced R sound.", "durationMs": 700 }
+  ]
+}
