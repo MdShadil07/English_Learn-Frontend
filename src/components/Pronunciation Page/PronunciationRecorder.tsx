@@ -7,8 +7,9 @@ import type { PronunciationRecordingPayload, RecorderUiState, RecordingValidatio
 interface PronunciationRecorderProps {
   disabled?: boolean;
   isBusy?: boolean;
+  isPremium?: boolean;
   uploadProgress?: number;
-  onSubmitRecording: (payload: PronunciationRecordingPayload) => Promise<void>;
+  onSubmitRecording: (payload: PronunciationRecordingPayload, metadataOverrides?: any) => Promise<void>;
   onStateChange?: (state: RecorderUiState) => void;
 }
 
@@ -45,6 +46,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 export default function PronunciationRecorder({
   disabled = false,
   isBusy = false,
+  isPremium = false,
   uploadProgress = 0,
   onSubmitRecording,
   onStateChange,
@@ -198,6 +200,7 @@ export default function PronunciationRecorder({
     clippedFramesRef.current = 0;
     totalFramesRef.current = 0;
 
+    let frameCount = 0;
     const data = new Uint8Array(analyser.frequencyBinCount);
 
     const tick = () => {
@@ -229,28 +232,36 @@ export default function PronunciationRecorder({
       }
 
       levelSamplesRef.current.push(rms);
+      if (levelSamplesRef.current.length > 300) {
+        levelSamplesRef.current.shift();
+      }
       const sortedSamples = [...levelSamplesRef.current].sort((a, b) => a - b);
       const noiseFloor = sortedSamples[Math.max(0, Math.floor(sortedSamples.length * 0.2))] || 0;
       const speechPeak = sortedSamples[Math.max(0, Math.floor(sortedSamples.length * 0.85))] || rms;
       const computedSnr = 20 * Math.log10((speechPeak + 1e-4) / (noiseFloor + 1e-4));
       const qualityScore = clamp(
         100
-          - (silenceRatio * 35)
-          - (clippedSamplesRatio * 30)
+          - ((silentFramesRef.current / totalFramesRef.current) * 35)
+          - ((clippedFramesRef.current / totalFramesRef.current) * 30)
           - clamp(noiseFloor * 500, 0, 28)
           + clamp(computedSnr * 2.4, 0, 38)
           + clamp(rms * 220, 0, 16),
         0,
         100
       );
-      setWaveformPeaks((current) => [...current.slice(-47), Math.max(0.05, localPeak)]);
-      setPeakLevel((current) => Math.max(current, localPeak));
-      setAverageLevel(levelSamplesRef.current.reduce((sum, value) => sum + value, 0) / levelSamplesRef.current.length);
-      setSilenceRatio(silentFramesRef.current / totalFramesRef.current);
-      setClippedSamplesRatio(clippedFramesRef.current / totalFramesRef.current);
-      setBackgroundNoiseEstimate(noiseFloor);
-      setSpeechToNoiseRatio(Number.isFinite(computedSnr) ? Math.max(0, computedSnr) : 0);
-      setAudioQualityScore(Math.round(qualityScore));
+
+      frameCount += 1;
+      // Only trigger React state updates every 6 frames (~10fps) to prevent UI freezing
+      if (frameCount % 6 === 0) {
+        setWaveformPeaks((current) => [...current.slice(-47), Math.max(0.05, localPeak)]);
+        setPeakLevel((current) => Math.max(current, localPeak));
+        setAverageLevel(levelSamplesRef.current.reduce((sum, value) => sum + value, 0) / levelSamplesRef.current.length);
+        setSilenceRatio(silentFramesRef.current / totalFramesRef.current);
+        setClippedSamplesRatio(clippedFramesRef.current / totalFramesRef.current);
+        setBackgroundNoiseEstimate(noiseFloor);
+        setSpeechToNoiseRatio(Number.isFinite(computedSnr) ? Math.max(0, computedSnr) : 0);
+        setAudioQualityScore(Math.round(qualityScore));
+      }
 
       animationFrameRef.current = requestAnimationFrame(tick);
     };
@@ -387,7 +398,7 @@ export default function PronunciationRecorder({
     setUiState('idle');
   };
 
-  const handleUpload = async () => {
+  const handleUpload = async (depth: 'fast' | 'deep' = 'fast') => {
     if (!recordingBlob) {
       return;
     }
@@ -428,7 +439,7 @@ export default function PronunciationRecorder({
 
     setUiState('processing');
     try {
-      await onSubmitRecording(payload);
+      await onSubmitRecording(payload, { analysisDepth: depth });
     } catch (error) {
       console.error('Pronunciation upload failed:', error);
       setErrorMessage((error as Error).message || 'Upload failed. Please try again.');
@@ -600,7 +611,7 @@ export default function PronunciationRecorder({
       </div>
 
       {uiState === 'review' && (
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-col md:flex-row flex-wrap items-center justify-center gap-3 w-full">
           <button
             onClick={handleRetry}
             disabled={isBusy}
@@ -610,13 +621,34 @@ export default function PronunciationRecorder({
             Retry
           </button>
           <button
-            onClick={handleUpload}
+            onClick={() => handleUpload('fast')}
             disabled={isBusy || isUploadBlocked}
-            className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-teal-500/20 transition-transform hover:-translate-y-0.5 hover:bg-teal-500 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-slate-800 dark:bg-slate-700 px-5 py-3 text-sm font-bold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <UploadCloud className="h-4 w-4" />
             {isUploadBlocked ? 'Retry Required' : 'Upload And Analyze'}
           </button>
+
+          {isPremium ? (
+            <button
+              onClick={() => handleUpload('deep')}
+              disabled={isBusy || isUploadBlocked}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-500 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition-transform hover:-translate-y-0.5 hover:shadow-purple-500/40 disabled:cursor-not-allowed disabled:opacity-60 border border-white/20 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-white/20 hover:bg-transparent transition-colors"></div>
+              <Activity className="h-4 w-4 relative z-10" />
+              <span className="relative z-10">{isUploadBlocked ? 'Retry Required' : 'In-Depth Analysis (Premium)'}</span>
+            </button>
+          ) : (
+            <button
+              disabled={true}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 px-5 py-3 text-sm font-bold text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700 relative overflow-hidden"
+              title="Upgrade to Premium for Deep Analysis"
+            >
+              <Activity className="h-4 w-4 opacity-50" />
+              <span>In-Depth Analysis (Premium Only)</span>
+            </button>
+          )}
         </div>
       )}
 

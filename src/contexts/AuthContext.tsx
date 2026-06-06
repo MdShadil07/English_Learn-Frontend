@@ -436,16 +436,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
 
-      // Check if popup blocker might be active
-      const testPopup = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
-      if (!testPopup) {
-        console.warn('⚠️ Popup blocker detected. Google OAuth may not work.');
-        return {
-          success: false,
-          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try signing in with Google again'
-        };
-      }
-      testPopup.close();
+      // Removed testPopup workaround. 
+      // It consumes the user gesture on mobile browsers, causing the subsequent Google popup to fail or open a blank tab.
 
       // Initialize Google Sign-In with redirect flow to avoid COOP issues
       return new Promise((resolve) => {
@@ -546,16 +538,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
 
-      // Check if popup blocker might be active
-      const testPopup = window.open('', '_blank', 'width=1,height=1,left=-9999,top=-9999');
-      if (!testPopup) {
-        console.warn('⚠️ Popup blocker detected. Google OAuth may not work.');
-        return {
-          success: false,
-          message: 'Popup blocker is blocking Google Sign-In. Please allow popups for this site:\n\n1. Click the popup blocker icon in your browser address bar\n2. Select "Always allow popups from this site"\n3. Try linking your Google account again'
-        };
-      }
-      testPopup.close();
+      // Removed testPopup workaround. 
+      // It consumes the user gesture on mobile browsers, causing the subsequent Google popup to fail or open a blank tab.
 
       // Initialize Google Sign-In for linking
       return new Promise((resolve) => {
