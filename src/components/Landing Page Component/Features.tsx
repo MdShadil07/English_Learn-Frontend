@@ -917,7 +917,7 @@ const Features = () => {
             'rgba(6, 182, 212, 0.06)';
 
   return (
-    <section id="features" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden transition-colors duration-500 ease-in-out font-sans scroll-mt-24 lg:scroll-mt-32">
+    <section id="features" className="py-24 lg:py-32 bg-transparent relative overflow-hidden transition-colors duration-500 ease-in-out font-sans scroll-mt-24 lg:scroll-mt-32">
 
       {/* Global CSS to hide scrollbars */}
       <style>{`
@@ -981,7 +981,7 @@ const Features = () => {
                     onClick={() => handleStepClick(idx)}
                     className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-xs font-bold transition-all duration-300 flex-shrink-0 ${isActive
                         ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm scale-102`
-                        : 'bg-white/40 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800 text-slate-500 dark:text-slate-455'
+                        : 'bg-white/40 dark:bg-[#050C14]/80 border-slate-200/60 dark:border-emerald-500/10 text-slate-500 dark:text-emerald-400/60'
                       }`}
                   >
                     <step.icon className="w-3.5 h-3.5" />
@@ -1003,8 +1003,8 @@ const Features = () => {
                     onMouseLeave={() => setIsPlaying(true)}
                     onClick={() => handleStepClick(idx)}
                     className={`relative p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-400 group flex items-start gap-4 select-none ${isActive
-                        ? `${colors.bg} ${colors.border} shadow-md shadow-slate-200/5 dark:shadow-none`
-                        : 'bg-white/30 dark:bg-slate-900/10 border-transparent hover:bg-white/60 dark:hover:bg-slate-900/40 hover:border-slate-200/40 dark:hover:border-slate-800/50'
+                        ? `${colors.bg} ${colors.border} shadow-md shadow-slate-200/5 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)]`
+                        : 'bg-white/30 dark:bg-transparent border-transparent hover:bg-white/60 dark:hover:bg-emerald-500/5 hover:border-slate-200/40 dark:hover:border-emerald-500/10'
                       }`}
                   >
                     {/* Stepper Side indicator */}
@@ -1048,7 +1048,7 @@ const Features = () => {
             </div>
 
             {/* Feature Description Card (Left Bottom) */}
-            <div className="p-6 md:p-8 rounded-[1.5rem] bg-white/40 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/40 backdrop-blur-md shadow-sm">
+            <div className="p-6 md:p-8 rounded-[1.5rem] bg-white/40 dark:bg-[#050C14]/80 border border-slate-200/50 dark:border-emerald-500/10 backdrop-blur-xl shadow-sm">
               <h3 className="text-xl md:text-2xl font-black text-[#0f172a] dark:text-white mb-2.5 tracking-tight flex items-center gap-2.5">
                 <currentStep.icon className={`w-5 h-5 ${stepColorClasses[currentStep.accentColor].text}`} />
                 {currentStep.title}

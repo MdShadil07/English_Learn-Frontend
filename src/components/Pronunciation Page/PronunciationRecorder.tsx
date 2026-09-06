@@ -500,7 +500,7 @@ export default function PronunciationRecorder({
     <div className="w-full relative flex flex-col items-center">
       
       {/* Mic Ready Indicator */}
-      <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 px-5 py-2.5 rounded-full shadow-sm mb-6">
+      <div className="flex items-center gap-3 bg-slate-100 dark:bg-[#050C14] border border-slate-200 dark:border-emerald-500/20 px-5 py-2.5 rounded-full shadow-sm mb-6">
         <Mic className="w-4 h-4 text-slate-500 dark:text-slate-400" />
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           {uiState === 'recording' ? 'Listening...' : uiState === 'uploading' ? `Uploading ${uploadProgress}%` : uiState === 'review' ? 'Review recording' : 'Mic ready when you are'}
@@ -509,7 +509,7 @@ export default function PronunciationRecorder({
       </div>
 
       {/* Quality Metrics & Visualizer Box */}
-      <div className="w-full max-w-4xl relative overflow-hidden rounded-3xl bg-slate-50 dark:bg-[#0c101c] border border-slate-200 dark:border-slate-800/80 py-6 md:py-8 flex flex-col items-center shadow-sm mb-8">
+      <div className="w-full max-w-4xl relative overflow-hidden rounded-3xl bg-slate-50 dark:bg-[#050C14] border border-slate-200 dark:border-emerald-500/20 py-6 md:py-8 flex flex-col items-center shadow-sm mb-8">
         <WavyBackground position="left" />
         <WavyBackground position="right" />
         
@@ -525,7 +525,7 @@ export default function PronunciationRecorder({
             { icon: Volume2, label: "Silence", value: `${Math.round(silenceRatio * 100)}%` },
             { icon: AlertTriangle, label: "Clip Risk", value: `${Math.round(clippedSamplesRatio * 100)}%` },
           ].map((metric, i) => (
-            <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-700/50 px-3 py-1.5 md:px-4 md:py-2 rounded-xl shadow-sm">
+            <div key={i} className="flex items-center gap-2 bg-white dark:bg-[#050C14]/80 border border-slate-200/60 dark:border-emerald-500/20 px-3 py-1.5 md:px-4 md:py-2 rounded-xl shadow-sm">
               <metric.icon className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-[10px] md:text-[11px] font-bold text-slate-500 dark:text-slate-400">{metric.label}</span>
               <span className={`text-[10px] md:text-[11px] font-bold ${metric.valColor || 'text-slate-700 dark:text-slate-200'}`}>{metric.value}</span>
@@ -535,7 +535,7 @@ export default function PronunciationRecorder({
       </div>
 
       {uiState === 'review' && previewUrl && (
-        <div className="mb-6 w-full max-w-4xl rounded-[1.5rem] border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800/60 dark:bg-slate-900/60 z-20 relative">
+        <div className="mb-6 w-full max-w-4xl rounded-[1.5rem] border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-emerald-500/20 dark:bg-[#050C14]/60 z-20 relative">
           <audio controls className="w-full" src={previewUrl} />
           {!!warnings.length && (
             <div className="mt-4 rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 text-left shadow-sm dark:border-amber-800/50 dark:bg-[linear-gradient(135deg,rgba(120,53,15,0.22),rgba(15,23,42,0.8))]">
@@ -615,7 +615,7 @@ export default function PronunciationRecorder({
           <button
             onClick={handleRetry}
             disabled={isBusy}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-500/20 dark:bg-[#050C14] dark:text-slate-200 dark:hover:bg-[#050C14]/80"
           >
             <RefreshCcw className="h-4 w-4" />
             Retry
@@ -623,7 +623,7 @@ export default function PronunciationRecorder({
           <button
             onClick={() => handleUpload('fast')}
             disabled={isBusy || isUploadBlocked}
-            className="inline-flex items-center gap-2 rounded-full bg-slate-800 dark:bg-slate-700 px-5 py-3 text-sm font-bold text-white shadow-md transition-transform hover:-translate-y-0.5 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-slate-800 dark:bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-md transition-transform hover:-translate-y-0.5 dark:hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <UploadCloud className="h-4 w-4" />
             {isUploadBlocked ? 'Retry Required' : 'Upload And Analyze'}
@@ -642,7 +642,7 @@ export default function PronunciationRecorder({
           ) : (
             <button
               disabled={true}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 px-5 py-3 text-sm font-bold text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700 relative overflow-hidden"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-[#050C14] px-5 py-3 text-sm font-bold text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-emerald-500/20 relative overflow-hidden"
               title="Upgrade to Premium for Deep Analysis"
             >
               <Activity className="h-4 w-4 opacity-50" />

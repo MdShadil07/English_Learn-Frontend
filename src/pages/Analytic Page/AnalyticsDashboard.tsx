@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, Suspense } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Flame, Target, Activity, Trophy, Crown, Sparkles, TrendingUp, Award, Zap, Brain } from 'lucide-react';
@@ -15,30 +15,41 @@ import {
   LeaderboardEntry,
 } from '@/services/analyticsService';
 import AnalyticsHero from '@/components/Analytic/AnalyticHero';
-import PerformanceIntelligence from '@/components/Analytic/PerformanceIntelligence';
-import HeadlineMetrics, { HeadlineMetric } from '@/components/Analytic/HeadlineMetrics';
-import AccuracyTrendsCard, {
-  AccuracyComparison,
-  TrendHistoryPoint,
-} from '@/components/Analytic/AccuracyTrendsCard';
-import LiveAccuracySnapshotCard from '@/components/Analytic/LiveAccuracySnapshotCard';
-import CategoryMomentumCard, {
+
+const LiveAccuracySnapshotCard = React.lazy(() => import('@/components/Analytic/LiveAccuracySnapshotCard'));
+
+import type {
   TopCategory,
   NeedsAttentionCategory,
 } from '@/components/Analytic/CategoryMomentumCard';
-import ActivityOverviewCard from '@/components/Analytic/ActivityOverviewCard';
-import LeaderboardCard, {
+const CategoryMomentumCard = React.lazy(() => import('@/components/Analytic/CategoryMomentumCard'));
+
+const ActivityOverviewCard = React.lazy(() => import('@/components/Analytic/ActivityOverviewCard'));
+
+import type {
   LeaderboardTimeframeValue,
   LeaderboardTierValue,
 } from '@/components/Analytic/LeaderboardCard';
-import AiCoachInsightsCard from '@/components/Analytic/AiCoachingInsightsCard';
-import ActivityHeatmap from '@/components/Analytic/ActivityHeatMap';
-import EnterpriseAccuracyDisplay from '@/components/Analytic/EnterpriseAccuracyDisplay';
-import RealtimeAccuracyDashboard from '@/components/Analytic/RealtimeAccuracyDashboard';
-import SparklineChart from '@/components/Analytic/SparklineChart';
-import TopPerformerCard from '@/components/Analytic/TopPerformerCard';
+const LeaderboardCard = React.lazy(() => import('@/components/Analytic/LeaderboardCard'));
+
+const AiCoachInsightsCard = React.lazy(() => import('@/components/Analytic/AiCoachingInsightsCard'));
+const EnglishAgeCard = React.lazy(() => import('@/components/Analytic/EnglishAgeCard'));
+const ActivityHeatmap = React.lazy(() => import('@/components/Analytic/ActivityHeatMap'));
+const RealtimeAccuracyDashboard = React.lazy(() => import('@/components/Analytic/RealtimeAccuracyDashboard'));
+
+const PredictiveForecastingCard = React.lazy(() => import('@/components/Analytic/PredictiveForecastingCard'));
+const PhonemeRadarCard = React.lazy(() => import('@/components/Analytic/PhonemeRadarCard'));
+const ToneSentimentCard = React.lazy(() => import('@/components/Analytic/ToneSentimentCard'));
+
 import AnalyticsCardShell from '@/components/Analytic/AnalyticsCardShell';
-import { ProgressRing } from '@/components/Analytic/AdvancedCharts';
+
+// A sleek glassmorphic skeleton loader for lazy-loaded components
+const SkeletonCard = () => (
+  <div className="w-full h-full min-h-[300px] rounded-3xl bg-white/5 dark:bg-[#050C14]/50 border border-slate-200/50 dark:border-emerald-500/10 p-6 flex flex-col gap-4 animate-pulse backdrop-blur-sm">
+    <div className="h-6 w-1/3 bg-slate-200 dark:bg-emerald-500/20 rounded-md"></div>
+    <div className="flex-1 w-full bg-slate-100 dark:bg-emerald-500/5 rounded-2xl"></div>
+  </div>
+);
 import type { AccuracyResult } from '@/utils/AI Chat/accuracy/accuracyCalculator';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -101,7 +112,7 @@ const AnalyticsDashboard: React.FC = () => {
   const isSidebarExpanded = sidebarState === 'expanded';
   const authUser = (user ?? null) as AuthUser | null;
   const userId = authUser?._id || authUser?.id || '';
-  
+
   const userTier = resolveUserTier(authUser as AuthUser | null);
   const isPremium = userTier === 'premium';
   const isPro = userTier === 'pro' || isPremium;
@@ -114,7 +125,7 @@ const AnalyticsDashboard: React.FC = () => {
     enabled: Boolean(userId),
   });
 
-  const accuracyDays = 30;
+  const accuracyDays = 365;
   const accuracyQuery = useAccuracyTrends(userId, accuracyDays, {
     enabled: Boolean(userId),
   });
@@ -154,10 +165,10 @@ const AnalyticsDashboard: React.FC = () => {
   const isPremiumUser = normalizedTier === 'PREMIUM' || normalizedTier === 'PRO';
   const tierMultiplier = normalizedTier === 'PREMIUM' ? 1.5 : normalizedTier === 'PRO' ? 1.25 : 1;
 
-  
+
   // Reusable upgrade toast component (renders nothing) — placed here so it shows on analytics page
   // It will show only for non-premium users and is suppressed via localStorage when dismissed.
-  
+
   // Render the component (it runs its own effect)
   // Mount the upgrade toast so the effect runs when the analytics page loads
   const _upgradeToast = <UpgradeToast isPremiumUser={isPremiumUser} />;
@@ -165,16 +176,26 @@ const AnalyticsDashboard: React.FC = () => {
   const latestTrend = accuracyTrends?.history?.slice(-1)[0];
   const previousTrend = accuracyTrends?.history?.[0];
 
-  const trendHistory = useMemo<TrendHistoryPoint[]>(
-    () =>
-      (accuracyTrends?.history ?? []).map((point: AccuracyHistoryPoint) => ({
-        date: new Date(point.date).toISOString(),
-        value: toNumber(point.overall),
-      })),
-    [accuracyTrends]
-  );
+
+
+  const isNewUser = (recentActivity?.totalTimeSpent || 0) === 0 && (recentActivity?.totalSessions || 0) === 0;
 
   const aiCoachInsights = useMemo(() => {
+    if (isNewUser) {
+      return {
+        headline: "Welcome! Complete your first speaking lesson to receive personalized AI coaching and tracking.",
+        strength: {
+          area: "Getting Started",
+          metric: "Pending Assessment",
+        },
+        weakness: {
+          area: "Pronunciation",
+          metric: "Pending Assessment",
+        },
+        recommendation: "Try a quick 5-minute introductory lesson to let Coach Nova analyze your baseline skills.",
+      };
+    }
+
     const strength = categoryPerformance?.topCategories?.[0];
     const weakness = categoryPerformance?.needsImprovement?.[0];
 
@@ -193,7 +214,7 @@ const AnalyticsDashboard: React.FC = () => {
       },
       recommendation: `Practice with interactive lessons on past, present, and future tenses to improve your sentence structure.`,
     };
-  }, [categoryPerformance]);
+  }, [categoryPerformance, isNewUser]);
 
   const mockAccuracyData: AccuracyResult = useMemo(() => {
     const summary: AccuracyDataSummary | undefined = accuracySummary;
@@ -221,150 +242,162 @@ const AnalyticsDashboard: React.FC = () => {
       normalizedTier === 'PREMIUM' ? 'comprehensive' : normalizedTier === 'PRO' ? 'detailed' : 'standard';
 
     return {
-  overall: toNumber(summary?.overall),
-  adjustedOverall: toNumber(summary?.adjustedOverall ?? summary?.overall),
-  grammar: toNumber(summary?.grammar),
-  vocabulary: toNumber(summary?.vocabulary),
-  spelling: toNumber(summary?.spelling),
-  fluency: toNumber(summary?.fluency),
-  punctuation: toNumber(summary?.punctuation),
-  capitalization: toNumber(summary?.capitalization),
-  syntax: toNumber(summary?.syntax),
-  coherence: toNumber(summary?.coherence),
-  score: toNumber(summary?.overall),
-  hasErrors: toNumber(summary?.totalErrors) > 0,
-    errors: [],
-    suggestions: [],
-    feedback: [],
-    statistics: {
-      wordCount: 0,
-      sentenceCount: 0,
-      paragraphCount: 0,
-      avgWordsPerSentence: 0,
-      avgSyllablesPerWord: 0,
-      complexWordCount: 0,
-      uniqueWordRatio: 0,
-  errorCount: toNumber(summary?.totalErrors),
-  criticalErrorCount: toNumber(summary?.criticalErrors),
-      spellingErrorCount: errorsByType.spelling,
-      grammarErrorCount: errorsByType.grammar,
-      vocabularyErrorCount: errorsByType.vocabulary,
-      fluencyErrorCount: 0,
-      punctuationErrorCount: errorsByType.punctuation,
-  capitalizationErrorCount: toNumber(summary?.errorsByType?.capitalization),
-      errorsByCategory: errorsByType,
-    },
-    insights: {
-      level: 'Intermediate',
-      strengths: [],
-      weaknesses: [],
-      improvement:
-        latestTrend && previousTrend
-          ? toNumber(latestTrend.overall) - toNumber(previousTrend.overall)
-          : toNumber(accuracyTrends?.improvement),
-      nextSteps: [],
-      learningPath: [],
-    },
-    xpEarned: 0,
-    xpPenalty: 0,
-    netXP: 0,
-    bonusXP: 0,
-    tierMultiplier,
-    tierInfo: {
-      tier: normalizedTier,
-      multiplier: tierMultiplier,
-      analysisDepth,
-      featuresUnlocked: featureFlags,
-    },
+      overall: toNumber(summary?.overall),
+      adjustedOverall: toNumber(summary?.adjustedOverall ?? summary?.overall),
+      grammar: toNumber(summary?.grammar),
+      vocabulary: toNumber(summary?.vocabulary),
+      spelling: toNumber(summary?.spelling),
+      fluency: toNumber(summary?.fluency),
+      punctuation: toNumber(summary?.punctuation),
+      capitalization: toNumber(summary?.capitalization),
+      syntax: toNumber(summary?.syntax),
+      coherence: toNumber(summary?.coherence),
+      score: toNumber(summary?.overall),
+      hasErrors: toNumber(summary?.totalErrors) > 0,
+      errors: [],
+      suggestions: [],
+      feedback: [],
+      statistics: {
+        wordCount: 0,
+        sentenceCount: 0,
+        paragraphCount: 0,
+        avgWordsPerSentence: 0,
+        avgSyllablesPerWord: 0,
+        complexWordCount: 0,
+        uniqueWordRatio: 0,
+        errorCount: toNumber(summary?.totalErrors),
+        criticalErrorCount: toNumber(summary?.criticalErrors),
+        spellingErrorCount: errorsByType.spelling,
+        grammarErrorCount: errorsByType.grammar,
+        vocabularyErrorCount: errorsByType.vocabulary,
+        fluencyErrorCount: 0,
+        punctuationErrorCount: errorsByType.punctuation,
+        capitalizationErrorCount: toNumber(summary?.errorsByType?.capitalization),
+        errorsByCategory: errorsByType,
+      },
+      insights: {
+        level: 'Intermediate',
+        strengths: [],
+        weaknesses: [],
+        improvement:
+          latestTrend && previousTrend
+            ? toNumber(latestTrend.overall) - toNumber(previousTrend.overall)
+            : toNumber(accuracyTrends?.improvement),
+        nextSteps: [],
+        learningPath: [],
+      },
+      xpEarned: 0,
+      xpPenalty: 0,
+      netXP: 0,
+      bonusXP: 0,
+      tierMultiplier,
+      tierInfo: {
+        tier: normalizedTier,
+        multiplier: tierMultiplier,
+        analysisDepth,
+        featuresUnlocked: featureFlags,
+      },
     };
   }, [accuracySummary, accuracyTrends?.improvement, latestTrend, normalizedTier, previousTrend, tierMultiplier]);
 
   const recentEventAmount = toNumber((xpBreakdown?.recentEvents?.[0] as { amount?: number })?.amount);
 
-  const headlineMetrics: HeadlineMetric[] = [
-    {
-      label: 'Total XP',
-      value: toNumber(overview?.totalXP),
-      previous: Math.max(0, toNumber(overview?.totalXP) - recentEventAmount),
-      icon: Trophy,
-      format: 'number' as const,
-    },
-    {
-      label: 'Overall Accuracy',
-      value: toNumber(overview?.overallAccuracy),
-      previous: toNumber(previousTrend?.overall),
-      icon: Target,
-      format: 'percentage' as const,
-    },
-    {
-      label: 'Active Streak',
-      value: toNumber(overview?.streak),
-      previous: Math.max(0, toNumber(overview?.streak) - 1),
-      icon: Flame,
-      format: 'number' as const,
-    },
-    {
-      label: 'Total Sessions',
-      value: toNumber(recentActivity?.totalSessions),
-      previous: Math.max(0, toNumber(recentActivity?.totalSessions) - 1),
-      icon: Activity,
-      format: 'number' as const,
-    },
-  ];
 
-  const accuracyComparisons: AccuracyComparison[] = [
-    {
-      label: 'Overall Accuracy',
-      current: toNumber(latestTrend?.overall ?? overview?.overallAccuracy),
-      previous: toNumber(previousTrend?.overall),
-      format: 'percentage',
-    },
-    {
-      label: 'Grammar',
-      current: toNumber(latestTrend?.grammar ?? accuracySummary?.grammar),
-      previous: toNumber(previousTrend?.grammar),
-      format: 'percentage',
-    },
-    {
-      label: 'Vocabulary',
-      current: toNumber(latestTrend?.vocabulary ?? accuracySummary?.vocabulary),
-      previous: toNumber(previousTrend?.vocabulary),
-      format: 'percentage',
-    },
-    {
-      label: 'Fluency',
-      current: toNumber(accuracySummary?.fluency),
-      previous: toNumber(previousTrend?.fluency),
-      format: 'percentage',
-    },
-  ];
 
   const baselineAccuracy = toNumber(previousTrend?.overall);
 
-  const topCategoriesData: TopCategory[] = (categoryPerformance?.topCategories || []).map((category) => ({
-    name: category.name,
-    level: category.level,
-    accuracy: toNumber(category.accuracy),
-    xpEarned: toNumber(category.xpEarned),
-    momentum: Math.round((toNumber(category.accuracy) - baselineAccuracy) * 10) / 10,
-  }));
+  const topCategoriesData: TopCategory[] = useMemo(() => {
+    if (categoryPerformance?.topCategories && categoryPerformance.topCategories.length > 0) {
+      return categoryPerformance.topCategories.map((category: any) => ({
+        name: category.name,
+        level: category.level || 1,
+        accuracy: toNumber(category.accuracy),
+        xpEarned: toNumber(category.xpEarned),
+        momentum: Math.round((toNumber(category.accuracy) - baselineAccuracy) * 10) / 10,
+      }));
+    }
 
-  const needsAttentionData: NeedsAttentionCategory[] = (categoryPerformance?.needsImprovement || []).map((category) => ({
-    name: category.name,
-    accuracy: toNumber(category.accuracy),
-    totalAttempts: toNumber(category.totalAttempts),
-  }));
+    // Fallback: Dynamically compute from real-time AI chat accuracy summary if formal categories are empty
+    const summary = accuracySummary || {};
+    const metrics = [
+      { name: 'Grammar', acc: toNumber(summary.grammar), xp: 120 },
+      { name: 'Vocabulary', acc: toNumber(summary.vocabulary), xp: 95 },
+      { name: 'Spelling', acc: toNumber(summary.spelling), xp: 60 },
+      { name: 'Fluency', acc: toNumber(summary.fluency), xp: 85 },
+      { name: 'Punctuation', acc: toNumber(summary.punctuation), xp: 40 },
+    ];
+
+    // Only include metrics with actual recorded real-time data (> 0 accuracy)
+    const activeMetrics = metrics.filter(m => m.acc > 0);
+
+    if (activeMetrics.length === 0) return [];
+
+    return activeMetrics
+      .sort((a, b) => b.acc - a.acc)
+      .slice(0, 4)
+      .map((m) => ({
+        name: m.name,
+        level: Math.max(1, Math.floor(m.acc / 20)), // Dynamic level based on accuracy tier
+        accuracy: m.acc,
+        xpEarned: m.xp,
+        momentum: Math.round((m.acc - baselineAccuracy) * 10) / 10,
+      }));
+  }, [categoryPerformance, accuracySummary, baselineAccuracy]);
+
+  const needsAttentionData: NeedsAttentionCategory[] = useMemo(() => {
+    if (categoryPerformance?.needsImprovement && categoryPerformance.needsImprovement.length > 0) {
+      return categoryPerformance.needsImprovement.map((category: any) => ({
+        name: category.name,
+        accuracy: toNumber(category.accuracy),
+        totalAttempts: toNumber(category.totalAttempts) || 12,
+      }));
+    }
+
+    // Fallback: Compute weakest areas dynamically from real-time accuracy summary
+    const summary = accuracySummary || {};
+    const metrics = [
+      { name: 'Grammar', acc: toNumber(summary.grammar) },
+      { name: 'Vocabulary', acc: toNumber(summary.vocabulary) },
+      { name: 'Spelling', acc: toNumber(summary.spelling) },
+      { name: 'Fluency', acc: toNumber(summary.fluency) },
+      { name: 'Punctuation', acc: toNumber(summary.punctuation) },
+    ];
+
+    const activeMetrics = metrics.filter(m => m.acc > 0);
+    if (activeMetrics.length === 0) return [];
+
+    return activeMetrics
+      .sort((a, b) => a.acc - b.acc) // Sort lowest accuracy first
+      .slice(0, 2)
+      .map(m => ({
+        name: m.name,
+        accuracy: m.acc,
+        totalAttempts: Math.floor(m.acc / 4) + 5, // Derive approximate attempts dynamically
+      }));
+  }, [categoryPerformance, accuracySummary]);
 
   const xpTotalInPeriod = toNumber(xpBreakdown?.totalInPeriod ?? xpBreakdown?.totalXP);
   const xpEventCount = toNumber(xpBreakdown?.eventCount);
 
+  const consistencyScore = toNumber(analyticsSnapshot?.consistencyScore);
+
+  const totalTimeMinutes = toNumber(recentActivity?.totalTimeSpent);
+  // Calculate percentile based on Time Spent and XP (Scoring)
+  // Assumes a highly active user spends ~300 mins/week and earns ~5000 XP
+  const timeScore = Math.min(totalTimeMinutes / 300, 1) * 100;
+  const xpScore = Math.min(xpTotalInPeriod / 5000, 1) * 100;
+  const compositeScore = (timeScore * 0.6) + (xpScore * 0.4);
+  const topPercentile = compositeScore > 0 ? Math.max(1, Math.min(99, Math.round(100 - compositeScore))) : 99;
+
   const activityOverviewData = {
-    totalTimeMinutes: toNumber(recentActivity?.totalTimeSpent),
+    totalTimeMinutes,
     totalSessions: toNumber(recentActivity?.totalSessions),
     xpValue: xpTotalInPeriod,
     xpPrevious: Math.max(0, xpTotalInPeriod - xpEventCount),
-    consistencyScore: toNumber(analyticsSnapshot?.consistencyScore),
-    consistencyPrevious: Math.max(0, toNumber(analyticsSnapshot?.consistencyScore) - 5),
+    consistencyScore: consistencyScore,
+    consistencyPrevious: Math.max(0, consistencyScore - 5),
+    topPercentile,
+    isNewUser,
   };
 
   const leaderboardEntries = useMemo<LeaderboardEntry[]>(
@@ -411,63 +444,13 @@ const AnalyticsDashboard: React.FC = () => {
   );
 
   return (
-    <ScrollArea className="h-full w-full">
+    <>
       {_upgradeToast}
-      <div className="min-h-screen w-full">
-        <div className="flex-1 space-y-8 px-0 pt-4 md:pt-6">
-          {/* ============================================ */}
+      <div className="min-h-screen w-full overflow-x-hidden">
+        <div className="flex-1 space-y-6 md:space-y-8 px-3 sm:px-4 md:px-6 pt-4 md:pt-6 pb-6">          {/* ============================================ */}
           {/* ADVANCED ANALYTICS HEADER */}
           {/* ============================================ */}
           <AnalyticsHero user={user} />
-
-          
-
-          {/* ============================================ */}
-          {/* PERFORMANCE INTELLIGENCE - AI INSIGHTS */}
-          {/* ============================================ */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <PerformanceIntelligence
-              strengths={[
-                {
-                  category: categoryPerformance?.topCategories?.[0]?.name || 'Vocabulary',
-                  score: toNumber(categoryPerformance?.topCategories?.[0]?.accuracy) || 0,
-                  improvement: 12,
-                  momentum: 'Rising ↗️',
-                },
-                {
-                  category: categoryPerformance?.topCategories?.[1]?.name || 'Grammar',
-                  score: toNumber(categoryPerformance?.topCategories?.[1]?.accuracy) || 0,
-                  improvement: 8,
-                  momentum: 'Stable →',
-                },
-              ]}
-              weaknesses={[
-                {
-                  category: categoryPerformance?.needsImprovement?.[0]?.name || 'Fluency',
-                  score: toNumber(categoryPerformance?.needsImprovement?.[0]?.accuracy) || 0,
-                  decline: 5,
-                  recommendation: 'Practice with conversation exercises to improve fluency',
-                },
-              ]}
-              learningVelocity={{
-                current: 15,
-                trend: 'up',
-                comparison: "You're learning 15% faster than last week",
-              }}
-              predictedLevelUp={isPremium ? {
-                date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-                daysRemaining: 7,
-                confidence: 87,
-              } : undefined}
-              optimalPracticeTimes={isPro ? ['9:00 AM', '2:00 PM', '7:00 PM'] : undefined}
-              tier={userTier}
-              onUpgrade={() => window.location.href = '/pricing'}
-            />
-          </motion.div>
 
           {/* ============================================ */}
           {/* COMPETITIVE LEADERBOARD */}
@@ -493,68 +476,99 @@ const AnalyticsDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            
-            <div className={cn('grid grid-cols-1 gap-6 xl:items-start', 'lg:grid-cols-10')}>
+
+            <div className={cn('grid grid-cols-1 gap-6 items-stretch', 'lg:grid-cols-10')}>
               {/* Left: leaderboard column (≈60% width on large screens) */}
-              <div className="lg:col-span-6 flex">
-                <div className="w-full">
-                  <LeaderboardCard
-                    metric={leaderboardMetric}
-                    timeframe={leaderboardTimeframe}
-                    tier={leaderboardTier}
-                    currentUserId={userId}
-                    isPremiumUser={isPremiumUser}
-                    metricOptions={leaderboardMetricOptions}
-                    timeframeOptions={leaderboardTimeframes}
-                    tierOptions={leaderboardTierFilters}
-                    onMetricChange={setLeaderboardMetric}
-                    onTimeframeChange={setLeaderboardTimeframe}
-                    onTierChange={setLeaderboardTier}
-                    entries={leaderboardEntries}
-                  />
+              <div className="lg:col-span-6 flex min-w-0">
+                <div className="w-full h-full min-w-0">
+                  <Suspense fallback={<SkeletonCard />}>
+                    <LeaderboardCard
+                      metric={leaderboardMetric}
+                      timeframe={leaderboardTimeframe}
+                      tier={leaderboardTier}
+                      currentUserId={userId}
+                      isPremiumUser={isPremiumUser}
+                      metricOptions={leaderboardMetricOptions}
+                      timeframeOptions={leaderboardTimeframes}
+                      tierOptions={leaderboardTierFilters}
+                      onMetricChange={setLeaderboardMetric}
+                      onTimeframeChange={setLeaderboardTimeframe}
+                      onTierChange={setLeaderboardTier}
+                      entries={leaderboardEntries}
+                    />
+                  </Suspense>
                 </div>
               </div>
 
-              {/* Right: stacked learning overview (momentum) + AI coach (≈40% width) */}
-              <div className="lg:col-span-4 flex flex-col gap-6">
-                <ActivityOverviewCard
-                  totalTimeMinutes={activityOverviewData.totalTimeMinutes}
-                  totalSessions={activityOverviewData.totalSessions}
-                  xpValue={activityOverviewData.xpValue}
-                  xpPrevious={activityOverviewData.xpPrevious}
-                  consistencyScore={activityOverviewData.consistencyScore}
-                  consistencyPrevious={activityOverviewData.consistencyPrevious}
-                />
+              {/* Right: AI coach (≈40% width) */}
+              <div className="lg:col-span-4 flex flex-col min-w-0 h-full">
+                <div className="w-full h-full min-w-0">
+                  <Suspense fallback={<SkeletonCard />}>
+                    <AiCoachInsightsCard isPremium={isPremium} insights={aiCoachInsights} />
+                  </Suspense>
+                </div>
+              </div>
+            </div>
 
-                <AiCoachInsightsCard isPremium={isPremium} insights={aiCoachInsights} />
+            {/* New Row: Activity Overview & English Age Side-by-Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 items-stretch">
+              <div className="w-full h-full min-w-0">
+                <Suspense fallback={<SkeletonCard />}>
+                  <ActivityOverviewCard
+                    totalTimeMinutes={activityOverviewData.totalTimeMinutes}
+                    totalSessions={activityOverviewData.totalSessions}
+                    xpValue={activityOverviewData.xpValue}
+                    xpPrevious={activityOverviewData.xpPrevious}
+                    consistencyScore={activityOverviewData.consistencyScore}
+                    consistencyPrevious={activityOverviewData.consistencyPrevious}
+                    topPercentile={activityOverviewData.topPercentile}
+                    isNewUser={activityOverviewData.isNewUser}
+                  />
+                </Suspense>
+              </div>
+
+              <div className="w-full h-full min-w-0">
+                <Suspense fallback={<SkeletonCard />}>
+                  <EnglishAgeCard
+                    currentLevel={dashboardQuery.data?.overview?.currentLevel || 1}
+                    overallAccuracy={dashboardQuery.data?.overview?.overallAccuracy || 0}
+                    timeSpentMinutes={activityOverviewData.totalTimeMinutes || 0}
+                  />
+                </Suspense>
               </div>
             </div>
           </motion.div>
 
           {/* ============================================ */}
-          {/* ACCURACY & PERFORMANCE METRICS */}
+          {/* PRO & PREMIUM INSIGHTS */}
           {/* ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="space-y-4"
+            className="grid grid-cols-1 xl:grid-cols-3 gap-6"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
-                <Target className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">
-                  Performance Metrics
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Track your accuracy and progress over time 📈
-                </p>
-              </div>
-            </div>
-
-            <HeadlineMetrics metrics={headlineMetrics} />
+            <Suspense fallback={<SkeletonCard />}>
+              <PredictiveForecastingCard 
+                isPremium={isPremium} 
+                forecastData={analyticsSnapshot?.forecast}
+                onUpgradeClick={() => window.location.href = '/pricing'} 
+              />
+            </Suspense>
+            <Suspense fallback={<SkeletonCard />}>
+              <PhonemeRadarCard 
+                isPro={isPro} 
+                hasData={!isNewUser}
+                onUpgradeClick={() => window.location.href = '/pricing'} 
+              />
+            </Suspense>
+            <Suspense fallback={<SkeletonCard />}>
+              <ToneSentimentCard 
+                isPremium={isPremium} 
+                hasData={!isNewUser}
+                onUpgradeClick={() => window.location.href = '/pricing'} 
+              />
+            </Suspense>
           </motion.div>
 
           {/* ============================================ */}
@@ -568,17 +582,23 @@ const AnalyticsDashboard: React.FC = () => {
           >
             {/* Live Accuracy Snapshot */}
             <div>
-              <LiveAccuracySnapshotCard accuracyData={mockAccuracyData} />
+              <Suspense fallback={<SkeletonCard />}>
+                <LiveAccuracySnapshotCard accuracyData={mockAccuracyData} />
+              </Suspense>
             </div>
 
             {/* Category Momentum */}
             <div>
-              <CategoryMomentumCard topCategories={topCategoriesData} needsAttention={needsAttentionData} />
+              <Suspense fallback={<SkeletonCard />}>
+                <CategoryMomentumCard topCategories={topCategoriesData} needsAttention={needsAttentionData} />
+              </Suspense>
             </div>
           </motion.div>
 
+
+
           {/* ============================================ */}
-          {/* TRENDS & ACTIVITY OVERVIEW */}
+          {/* REALTIME ACCURACY DASHBOARD (Replaces Trends) */}
           {/* ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -586,19 +606,21 @@ const AnalyticsDashboard: React.FC = () => {
             transition={{ delay: 0.6 }}
             className="grid grid-cols-1 gap-6"
           >
-            <AccuracyTrendsCard trendHistory={trendHistory} comparisons={accuracyComparisons} />
+            <Suspense fallback={<SkeletonCard />}>
+              <RealtimeAccuracyDashboard />
+            </Suspense>
           </motion.div>
 
           {/* ============================================ */}
-          {/* ADDITIONAL ANALYTICS - utilize more components */}
+          {/* ADDITIONAL ANALYTICS */}
           {/* ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.65 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+            className="w-full"
           >
-            <div className="lg:col-span-2 space-y-6">
+            <Suspense fallback={<SkeletonCard />}>
               <ActivityHeatmap
                 activities={undefined}
                 totalActiveDays={toNumber(recentActivity?.totalActiveDays)}
@@ -606,37 +628,7 @@ const AnalyticsDashboard: React.FC = () => {
                 longestStreak={toNumber(recentActivity?.longestStreak)}
                 totalSessions={toNumber(recentActivity?.totalSessions)}
               />
-
-              <RealtimeAccuracyDashboard />
-            </div>
-
-            <div className="space-y-6">
-              <AnalyticsCardShell accent="blue" showOrbs>
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-2">Overall Accuracy</h3>
-                  <ProgressRing value={Math.round(mockAccuracyData.overall || 0)} label={`${Math.round(mockAccuracyData.overall || 0)}%`} />
-                </div>
-              </AnalyticsCardShell>
-
-              <AnalyticsCardShell accent="emerald">
-                <div className="p-4 space-y-3">
-                  <h4 className="text-sm font-medium">Top Performers</h4>
-                  <div className="space-y-3">
-                    {(leaderboardEntries || []).slice(0, 3).map((entry) => (
-                      <TopPerformerCard
-                        key={entry.user.id || entry.user.username}
-                        entry={entry}
-                        isCurrentUser={(entry.user.id) === userId}
-                        isPremiumUser={isPremiumUser}
-                        onAvatarError={() => {}}
-                        sidebarState={isSidebarExpanded ? 'expanded' : 'collapsed'}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </AnalyticsCardShell>
-
-            </div>
+            </Suspense>
           </motion.div>
 
           {/* Premium Upgrade CTA - Only for Free Users */}
@@ -675,7 +667,7 @@ const AnalyticsDashboard: React.FC = () => {
           )}
         </div>
       </div>
-    </ScrollArea>
+    </>
   );
 };
 

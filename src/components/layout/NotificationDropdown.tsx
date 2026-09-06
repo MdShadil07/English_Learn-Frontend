@@ -94,7 +94,7 @@ export const NotificationDropdown: React.FC = () => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-300 hover:shadow-md hover:rounded-2xl relative"
+          className="p-2 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors relative"
         >
           <Bell className="h-5 w-5" />
           <AnimatePresence>
@@ -113,21 +113,21 @@ export const NotificationDropdown: React.FC = () => {
         </motion.button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-emerald-200/50 dark:border-emerald-800/50 shadow-2xl rounded-2xl">
-        <div className="flex items-center justify-between px-4 py-3 bg-emerald-50/50 dark:bg-emerald-950/20">
-          <DropdownMenuLabel className="p-0 text-sm font-bold text-slate-800 dark:text-slate-100">
+      <DropdownMenuContent align="end" className="w-80 p-0 overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl saturate-[1.2] border border-black/5 dark:border-white/10 shadow-[0_16px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_16px_40px_rgb(0,0,0,0.6)] rounded-2xl">
+        <div className="flex items-center justify-between px-4 py-3 bg-black/[0.02] dark:bg-white/[0.02]">
+          <DropdownMenuLabel className="p-0 text-sm font-bold text-slate-900 dark:text-slate-100">
             Notifications
           </DropdownMenuLabel>
           {unreadCount > 0 && (
             <button 
               onClick={(e) => { e.stopPropagation(); markAllAsRead(); }}
-              className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors flex items-center gap-1"
+              className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1"
             >
               <Check className="w-3 h-3" /> Mark all read
             </button>
           )}
         </div>
-        <DropdownMenuSeparator className="m-0 bg-emerald-200/50 dark:bg-emerald-800/50" />
+        <DropdownMenuSeparator className="m-0 bg-black/5 dark:bg-white/10" />
         
         <div className="max-h-[350px] overflow-y-auto">
           {notifications.length === 0 ? (
@@ -141,10 +141,10 @@ export const NotificationDropdown: React.FC = () => {
                 <div 
                   key={notification._id}
                   onClick={() => !notification.read && markAsRead(notification._id)}
-                  className={`p-4 border-b border-slate-100 dark:border-slate-800/50 transition-colors last:border-0 ${notification.read ? 'opacity-70 bg-white dark:bg-slate-900' : 'bg-emerald-50/30 dark:bg-emerald-900/10 cursor-pointer hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20'}`}
+                  className={`p-4 border-b border-black/5 dark:border-white/5 transition-colors last:border-0 ${notification.read ? 'opacity-70 bg-transparent' : 'bg-black/[0.03] dark:bg-white/[0.03] cursor-pointer hover:bg-black/[0.05] dark:hover:bg-white/[0.05]'}`}
                 >
                   <div className="flex gap-3">
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${!notification.read ? 'bg-white dark:bg-slate-800 shadow-sm border border-emerald-100 dark:border-emerald-800/50' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${!notification.read ? 'bg-white dark:bg-slate-800 shadow-sm border border-black/5 dark:border-white/5' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
                       {getIcon(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">

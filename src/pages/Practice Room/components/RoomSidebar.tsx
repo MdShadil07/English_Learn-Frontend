@@ -52,19 +52,19 @@ const RoomSidebar = ({
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="w-80 bg-white rounded-lg shadow-sm border flex flex-col h-full"
+      className="w-80 bg-[#050C14]/90 backdrop-blur-xl rounded-lg shadow-lg shadow-emerald-500/10 border border-emerald-500/20 flex flex-col h-full"
     >
       {/* Room Info Section */}
-      <div className="p-6 border-b">
+      <div className="p-6 border-b border-emerald-500/20">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center">
             <Users className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-white">
               Practice Room
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-400">
               {room.roomId}
             </p>
           </div>
@@ -72,27 +72,27 @@ const RoomSidebar = ({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Status</span>
+            <span className="text-sm text-slate-400">Status</span>
             <Badge
               variant={room.status === 'active' ? 'default' : 'secondary'}
-              className={room.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+              className={room.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}
             >
               {room.status === 'active' ? 'Active' : 'Closed'}
             </Badge>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Participants</span>
-            <span className="text-sm font-medium">
+            <span className="text-sm text-slate-400">Participants</span>
+            <span className="text-sm font-medium text-white">
               {room.participantCount}/{room.maxParticipants}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Duration</span>
+            <span className="text-sm text-slate-400">Duration</span>
             <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3 text-gray-400" />
-              <span className="text-sm font-medium">
+              <Clock className="h-3 w-3 text-emerald-400" />
+              <span className="text-sm font-medium text-white">
                 {formatDuration(room.createdAt)}
               </span>
             </div>
@@ -100,8 +100,8 @@ const RoomSidebar = ({
 
           {isHost && (
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Role</span>
-              <Badge variant="outline" className="flex items-center gap-1">
+              <span className="text-sm text-slate-400">Role</span>
+              <Badge variant="outline" className="flex items-center gap-1 border-amber-500/30 text-amber-400 bg-amber-500/10">
                 <Trophy className="h-3 w-3" />
                 Host
               </Badge>
@@ -157,14 +157,14 @@ const RoomSidebar = ({
 
         {/* Quick Actions */}
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-gray-900">Quick Actions</h3>
+          <h3 className="text-sm font-medium text-white">Quick Actions</h3>
 
-          <Button variant="outline" className="w-full justify-start" size="sm">
+          <Button variant="outline" className="w-full justify-start border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300" size="sm">
             <BookOpen className="h-4 w-4 mr-3" />
             Practice Topics
           </Button>
 
-          <Button variant="outline" className="w-full justify-start" size="sm">
+          <Button variant="outline" className="w-full justify-start border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300" size="sm">
             <Trophy className="h-4 w-4 mr-3" />
             View Progress
           </Button>
@@ -172,8 +172,8 @@ const RoomSidebar = ({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t bg-gray-50 rounded-b-lg">
-        <div className="text-xs text-gray-500 text-center">
+      <div className="p-4 border-t border-emerald-500/20 bg-[#050C14] rounded-b-lg">
+        <div className="text-xs text-slate-500 text-center">
           <p>Room created {new Date(room.createdAt).toLocaleDateString()}</p>
           <p className="mt-1">
             Practice Room v1.0 • Real-time voice chat

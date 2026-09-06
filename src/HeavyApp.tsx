@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { lazy, Suspense } from "react";
@@ -16,7 +16,6 @@ const ForgotPassword  = lazy(() => import("./pages/Auth/ForgotPassword.tsx"));
 const ResetPassword   = lazy(() => import("./pages/Auth/ResetPassword.tsx"));
 const NewDashboard    = lazy(() => import("./pages/Dashboard Page/NewDashboard.tsx"));
 const Profile         = lazy(() => import("./pages/Profile Page/Profile.tsx"));
-const EditProfile     = lazy(() => import("./pages/Edit Profile Page/EditProfile.tsx"));
 const Settings        = lazy(() => import("./pages/Settings Page/Settings.tsx"));
 const NotFound        = lazy(() => import("./pages/NotFound.tsx"));
 const AIChatPage      = lazy(() => import("./pages/AI Chat Page/AIChatPage"));
@@ -49,8 +48,7 @@ const HeavyApp = () => (
             {/* Protected pages */}
             <Route path="/dashboard" element={<ProtectedRoute><NewDashboard /></ProtectedRoute>} />
             <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-            <Route path="/settings"  element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/settings/*"  element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/ai-chat"   element={<ProtectedRoute><Suspense fallback={<AIChatSkeleton />}><AIChatPage /></Suspense></ProtectedRoute>} />
             <Route path="/payment/checkout-return" element={<ProtectedRoute><CheckoutReturn /></ProtectedRoute>} />
             <Route path="/practice-room/:roomId"   element={<ProtectedRoute><PracticeRoomPage /></ProtectedRoute>} />
@@ -65,6 +63,7 @@ const HeavyApp = () => (
             <Route path="/demo"          element={<DemoVideoPage />} />
 
             {/* Catch-all */}
+            <Route path="/edit-profile" element={<Navigate to="/settings/profile" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

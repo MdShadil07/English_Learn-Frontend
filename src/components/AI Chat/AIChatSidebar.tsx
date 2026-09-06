@@ -1,43 +1,15 @@
 import React, { useState, useEffect, memo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Activity, Clock, Flame, MessageSquare, Plus, Sparkles, Target, TrendingUp, UserCircle2 } from 'lucide-react';
+import { Activity, Clock, Flame, MessageSquare, Plus, Sparkles, Target, TrendingUp, UserCircle2, X } from 'lucide-react';
 
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { cn } from '../../lib/utils';
 
-import { AIPersonality, ChatStats, Conversation } from './types';
-
-// Define AccuracyResult type matching backend API response
-export interface AccuracyResult {
-  overall: number;
-  adjustedOverall?: number;
-  grammar: number;
-  vocabulary: number;
-  spelling: number;
-  fluency: number;
-  punctuation?: number;
-  capitalization?: number;
-  aiResponseAnalysis?: {
-    appreciationLevel?: string;
-    severityOfCorrections?: string;
-    hasCorrectionFeedback?: boolean;
-    correctedErrors?: string[];
-  };
-  insights?: {
-    improvement?: number;
-    netXP?: number;
-    strengths?: string[];
-    weaknesses?: string[];
-    level?: string;
-  };
-  netXP?: number;
-  readability?: any;
-  tone?: any;
-  style?: any;
-  premiumFeatures?: any;
-}
+import { AIPersonality, ChatStats, Conversation, AccuracyResult } from './types';
+import { SidebarUserCard } from './SidebarUserCard';
+import { SidebarAccuracyCard } from './SidebarAccuracyCard';
 import { getConversationPersonalityLogo, getPersonalityLogo } from '../Icons/AIPersonalityLogos';
 
 interface AIChatSidebarProps {
@@ -57,7 +29,9 @@ interface AIChatSidebarProps {
     timestamp: Date;
     fromCache?: boolean; // Track if result came from cache
   };
+  showAccuracy?: boolean;
   isSidebarLoading?: boolean;
+  onClose?: () => void;
 }
 
 const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
@@ -72,14 +46,14 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
   sidebarMode,
   onSidebarModeChange,
   latestAccuracy,
-  isSidebarLoading
+  showAccuracy = true,
+  isSidebarLoading,
+  onClose
 }) => {
-  // Avoid noisy debug logs in production — logging harms scroll performance
   const [activeView, setActiveView] = useState<'conversations' | 'personalities'>('conversations');
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [previousStats, setPreviousStats] = useState<ChatStats | null>(null);
 
-  // Update loading state when new data is being loaded
   useEffect(() => {
     if (isSidebarLoading) {
       setIsStatsLoading(true);
@@ -139,40 +113,54 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
       />
 
       <aside
-        className="w-full sm:w-80 flex h-full min-h-0 max-h-full flex-col overflow-hidden border-r border-emerald-200/40 bg-white/88 sm:backdrop-blur-2xl dark:border-emerald-900/30 dark:bg-slate-950/70"
+        className="flex h-full min-h-0 max-h-full w-full flex-col overflow-hidden border-r border-emerald-200/40 bg-white/88 sm:backdrop-blur-2xl dark:border-emerald-500/10 dark:bg-[#050C14]/60"
         style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
       >
-        <div className="px-4 sm:px-5 pt-5 flex-none">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Insights</span>
-            <div className="inline-flex rounded-full bg-emerald-100/50 p-1 text-xs dark:bg-emerald-900/40">
+        <div className="px-4 sm:px-5 pt-4 flex-none">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Learning insights</span>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-full border border-emerald-200/50 bg-emerald-100/50 p-1 text-xs shadow-inner dark:border-emerald-800/50 dark:bg-emerald-900/40">
               <button
                 type="button"
                 onClick={() => onSidebarModeChange?.('stats')}
                 className={cn(
-                  'rounded-full px-2.5 py-1 transition',
+                  'rounded-full px-2.5 py-1 font-semibold transition',
                   sidebarMode === 'stats'
-                    ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-800 dark:text-emerald-300'
+                    ? 'bg-white text-emerald-700 shadow-sm dark:bg-[#050C14] dark:border dark:border-emerald-500/20 dark:text-emerald-300'
                     : 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400'
                 )}
               >
                 Stats
               </button>
-              <button
-                type="button"
-                onClick={() => latestAccuracy && onSidebarModeChange?.('accuracy')}
-                className={cn(
-                  'rounded-full px-2.5 py-1 transition',
-                  sidebarMode === 'accuracy'
-                    ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-800 dark:text-emerald-300'
-                    : latestAccuracy
-                    ? 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400'
-                    : 'cursor-not-allowed text-emerald-400/60 dark:text-emerald-600/40'
-                )}
-                disabled={!latestAccuracy}
-              >
-                Accuracy
-              </button>
+              {showAccuracy && (
+                <button
+                  type="button"
+                  onClick={() => latestAccuracy && onSidebarModeChange?.('accuracy')}
+                  className={cn(
+                    'rounded-full px-2.5 py-1 font-semibold transition',
+                    sidebarMode === 'accuracy'
+                      ? 'bg-white text-emerald-700 shadow-sm dark:bg-[#050C14] dark:border dark:border-emerald-500/20 dark:text-emerald-300'
+                      : latestAccuracy
+                        ? 'text-emerald-600 hover:text-emerald-700 dark:text-emerald-400'
+                        : 'cursor-not-allowed text-emerald-400/60 dark:text-emerald-600/40'
+                  )}
+                  disabled={!latestAccuracy}
+                >
+                  Accuracy
+                </button>
+              )}
+              </div>
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-200/70 bg-white/80 text-slate-500 shadow-sm transition hover:bg-emerald-50 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 dark:border-emerald-500/20 dark:bg-[#050C14]/80 dark:text-slate-300 dark:hover:bg-emerald-900/50 lg:hidden"
+                  aria-label="Close AI chat sidebar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -201,7 +189,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         </div>
 
         <div className="px-4 sm:px-5 flex-none">
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-white/40 bg-white/60 p-1 shadow-inner backdrop-blur-sm dark:border-emerald-900/40 dark:bg-slate-900/50">
+          <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-white/40 bg-white/60 p-1 shadow-inner backdrop-blur-sm dark:border-emerald-500/20 dark:bg-[#050C14]/50">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeView === tab.id;
@@ -210,7 +198,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                 <Button
                   key={tab.id}
                   className={cn(
-                    'flex-1 sm:min-w-[140px] gap-2 rounded-xl border border-transparent transition-all duration-200',
+                    'min-w-0 justify-center gap-1.5 rounded-xl border border-transparent px-2 transition-all duration-200',
                     isActive
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
                       : 'bg-transparent text-emerald-700 hover:border-emerald-300/60 hover:bg-emerald-50/60 hover:text-emerald-800 dark:text-emerald-200 dark:hover:border-emerald-700/60 dark:hover:bg-emerald-900/40'
@@ -220,7 +208,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                   size="sm"
                 >
                   <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-emerald-500 dark:text-emerald-300')} />
-                  <span className="text-sm font-semibold">{tab.label}</span>
+                  <span className="truncate text-xs font-semibold sm:text-sm">{tab.label}</span>
                 </Button>
               );
             })}
@@ -254,31 +242,31 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                 ) : (
                   <div className="ai-sidebar-scrollbar flex-1 min-h-0 overflow-y-auto pr-1">
                     <div className="space-y-2.5 pb-4">
-                              {conversations.map((conversation) => {
+                      {conversations.map((conversation) => {
                         const personality = getPersonality(conversation.personalityId);
                         const PersonalityIcon = getConversationPersonalityLogo(personality?.iconId ?? 'basic-tutor');
-                                return (
-                                  <button
-                                    key={conversation.id}
-                                    type="button"
-                                    className={cn(
-                                      'group flex w-full max-w-full items-start gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all duration-200 will-change-transform',
-                                      'border-emerald-200/40 bg-white/82 shadow-sm backdrop-blur-xl dark:border-emerald-800/40 dark:bg-slate-900/68',
-                                      'hover:-translate-y-0.5 hover:shadow-lg dark:hover:border-emerald-600/50',
-                                      activeConversation?.id === conversation.id &&
-                                        'border-white/60 bg-gradient-to-br from-white/92 via-emerald-50/70 to-slate-50/90 shadow-[0_14px_35px_rgba(15,23,42,0.12)] ring-1 ring-emerald-400/15 dark:border-white/10 dark:from-slate-900/80 dark:via-emerald-950/35 dark:to-slate-900/75 dark:shadow-[0_14px_35px_rgba(0,0,0,0.35)] dark:ring-emerald-400/10'
-                                    )}
-                                    onClick={() => onSelectConversation(conversation)}
-                                  >
-                                    <div
-                                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-white/70 via-white/30 to-slate-100/50 dark:from-slate-900/75 dark:via-slate-900/55 dark:to-slate-800/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_8px_16px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.22)] border border-white/70 dark:border-white/10 ring-1 ring-black/5 dark:ring-white/5 backdrop-blur-xl transition-transform duration-200 group-hover:scale-105 group-active:scale-95"
-                                      style={{ transform: 'translateZ(0)' }}
-                                    >
-                                      <PersonalityIcon
-                                        size={18}
-                                        className="text-emerald-600 dark:text-emerald-300"
-                                      />
-                                    </div>
+                        return (
+                          <button
+                            key={conversation.id}
+                            type="button"
+                            className={cn(
+                              'group flex w-full max-w-full items-start gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all duration-200 will-change-transform',
+                              'border-emerald-200/40 bg-white/82 shadow-sm backdrop-blur-xl dark:border-emerald-500/20 dark:bg-[#050C14]/68',
+                              'hover:-translate-y-0.5 hover:shadow-lg dark:hover:border-emerald-600/50',
+                              activeConversation?.id === conversation.id &&
+                              'border-white/60 bg-gradient-to-br from-white/92 via-emerald-50/70 to-slate-50/90 shadow-[0_14px_35px_rgba(15,23,42,0.12)] ring-1 ring-emerald-400/15 dark:border-white/10 dark:from-slate-900/80 dark:via-emerald-950/35 dark:to-slate-900/75 dark:shadow-[0_14px_35px_rgba(0,0,0,0.35)] dark:ring-emerald-400/10'
+                            )}
+                            onClick={() => onSelectConversation(conversation)}
+                          >
+                            <div
+                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-white/70 via-white/30 to-slate-100/50 dark:from-slate-900/75 dark:via-slate-900/55 dark:to-slate-800/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_8px_16px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_16px_rgba(0,0,0,0.22)] border border-white/70 dark:border-white/10 ring-1 ring-black/5 dark:ring-white/5 backdrop-blur-xl transition-transform duration-200 group-hover:scale-105 group-active:scale-95"
+                              style={{ transform: 'translateZ(0)' }}
+                            >
+                              <PersonalityIcon
+                                size={18}
+                                className="text-emerald-600 dark:text-emerald-300"
+                              />
+                            </div>
                             <div className="min-w-0 flex-1 space-y-1">
                               <div className="flex items-center justify-between gap-1.5">
                                 <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -340,7 +328,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
                             onClick={() => onSelectPersonality?.(personality)}
                             className={cn(
                               'flex w-full items-start gap-2.5 rounded-2xl border p-3 text-left transition-transform duration-150 will-change-transform overflow-hidden',
-                              'bg-white/80 dark:bg-slate-900/70 border-emerald-200/40 dark:border-emerald-800/40 shadow-sm',
+                              'bg-white/80 dark:bg-[#050C14]/70 border-emerald-200/40 dark:border-emerald-500/20 shadow-sm',
                               isSelected && 'border-emerald-400 bg-emerald-50/70 dark:border-emerald-500 dark:bg-emerald-900/30',
                               'hover:translate-x-0.5 hover:shadow-md dark:hover:border-emerald-500/60'
                             )}
@@ -370,408 +358,6 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({
         </div>
       </aside>
     </>
-  );
-};
-
-const SidebarUserCard: React.FC<{
-  level: number;
-  xpProgressPercentage: number;
-  currentLevelXp: number;
-  xpRequiredForLevel: number;
-  xpToNextLevel: number;
-  streak: number;
-  totalXp: number;
-  totalMessages: number;
-  accuracy: number;
-  totalLearningTime: number;
-  isLoading?: boolean;
-}> = ({
-  level,
-  xpProgressPercentage,
-  currentLevelXp,
-  xpRequiredForLevel,
-  xpToNextLevel,
-  streak,
-  totalXp,
-  totalMessages,
-  accuracy,
-  totalLearningTime,
-  isLoading = false,
-}) => {
-  // Keep this component lightweight; avoid expensive debug logging
-  // Format learning time to hours:minutes:seconds or minutes:seconds
-  const formatLearningTime = (seconds: number): string => {
-    if (isLoading) return '--:--';
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m ${secs}s`;
-  };
-
-  const statTiles = [
-    {
-      id: 'streak',
-      label: 'Streak',
-      value: isLoading ? '--' : streak,
-      icon: Flame,
-      gradient: 'from-orange-400 to-orange-500',
-      labelColor: 'text-orange-600 dark:text-orange-300'
-    },
-    {
-      id: 'messages',
-      label: 'Messages',
-      value: isLoading ? '--' : totalMessages,
-      icon: MessageSquare,
-      gradient: 'from-emerald-500 to-teal-500',
-      labelColor: 'text-emerald-600 dark:text-emerald-300'
-    },
-    {
-      id: 'accuracy',
-      label: 'Overall Accuracy',
-      value: isLoading ? '--%' : `${Math.round(accuracy)}%`,
-      icon: Activity,
-      gradient: 'from-indigo-500 to-blue-500',
-      labelColor: 'text-indigo-600 dark:text-indigo-300'
-    },
-    {
-      id: 'time',
-      label: 'Learning Time',
-      value: formatLearningTime(totalLearningTime),
-      icon: Clock,
-      gradient: 'from-purple-500 to-pink-500',
-      labelColor: 'text-purple-600 dark:text-purple-300'
-    }
-  ] as const;
-
-  return (
-    <div className="relative overflow-hidden rounded-lg border border-emerald-200/30 bg-white/85 shadow-sm backdrop-blur-md dark:border-emerald-800/30 dark:bg-slate-950/55 flex-none">
-      <div className="absolute -right-6 -top-5 h-16 w-16 rounded-full bg-emerald-200/28 blur-2xl dark:bg-emerald-800/18"></div>
-      <div className="absolute bottom-0 left-4 h-10 w-10 rounded-full bg-teal-200/28 blur-2xl dark:bg-teal-800/18"></div>
-
-      <div className="relative p-1 space-y-1">
-        <div className="grid grid-cols-2 gap-0.5">
-          {statTiles.map((tile, index) => {
-            const Icon = tile.icon;
-
-            return (
-              <div
-                key={tile.id}
-                className={cn(
-                  "relative overflow-hidden rounded-lg border border-white/30 bg-white/70 p-1 text-center shadow-sm backdrop-blur-sm dark:border-white/5 dark:bg-slate-900/60",
-                  isLoading && "animate-pulse"
-                )}
-              >
-                <div
-                  className={`mx-auto will-change-transform transform-gpu h-4 w-4 flex items-center justify-center rounded-md bg-gradient-to-br ${tile.gradient} text-white shadow-sm`}
-                  style={{ transform: 'translateZ(0)' }}
-                >
-                  <Icon className="h-2.5 w-2.5" />
-                </div>
-                <div className="mt-1 space-y-0">
-                  <p className={`text-xs font-semibold ${tile.labelColor}`}>
-                    {tile.value}
-                  </p>
-                  <p className="text-[9px] font-medium text-slate-600 dark:text-slate-300">{tile.label}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="space-y-1 pt-0.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">Level {isLoading ? '--' : level}</h3>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="h-1.5 w-full rounded-full bg-emerald-200/60 dark:bg-slate-800/70 overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 animate-pulse"
-                style={{ width: '50%' }}
-              ></div>
-            </div>
-          ) : (
-            <Progress
-              value={xpProgressPercentage}
-              className="h-1 rounded-full bg-emerald-200/60 dark:bg-slate-800/70 [&>div]:bg-gradient-to-r [&>div]:from-emerald-500 [&>div]:to-teal-500"
-            />
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-x-2 text-[9px] text-emerald-700/80 dark:text-emerald-200/70">
-            <span>
-              Total XP: <span className="font-semibold">{totalXp.toLocaleString()}</span>
-            </span>
-            <span className="text-[9px]">{isLoading ? '-- / --' : `Lvl XP: ${currentLevelXp.toLocaleString()} / ${xpRequiredForLevel.toLocaleString()}`}</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-2 text-[9px] text-emerald-600/80 dark:text-emerald-300/70">
-            <span>{isLoading ? '--' : xpToNextLevel.toLocaleString()} XP remaining</span>
-            <span>{isLoading ? '--' : Math.round(xpProgressPercentage)}% complete</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SidebarAccuracyCard: React.FC<{
-  latestAccuracy: {
-    accuracy: AccuracyResult;
-    xpGained?: number;
-    timestamp: Date;
-    fromCache?: boolean;
-  };
-  isLoading?: boolean;
-}> = ({ latestAccuracy, isLoading = false }) => {
-  // Keep this component lightweight; avoid expensive debug logging
-  const { accuracy, xpGained = 0, timestamp, fromCache = false } = latestAccuracy || {};
-  if (isLoading) {
-    return (
-      <div className="relative overflow-hidden rounded-2xl border border-emerald-200/40 bg-white/85 shadow-md backdrop-blur-xl dark:border-emerald-800/40 dark:bg-slate-950/60 flex-none">
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-black/30 backdrop-blur-sm">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
-        </div>
-        <div className="p-4 opacity-30">
-          <div className="h-6 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-4"></div>
-          <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700 mb-6"></div>
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center">
-                <div className="h-3 w-3 rounded-full bg-slate-200 dark:bg-slate-700 mr-2"></div>
-                <div className="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700"></div>
-                <div className="ml-auto h-4 w-1/4 rounded bg-slate-200 dark:bg-slate-700"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!accuracy) {
-    return (
-      <div className="flex h-40 items-center justify-center rounded-2xl border-2 border-dashed border-emerald-200/60 bg-white/50 p-6 text-center dark:border-emerald-900/40 dark:bg-slate-900/50">
-        <div>
-          <Activity className="mx-auto h-8 w-8 text-emerald-400" />
-          <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
-            No accuracy data available yet
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Complete a conversation to see your accuracy metrics
-          </p>
-        </div>
-      </div>
-    );
-  }
-  const aiFeedback = accuracy.aiResponseAnalysis;
-
-  // Calculate improvement indicator
-  const improvement = accuracy.insights?.improvement ?? 0;
-  // XP can be on root or inside insights
-  const netXP = accuracy.netXP ?? accuracy.insights?.netXP ?? 0;
-  const isPositiveXP = netXP > 0;
-  const isImproving = improvement > 0;
-
-  const primaryBreakdown = [
-    { label: 'Grammar', value: accuracy.grammar?.toFixed(2) ?? '0.00' },
-    { label: 'Vocabulary', value: accuracy.vocabulary?.toFixed(2) ?? '0.00' },
-    { label: 'Spelling', value: accuracy.spelling?.toFixed(2) ?? '0.00' },
-    { label: 'Fluency', value: accuracy.fluency?.toFixed(2) ?? '0.00' }
-  ];
-
-  const additionalMetrics = [
-    { label: 'Punctuation', value: accuracy.punctuation !== undefined ? accuracy.punctuation.toFixed(2) : '0.00' },
-    { label: 'Capitalization', value: accuracy.capitalization !== undefined ? accuracy.capitalization.toFixed(2) : '0.00' }
-  ];
-
-  return (
-    <div className="relative overflow-hidden rounded-3xl border border-amber-200/50 bg-amber-50/70 shadow-lg backdrop-blur-xl dark:border-amber-800/40 dark:bg-amber-950/40 flex-none">
-      <div className="absolute -right-12 -top-10 h-24 w-24 rounded-full bg-amber-200/40 blur-3xl dark:bg-amber-800/30"></div>
-      <div className="absolute bottom-0 left-6 h-14 w-14 rounded-full bg-orange-200/30 blur-2xl dark:bg-orange-800/30"></div>
-
-      <div className="relative p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-amber-600 dark:text-amber-300" />
-            <span className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Latest Accuracy</span>
-            {fromCache && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/80 px-2 py-0.5 text-[9px] font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                📥 Cached
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] text-amber-600/80 dark:text-amber-200/70">
-            {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold text-amber-700 dark:text-amber-200">{accuracy.overall.toFixed(2)}%</p>
-              {accuracy.adjustedOverall && accuracy.adjustedOverall !== accuracy.overall && (
-                <span className="text-xs text-amber-600/70 dark:text-amber-300/70">
-                  (adj: {accuracy.adjustedOverall.toFixed(2)}%)
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-xs text-amber-600/80 dark:text-amber-300/80">Overall performance</p>
-              {isImproving && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  <TrendingUp className="h-3 w-3" />
-                  +{improvement.toFixed(2)}%
-                </span>
-              )}
-              {!isImproving && improvement < 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
-                  <TrendingUp className="h-3 w-3 rotate-180" />
-                  {improvement.toFixed(2)}%
-                </span>
-              )}
-            </div>
-          </div>
-          {typeof netXP === 'number' && (
-            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold shadow-sm ${
-              isPositiveXP 
-                ? 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
-                : 'bg-red-100/80 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-            }`}>
-              <TrendingUp className={`h-3 w-3 ${!isPositiveXP ? 'rotate-180' : ''}`} />
-              {isPositiveXP ? '+' : ''}{netXP} XP
-            </span>
-          )}
-        </div>
-
-        {/* AI Feedback Badge */}
-        {aiFeedback && (
-          <div className="rounded-lg bg-blue-100/60 dark:bg-blue-900/30 p-2 border border-blue-200/40 dark:border-blue-800/40">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-blue-700 dark:text-blue-300">
-                AI Feedback:
-              </span>
-              <span className="capitalize text-blue-600 dark:text-blue-400">
-                {aiFeedback.appreciationLevel && aiFeedback.appreciationLevel !== 'none'
-                  ? aiFeedback.appreciationLevel
-                  : aiFeedback.severityOfCorrections || 'none'}
-              </span>
-            </div>
-            {(aiFeedback.hasCorrectionFeedback || (aiFeedback.correctedErrors && aiFeedback.correctedErrors.length > 0)) && (
-              <p className="text-[10px] text-blue-600/80 dark:text-blue-300/80 mt-1">
-                ⚠️ AI made corrections - accuracy adjusted
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          {primaryBreakdown.map((item) => (
-            <div key={item.label} className="rounded-xl border border-amber-200/40 bg-white/70 p-3 text-center shadow-sm dark:border-amber-800/40 dark:bg-amber-950/40">
-              <p className="text-sm font-bold text-amber-700 dark:text-amber-200">{item.value}%</p>
-              <p className="text-[11px] text-amber-600/80 dark:text-amber-300/80">{item.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Additional Metrics */}
-        {(accuracy.punctuation !== undefined || accuracy.capitalization !== undefined) && (
-          <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-amber-200/30 dark:border-amber-800/30">
-            {additionalMetrics.map((item) => (
-              <div key={item.label} className="rounded-xl border border-amber-200/40 bg-white/50 p-2 text-center shadow-sm dark:border-amber-800/40 dark:bg-amber-950/30">
-                <p className="text-xs font-bold text-amber-700 dark:text-amber-200">{item.value}%</p>
-                <p className="text-[10px] text-amber-600/80 dark:text-amber-300/80">{item.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Advanced NLP Insights */}
-        {(accuracy.readability || accuracy.tone || accuracy.style || accuracy.vocabularyAnalysis || accuracy.premiumFeatures) && (
-          <div className="pt-4 border-t border-amber-200/30 dark:border-amber-800/30 flex flex-col gap-3">
-            <h3 className="text-[10px] font-bold text-amber-900 dark:text-amber-100 uppercase tracking-wider flex items-center gap-1.5 mb-1">
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              Advanced Insights
-            </h3>
-            
-            {accuracy.readability && (
-              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Readability</span>
-                  <span className="text-xs font-black dark:text-amber-100">{accuracy.readability.fleschReadingEase ?? 'N/A'}</span>
-                </div>
-                <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70 leading-snug">{accuracy.readability.recommendation || accuracy.readability.averageLevel}</p>
-              </div>
-            )}
-
-            {accuracy.tone && (
-              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Tone Analysis</span>
-                  <span className="text-xs font-black dark:text-amber-100 capitalize">{accuracy.tone.overall ?? 'Neutral'}</span>
-                </div>
-                <p className="text-[9px] text-amber-700/70 dark:text-amber-400/70">Formality: {accuracy.tone.formalityScore}% | Assert: {accuracy.tone.assertivenessScore}%</p>
-                {accuracy.tone.recommendations && accuracy.tone.recommendations.length > 0 && (
-                  <div className="mt-1.5 pt-1.5 border-t border-amber-200/40 dark:border-amber-800/40">
-                    <ul className="text-[9px] text-amber-700/90 dark:text-amber-300/90 list-disc pl-3 flex flex-col gap-0.5">
-                      {accuracy.tone.recommendations.map((rec: string, i: number) => (
-                        <li key={i}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {accuracy.vocabularyAnalysis && accuracy.vocabularyAnalysis.suggestions && accuracy.vocabularyAnalysis.suggestions.length > 0 && (
-              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Vocab Enhancements</span>
-                </div>
-                <ul className="text-[9px] text-amber-700/80 dark:text-amber-300/80 flex flex-col gap-1.5 mt-1">
-                  {accuracy.vocabularyAnalysis.suggestions.map((sug: any, i: number) => (
-                    <li key={i} className="flex flex-col">
-                      <span className="font-semibold text-amber-800 dark:text-amber-200">"{sug.original}" ➔ {sug.suggested.join(', ')}</span>
-                      {sug.reason && <span className="opacity-80 mt-0.5 leading-snug">{sug.reason}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {accuracy.style && (
-              <div className="bg-white/60 dark:bg-amber-950/50 p-3 rounded-xl border border-amber-100 dark:border-amber-800/30">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Writing Style</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                   <div className="flex justify-between text-[9px] text-amber-700/80 dark:text-amber-300/80">
-                     <span>Passive Voice:</span>
-                     <span className="font-semibold">{accuracy.style.passiveVoiceUsage ?? 0}%</span>
-                   </div>
-                   <div className="flex justify-between text-[9px] text-amber-700/80 dark:text-amber-300/80">
-                     <span>Sentence Variance:</span>
-                     <span className="font-semibold">{accuracy.style.sentenceLengthVariance ?? 0}</span>
-                   </div>
-                </div>
-              </div>
-            )}
-            
-            {accuracy.premiumFeatures && accuracy.premiumFeatures.premiumBadges && accuracy.premiumFeatures.premiumBadges.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {accuracy.premiumFeatures.premiumBadges.map((badge: string, i: number) => (
-                   <span key={i} className="text-[9px] font-bold bg-amber-100/80 text-amber-700 px-2 py-0.5 rounded-full dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50">
-                     {badge}
-                   </span>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
   );
 };
 

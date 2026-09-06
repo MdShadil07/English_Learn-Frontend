@@ -9,7 +9,8 @@ export interface UserProfile {
   level: number;
   isPremium: boolean;
   isVerified?: boolean;
-  subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro' | 'expired';
+  tier?: 'free' | 'pro' | 'premium';
+  subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro' | 'expired' | 'created' | 'active' | 'canceled' | 'cancelled';
   subscriptionDetails?: SubscriptionDetails;
   role: 'student' | 'teacher' | 'admin';
   bio?: string;

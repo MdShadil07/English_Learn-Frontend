@@ -62,7 +62,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className={cn("relative overflow-hidden bg-gray-900 border-gray-700 rounded-xl h-full w-full", className)}
+      className={cn("relative overflow-hidden bg-[#050C14] border-emerald-500/20 rounded-xl h-full w-full", className)}
     >
       {stream && !isVideoOff ? (
         <video
@@ -73,7 +73,7 @@ const VideoTile: React.FC<VideoTileProps> = ({
           className="w-full h-full object-cover"
         />
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+        <div className="w-full h-full flex items-center justify-center bg-[#050C14]/50">
           <Avatar className="w-16 h-16">
             <AvatarImage src={participant?.avatar} />
             <AvatarFallback className="text-lg">
@@ -306,11 +306,11 @@ const VideoCall: React.FC<VideoCallProps> = ({
         exit={{ scale: 0.8, opacity: 0 }}
         className="fixed bottom-4 right-4 z-50"
       >
-        <Card className="w-80 bg-gray-900 border-gray-700 cursor-pointer" onClick={onToggleMinimize}>
+        <Card className="w-80 bg-[#050C14] border-emerald-500/20 cursor-pointer" onClick={onToggleMinimize}>
           <div className="p-3 flex items-center gap-3">
             <div className="flex -space-x-2">
               {participants.slice(0, 3).map((participant) => (
-                <Avatar key={participant.userId} className="w-8 h-8 border-2 border-gray-900">
+                <Avatar key={participant.userId} className="w-8 h-8 border-2 border-emerald-500/20">
                   <AvatarImage src={participant.avatar} />
                   <AvatarFallback className="text-xs">
                     {participant.fullName?.charAt(0) || participant.username?.charAt(0) || '?'}
@@ -318,7 +318,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
                 </Avatar>
               ))}
               {participants.length > 3 && (
-                <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#050C14]/80 border-2 border-emerald-500/20 flex items-center justify-center">
                   <span className="text-xs text-white">+{participants.length - 3}</span>
                 </div>
               )}
@@ -353,15 +353,15 @@ const VideoCall: React.FC<VideoCallProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-[#050C14]/80 backdrop-blur-md flex items-center justify-center p-4"
       >
-        <Card className="w-full max-w-6xl h-full max-h-[80vh] bg-gray-900 border-gray-700 flex flex-col">
+        <Card className="w-full max-w-6xl h-full max-h-[80vh] bg-[#050C14] border-emerald-500/20 flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between p-4 border-b border-emerald-500/20">
             <div className="flex items-center gap-3">
               <div className="flex -space-x-2">
                 {participants.slice(0, 5).map((participant) => (
-                  <Avatar key={participant.userId} className="w-8 h-8 border-2 border-gray-900">
+                  <Avatar key={participant.userId} className="w-8 h-8 border-2 border-emerald-500/20">
                     <AvatarImage src={participant.avatar} />
                     <AvatarFallback className="text-xs">
                       {participant.fullName?.charAt(0) || participant.username?.charAt(0) || '?'}
@@ -369,7 +369,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
                   </Avatar>
                 ))}
                 {participants.length > 5 && (
-                  <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-900 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-[#050C14]/80 border-2 border-emerald-500/20 flex items-center justify-center">
                     <span className="text-xs text-white">+{participants.length - 5}</span>
                   </div>
                 )}
@@ -431,7 +431,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
           </div>
 
           {/* Controls */}
-          <div className="p-4 border-t border-gray-700">
+          <div className="p-4 border-t border-emerald-500/20">
             <div className="flex items-center justify-center gap-4">
               {/* Microphone */}
               <Button

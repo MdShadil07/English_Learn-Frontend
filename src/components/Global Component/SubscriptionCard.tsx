@@ -3,16 +3,16 @@ import { motion } from 'framer-motion';
 import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon } from '@/components/Icons/SubscriptionIcons';
 
 interface SubscriptionCardProps {
-  subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro';
+  tier?: 'free' | 'pro' | 'premium';
 }
 
 export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
-  subscriptionStatus,
+  tier,
 }) => {
-  const currentStatus = subscriptionStatus === 'none' || subscriptionStatus === 'free' ? 'basic' : subscriptionStatus;
+  const currentTier = tier || 'free';
 
   // Free/No subscription card
-  if (subscriptionStatus === 'none' || subscriptionStatus === 'free') {
+  if (currentTier === 'free') {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -51,49 +51,8 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
       </motion.div>
     );
   }
-
-  // Basic subscription card
-  if (subscriptionStatus === 'basic') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.8, type: "spring", stiffness: 200 }}
-        className="mt-3 relative overflow-hidden bg-gradient-to-br from-slate-50/90 via-gray-50/90 to-zinc-50/90 dark:from-slate-800/30 dark:via-gray-800/30 dark:to-zinc-800/30 backdrop-blur-xl rounded-2xl px-3 py-2 border border-slate-200/50 dark:border-slate-700/50 shadow-xl hover:shadow-2xl transition-all duration-500"
-      >
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/30 to-gray-100/30 dark:from-slate-800/15 dark:to-gray-800/15 rounded-2xl"></div>
-        <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-gradient-to-br from-slate-400/60 to-gray-400/60 animate-pulse"></div>
-        <div className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-gradient-to-br from-gray-400/40 to-slate-400/40 animate-pulse delay-500"></div>
-
-        <div className="relative flex items-center gap-3">
-          <motion.div
-            animate={{
-              rotate: [0, 5, -5, 0],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{
-              duration: 2.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className="p-2 rounded-xl bg-gradient-to-br from-slate-500 to-gray-600 text-white shadow-lg"
-          >
-            <BasicPlanIcon size="md" className="flex-shrink-0" />
-          </motion.div>
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">Pro Member</p>
-            <p className="text-xs text-slate-600 dark:text-slate-400">₹499/month</p>
-            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1">Basic Member</p>
-            <p className="text-xs text-slate-600 dark:text-slate-400">Core Features Available</p>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
-
   // Pro subscription card
-  if (subscriptionStatus === 'pro') {
+  if (tier === 'pro') {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -133,7 +92,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
   }
 
   // Premium subscription card
-  if (subscriptionStatus === 'premium') {
+  if (tier === 'premium') {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}

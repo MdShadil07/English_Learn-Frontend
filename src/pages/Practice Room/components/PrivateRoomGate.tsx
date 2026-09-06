@@ -54,7 +54,7 @@ const PrivateRoomGate = ({ prefillCode, onSuccess, onBack }: PrivateRoomGateProp
             <Lock className="w-6 h-6 text-emerald-600" />
           </div>
 
-          <h1 className="text-2xl font-bold text-center text-slate-900 mb-1">Private Room</h1>
+          <h1 className="text-2xl font-bold text-center text-white mb-1">Private Room</h1>
           <p className="text-slate-500 text-sm text-center mb-8">
             Enter the room code to join this private session
           </p>
@@ -67,7 +67,7 @@ const PrivateRoomGate = ({ prefillCode, onSuccess, onBack }: PrivateRoomGateProp
                 onChange={e => { setCode(e.target.value.toUpperCase().slice(0, 8)); setError(''); }}
                 placeholder="XXXXXX"
                 className={cn(
-                  'w-full px-4 py-4 rounded-xl border bg-slate-50 text-slate-900 text-center text-2xl tracking-[0.4em] font-bold uppercase placeholder:text-slate-300 placeholder:text-base placeholder:tracking-normal outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0',
+                  'w-full px-4 py-4 rounded-xl border bg-[#050C14]/10 text-white text-center text-2xl tracking-[0.4em] font-bold uppercase placeholder:text-slate-300 placeholder:text-base placeholder:tracking-normal outline-none transition-all duration-200 focus:ring-2 focus:ring-offset-0',
                   error
                     ? 'border-red-300 focus:ring-red-200'
                     : 'border-slate-200 focus:border-emerald-400 focus:ring-emerald-100',
@@ -88,7 +88,7 @@ const PrivateRoomGate = ({ prefillCode, onSuccess, onBack }: PrivateRoomGateProp
             <button
               type="submit"
               disabled={loading || code.trim().length < 4}
-              className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl bg-[#050C14] hover:bg-[#050C14]/80 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98]"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -100,9 +100,9 @@ const PrivateRoomGate = ({ prefillCode, onSuccess, onBack }: PrivateRoomGateProp
           </form>
 
           <div className="mt-4 flex items-center gap-3">
-            <div className="flex-1 h-px bg-slate-100" />
+            <div className="flex-1 h-px bg-emerald-500/20" />
             <span className="text-xs text-slate-400">or</span>
-            <div className="flex-1 h-px bg-slate-100" />
+            <div className="flex-1 h-px bg-emerald-500/20" />
           </div>
 
           <button

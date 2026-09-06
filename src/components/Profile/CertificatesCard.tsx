@@ -26,11 +26,11 @@ const CertificatesCard: React.FC<CertificatesCardProps> = ({ profile }) => {
   };
 
   return (
-    <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl p-4 sm:p-5 md:pl-6 md:pr-6 md:pt-4 md:pb-6 shadow-xl border border-indigo-100/50 dark:border-slate-700/50 relative overflow-hidden">
-      {/* Enhanced Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-50/40 via-indigo-50/30 to-blue-50/40 dark:from-purple-900/20 dark:via-indigo-900/15 dark:to-blue-900/20"></div>
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-200/30 to-indigo-200/30 dark:from-purple-800/20 dark:to-indigo-800/20 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-200/20 to-purple-200/20 dark:from-blue-800/15 dark:to-purple-800/15 rounded-full blur-2xl"></div>
+    <div className="group relative overflow-hidden rounded-[2.5rem] bg-white/88 sm:backdrop-blur-2xl dark:bg-[#050C14]/60 border border-emerald-200/40 dark:border-emerald-500/10 shadow-xl dark:shadow-[0_8px_40px_rgba(16,185,129,0.15)] p-4 sm:p-5 md:p-8 transition-all duration-500">
+      {/* Background decorative elements matching AIChatPage pulses */}
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none z-0"></div>
+      <div className="absolute -top-[20%] -right-[10%] w-[55%] h-[55%] bg-purple-300/20 dark:bg-purple-500/10 rounded-full blur-[80px] pointer-events-none animate-[pulse_8s_ease-in-out_infinite] z-0 group-hover:bg-purple-400/20 transition-colors duration-700"></div>
+      <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-blue-300/20 dark:bg-blue-500/10 rounded-full blur-[70px] pointer-events-none animate-[pulse_10s_ease-in-out_infinite_1s] z-0 group-hover:bg-blue-400/20 transition-colors duration-700"></div>
 
       {/* Header at the top */}
       <div className="relative flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 pt-1 sm:pt-2">
@@ -48,7 +48,7 @@ const CertificatesCard: React.FC<CertificatesCardProps> = ({ profile }) => {
           <div className="max-h-[400px] sm:max-h-[500px] md:max-h-[600px] overflow-y-auto scrollbar-hide">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 pl-1 sm:pl-2 pr-1 sm:pr-2">
               {profile.certificates.map(cert => (
-                <div key={cert.id} className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl p-3 sm:p-4 md:p-6 border border-slate-200/60 dark:border-slate-700/60 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 w-full min-w-0">
+                <div key={cert.id} className="group relative bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-4 sm:p-5 md:p-6 border border-slate-200/40 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 w-full min-w-0">
                   {/* Certificate gradient border */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${getCertificateColor(cert.name)} rounded-xl opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
 

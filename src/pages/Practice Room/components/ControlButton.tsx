@@ -22,7 +22,7 @@ const ControlButton = ({
   const styles = {
     default: {
       on: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30',
-      off: 'bg-slate-800/80 text-slate-400 border-slate-700/50 hover:text-slate-200 hover:bg-slate-700/80',
+      off: 'bg-[#050C14]/80 text-slate-400 border-emerald-500/20 hover:text-slate-200 hover:bg-[#050C14]/90',
     },
     danger: {
       on: 'bg-red-500/20 text-red-400 border-red-500/30',
@@ -30,7 +30,7 @@ const ControlButton = ({
     },
     warn: {
       on: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      off: 'bg-slate-800/80 text-slate-400 border-slate-700/50 hover:bg-slate-700/80',
+      off: 'bg-[#050C14]/80 text-slate-400 border-emerald-500/20 hover:bg-[#050C14]/90',
     },
   };
 

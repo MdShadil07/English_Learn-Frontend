@@ -59,8 +59,17 @@ interface AuthContextType {
   signOut: () => void;
   refreshUser: () => Promise<unknown>;
   updateUser: (updates: Partial<User>) => void;
-  signInWithGoogle: () => Promise<{ success: boolean; message: string }>;
+  signInWithGoogle: () => Promise<GoogleSignInResult>;
   linkGoogleAccount: () => Promise<{ success: boolean; message: string }>;
+}
+
+interface GoogleSignInResult {
+  success: boolean;
+  message: string;
+  code?: string;
+  challengeId?: string;
+  email?: string;
+  expiresAt?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const {
     data: userData,
     isLoading,
+    isFetching,
     error,
     refetch: refetchUserData,
   } = useQuery({
@@ -196,24 +206,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               linkedAt: result.data.user.googleAuth.linkedAt,
               linkedBy: result.data.user.googleAuth.linkedBy,
             } : undefined,
-            // Canonical tier logic - check tier field first, then fallback to isPremium/subscriptionStatus
-            tier: (
-              // Direct tier field from user or profile
-              (result.data.user?.tier === 'premium' || result.data.profile?.tier === 'premium') ||
-              // Fallback to isPremium or subscriptionStatus
-              ((result.data.user && hasIsPremium(result.data.user) && result.data.user.isPremium) ||
-                (result.data.profile && hasIsPremium(result.data.profile) && result.data.profile.isPremium) ||
-                (result.data.user && hasSubscriptionStatus(result.data.user) && result.data.user.subscriptionStatus === 'premium') ||
-                (result.data.profile && hasSubscriptionStatus(result.data.profile) && result.data.profile.subscriptionStatus === 'premium'))
-            )
-              ? 'premium'
-              : (
-                result.data.user?.tier === 'pro' || result.data.profile?.tier === 'pro' ||
-                (result.data.user && hasSubscriptionStatus(result.data.user) && result.data.user.subscriptionStatus === 'pro') ||
-                (result.data.profile && hasSubscriptionStatus(result.data.profile) && result.data.profile.subscriptionStatus === 'pro')
-              )
-                ? 'pro'
-                : 'free',
+            tier: (() => {
+              // 1. Direct exact tier string
+              const exactTier = result.data.user?.tier || result.data.profile?.tier || result.data.user?.subscriptionDetails?.tier || result.data.profile?.subscriptionDetails?.tier;
+              if (exactTier === 'premium' || exactTier === 'pro' || exactTier === 'free') {
+                return exactTier;
+              }
+              // 2. Legacy subscriptionStatus
+              const subStatus = (result.data.user as any)?.subscriptionStatus || (result.data.profile as any)?.subscriptionStatus;
+              if (subStatus === 'premium') return 'premium';
+              if (subStatus === 'pro') return 'pro';
+              
+              // 3. Fallback to boolean flags
+              if ((result.data.user as any)?.isPremium || (result.data.profile as any)?.isPremium) return 'premium';
+              if ((result.data.user as any)?.isPro || (result.data.profile as any)?.isPro) return 'pro';
+              
+              return 'free';
+            })(),
             subscriptionDetails: result.data.user?.subscriptionDetails || result.data.profile?.subscriptionDetails,
           };
 
@@ -305,7 +314,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       // Update localStorage for persistence
       localStorage.setItem('userData', JSON.stringify(userData));
-    } else if (error) {
+    } else if (error && !isFetching) {
       console.log('🚨 AuthProvider: User authentication failed, clearing data');
       // Only clear data if it's an authentication error, not other types of errors
       if (error.message === 'Not authenticated' || error.message?.includes('401') || error.message?.includes('unauthorized')) {
@@ -316,7 +325,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('userData');
       }
     }
-  }, [userData, error]);
+  }, [userData, error, isFetching]);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -423,7 +432,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [queryClient]);
 
   // Sign in with Google
-  const signInWithGoogle = useCallback(async (): Promise<{ success: boolean; message: string; code?: string }> => {
+  const signInWithGoogle = useCallback(async (): Promise<GoogleSignInResult> => {
     try {
       // Load Google API script if not already loaded
       if (!window.google) {
@@ -456,9 +465,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             try {
               // Send the ID token to backend for verification
-              const result = await authService.googleSignIn(response.access_token || response.id_token);
+              // Get all namespaced device tokens from localStorage
+              const deviceTokens = Object.keys(localStorage)
+                .filter(key => key.startsWith('trusted_device_token_'))
+                .map(key => localStorage.getItem(key))
+                .filter((token): token is string => token !== null);
 
-              if (result.success && result.data) {
+              const result = await authService.googleSignIn(response.access_token || response.id_token, deviceTokens.length > 0 ? deviceTokens : undefined);
+
+              if (result.code === 'TWO_FACTOR_REQUIRED' && result.data?.challengeId) {
+                resolve({
+                  success: false,
+                  message: result.message || 'Two-factor verification required',
+                  code: result.code,
+                  challengeId: result.data.challengeId,
+                  email: result.data.email,
+                  expiresAt: result.data.expiresAt,
+                });
+              } else if (result.success && result.data?.tokens && result.data.user) {
                 // Store tokens
                 localStorage.setItem('accessToken', result.data.tokens.accessToken);
                 localStorage.setItem('refreshToken', result.data.tokens.refreshToken);

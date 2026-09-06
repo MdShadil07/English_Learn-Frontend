@@ -103,8 +103,8 @@ const FAQItem = React.forwardRef<HTMLDivElement, FAQItemProps>(({ item, isOpen, 
       exit={{ opacity: 0, scale: 0.95 }}
       className={`group rounded-2xl overflow-hidden transition-all duration-300 backdrop-blur-md ${
         isOpen 
-          ? 'bg-white/95 dark:bg-slate-800/95 border border-teal-300/50 dark:border-teal-700/50 shadow-lg shadow-teal-500/5 dark:shadow-none z-10' 
-          : 'bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 hover:border-teal-200/60 dark:hover:border-teal-800/50 hover:bg-white/80 dark:hover:bg-slate-800/80 shadow-sm z-0'
+          ? 'bg-white/95 dark:bg-[#050C14]/95 border border-teal-300/50 dark:border-emerald-500/30 shadow-lg shadow-teal-500/5 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] z-10' 
+          : 'bg-white/60 dark:bg-[#050C14]/60 border border-slate-200/60 dark:border-emerald-500/10 hover:border-teal-200/60 dark:hover:border-emerald-500/30 hover:bg-white/80 dark:hover:bg-[#050C14]/80 shadow-sm z-0'
       }`}
     >
       <button
@@ -238,7 +238,7 @@ const FAQ = () => {
   };
 
   return (
-    <section className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden transition-colors duration-500 ease-in-out font-sans scroll-mt-24 lg:scroll-mt-32" id="faq">
+    <section className="py-24 lg:py-32 bg-transparent relative overflow-hidden transition-colors duration-500 ease-in-out font-sans scroll-mt-24 lg:scroll-mt-32" id="faq">
       
       {/* --- Optimized Background Elements (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -280,14 +280,14 @@ const FAQ = () => {
                 <input
                   type="text"
                   placeholder="Search questions..."
-                  className="w-full pl-12 pr-4 py-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/60 rounded-2xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 dark:focus:border-teal-500 outline-none transition-all shadow-sm text-slate-900 dark:text-white placeholder:text-slate-400 font-medium text-[15px]"
+                  className="w-full pl-12 pr-4 py-4 bg-white/60 dark:bg-[#050C14]/60 backdrop-blur-md border border-slate-200/60 dark:border-emerald-500/10 rounded-2xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 dark:focus:border-teal-500 outline-none transition-all shadow-sm text-slate-900 dark:text-white placeholder:text-slate-400 font-medium text-[15px]"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
               {/* Mobile Support Card (Pinned near the top for visibility) */}
-              <div className="lg:hidden mb-10 p-6 rounded-[2rem] bg-[#0f172a] dark:bg-slate-900 border border-slate-800 text-white shadow-2xl relative overflow-hidden transform translateZ(0)">
+              <div className="lg:hidden mb-10 p-6 rounded-[2rem] bg-[#0f172a] dark:bg-[#050C14] border border-slate-800 dark:border-emerald-500/20 text-white shadow-2xl relative overflow-hidden transform translateZ(0)">
                 <div className="absolute top-[-20%] right-[-10%] w-[180px] h-[180px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.15)_0%,transparent_60%)] pointer-events-none" style={{ transform: 'translateZ(0)' }} />
                 <div className="relative z-10">
                   <div className="w-11 h-11 bg-slate-800/80 rounded-2xl flex items-center justify-center mb-4 border border-slate-700/50 shadow-sm backdrop-blur-sm">
@@ -319,7 +319,7 @@ const FAQ = () => {
               </div>
 
               {/* Support Card (Desktop) */}
-              <div className="hidden lg:block p-8 rounded-[2rem] bg-[#0f172a] dark:bg-slate-900 border border-slate-800 text-white shadow-2xl relative overflow-hidden transform translateZ(0)">
+              <div className="hidden lg:block p-8 rounded-[2rem] bg-[#0f172a] dark:bg-[#050C14] border border-slate-800 dark:border-emerald-500/20 text-white shadow-2xl relative overflow-hidden transform translateZ(0)">
                 <div className="absolute top-[-20%] right-[-10%] w-[200px] h-[200px] rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.15)_0%,transparent_60%)] pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
                 
                 <div className="relative z-10">
@@ -373,9 +373,9 @@ const FAQ = () => {
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }} 
                     animate={{ opacity: 1, scale: 1 }} 
-                    className="text-center py-16 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800/60 rounded-[2rem]"
+                    className="text-center py-16 bg-white/40 dark:bg-[#050C14]/40 backdrop-blur-sm border border-slate-200/60 dark:border-emerald-500/10 rounded-[2rem]"
                   >
-                    <div className="inline-flex p-4 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 text-slate-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="inline-flex p-4 rounded-full bg-slate-100 dark:bg-[#050C14] mb-4 text-slate-400 shadow-sm border border-slate-200/50 dark:border-emerald-500/20">
                       <Search className="w-8 h-8" />
                     </div>
                     <h3 className="text-xl font-extrabold text-[#0f172a] dark:text-white mb-2">No questions found</h3>
@@ -413,11 +413,11 @@ const FAQ = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.98 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950"
+              className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-200/70 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.35)] dark:border-emerald-500/20 dark:bg-[#050C14]"
             >
               <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
-              <div className="border-b border-slate-200/70 px-6 py-5 dark:border-slate-800 sm:px-8">
+              <div className="border-b border-slate-200/70 px-6 py-5 dark:border-emerald-500/10 sm:px-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
@@ -434,7 +434,7 @@ const FAQ = () => {
                   <button
                     type="button"
                     onClick={closeSupportForm}
-                    className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                    className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 dark:border-emerald-500/20 dark:bg-[#050C14] dark:text-slate-400 dark:hover:bg-emerald-500/10 dark:hover:text-white"
                     aria-label="Close support form"
                     disabled={supportStatus === 'submitting'}
                   >
@@ -497,7 +497,7 @@ const FAQ = () => {
                           type="text"
                           value={supportForm.name}
                           onChange={(event) => setSupportForm((current) => ({ ...current, name: event.target.value }))}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-emerald-500/10 dark:bg-[#050C14] dark:text-white"
                           placeholder="Enter your full name"
                           autoComplete="name"
                           disabled={supportStatus === 'submitting'}
@@ -510,7 +510,7 @@ const FAQ = () => {
                           type="email"
                           value={supportForm.email}
                           onChange={(event) => setSupportForm((current) => ({ ...current, email: event.target.value }))}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-emerald-500/10 dark:bg-[#050C14] dark:text-white"
                           placeholder="name@example.com"
                           autoComplete="email"
                           disabled={supportStatus === 'submitting'}
@@ -524,7 +524,7 @@ const FAQ = () => {
                         <select
                           value={supportForm.category}
                           onChange={(event) => setSupportForm((current) => ({ ...current, category: event.target.value as SupportCategory }))}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-emerald-500/10 dark:bg-[#050C14] dark:text-white"
                           disabled={supportStatus === 'submitting'}
                         >
                           <option value="general">General question</option>
@@ -540,7 +540,7 @@ const FAQ = () => {
                         <select
                           value={supportForm.urgency}
                           onChange={(event) => setSupportForm((current) => ({ ...current, urgency: event.target.value as SupportUrgency }))}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-emerald-500/10 dark:bg-[#050C14] dark:text-white"
                           disabled={supportStatus === 'submitting'}
                         >
                           <option value="low">Low</option>
@@ -557,7 +557,7 @@ const FAQ = () => {
                         type="text"
                         value={supportForm.subject}
                         onChange={(event) => setSupportForm((current) => ({ ...current, subject: event.target.value }))}
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-emerald-500/10 dark:bg-[#050C14] dark:text-white"
                         placeholder="Brief summary of the issue"
                         disabled={supportStatus === 'submitting'}
                       />
@@ -568,7 +568,7 @@ const FAQ = () => {
                       <textarea
                         value={supportForm.message}
                         onChange={(event) => setSupportForm((current) => ({ ...current, message: event.target.value }))}
-                        className="min-h-[180px] w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                        className="min-h-[180px] w-full rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-emerald-500/10 dark:bg-[#050C14] dark:text-white"
                         placeholder="Tell us what happened, what you expected, and any relevant details."
                         disabled={supportStatus === 'submitting'}
                       />

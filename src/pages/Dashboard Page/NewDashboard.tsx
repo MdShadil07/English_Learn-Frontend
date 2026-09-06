@@ -16,6 +16,7 @@ import VoiceRooms from '../../components/dashboard/VoiceRooms';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeToast from '@/components/ui/UpgradeToast';
 import AnalyticsDashboard from '../../pages/Analytic Page/AnalyticsDashboard';
+import AgenticUpsellBanner from '../../components/AgenticCommerce/AgenticUpsellBanner';
 
 const NewDashboard = () => {
   const { user } = useAuth();
@@ -132,6 +133,10 @@ const NewDashboard = () => {
     <NewDashboardLayout activeView={activeView} onViewChange={setActiveView}>
       {/* Mount upgrade toast so it runs its effect when dashboard renders */}
       <UpgradeToast isPremiumUser={isPremiumUser} />
+      
+      {/* Agentic Commerce Growth Banner */}
+      <AgenticUpsellBanner />
+      
       {renderView()}
     </NewDashboardLayout>
   );

@@ -98,7 +98,7 @@ const HowItWorks = () => {
   if (!isMounted) return null;
 
   return (
-    <section className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] relative overflow-hidden font-sans transition-colors duration-500 scroll-mt-24 lg:scroll-mt-32" id="how-it-works">
+    <section className="py-24 lg:py-32 bg-transparent relative overflow-hidden font-sans transition-colors duration-500 scroll-mt-24 lg:scroll-mt-32" id="how-it-works">
 
       {/* --- Optimized Background Elements (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -147,7 +147,7 @@ const HowItWorks = () => {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <motion.div variants={itemVariants} className="order-2 lg:order-1 relative group">
               {/* Visual: Abstract Chat Interface */}
-              <div className="relative rounded-3xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 shadow-xl shadow-slate-200/50 dark:shadow-none p-6 sm:p-8 overflow-hidden backdrop-blur-xl transition-all duration-500 group-hover:border-teal-200 dark:group-hover:border-teal-800/50">
+              <div className="relative rounded-3xl bg-white/60 dark:bg-[#050C14]/60 border border-slate-200/60 dark:border-emerald-500/10 shadow-xl shadow-slate-200/50 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] p-6 sm:p-8 overflow-hidden backdrop-blur-xl transition-all duration-500 group-hover:border-teal-200 dark:group-hover:border-emerald-500/30">
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-400 to-emerald-500"></div>
                 <div className="space-y-6 mt-4 relative z-10">
                   {/* Bot Message */}
@@ -240,7 +240,7 @@ const HowItWorks = () => {
 
             <motion.div variants={itemVariants} className="order-2 relative group">
               {/* High-End Visual: Voice Analysis Engine */}
-              <div className="relative rounded-[2.5rem] bg-[#0b1121] dark:bg-[#070b14] border border-slate-800 shadow-2xl p-6 sm:p-8 flex flex-col items-center justify-center h-[360px] sm:h-[400px] overflow-hidden group">
+              <div className="relative rounded-[2.5rem] bg-[#0b1121] dark:bg-[#050C14] border dark:border-emerald-500/10 border-slate-800 shadow-2xl dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] p-6 sm:p-8 flex flex-col items-center justify-center h-[360px] sm:h-[400px] overflow-hidden group">
                 {/* Hardware Accelerated Glows */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(20,184,166,0.15)_0%,transparent_70%)] pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-[radial-gradient(circle,rgba(6,182,212,0.15)_0%,transparent_70%)] pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
@@ -312,11 +312,11 @@ const HowItWorks = () => {
             <motion.div variants={itemVariants} className="order-2 lg:order-1 relative group">
               {/* Visual: Stacked Cards */}
               <div className="relative h-[320px] sm:h-[360px] w-full flex justify-center items-center">
-                <div className="absolute top-4 w-[75%] h-[200px] sm:h-[240px] bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-3xl border border-slate-300/50 dark:border-slate-700/50 transform scale-90 -rotate-6 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-95 will-change-transform"></div>
-                <div className="absolute top-8 w-[85%] h-[200px] sm:h-[240px] bg-slate-100 dark:bg-slate-800/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-slate-700 transform scale-95 -rotate-3 shadow-lg transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-100 will-change-transform"></div>
+                <div className="absolute top-4 w-[75%] h-[200px] sm:h-[240px] bg-slate-200/50 dark:bg-[#050C14]/50 backdrop-blur-sm rounded-3xl border border-slate-300/50 dark:border-emerald-500/5 transform scale-90 -rotate-6 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-95 will-change-transform"></div>
+                <div className="absolute top-8 w-[85%] h-[200px] sm:h-[240px] bg-slate-100 dark:bg-[#050C14]/80 backdrop-blur-md rounded-3xl border border-slate-200 dark:border-emerald-500/10 transform scale-95 -rotate-3 shadow-lg transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-100 will-change-transform"></div>
 
                 <motion.div
-                  className="absolute top-12 w-[95%] bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 p-6 md:p-8 will-change-transform"
+                  className="absolute top-12 w-[95%] bg-white/90 dark:bg-[#050C14]/90 backdrop-blur-xl rounded-3xl border border-slate-200 dark:border-emerald-500/20 shadow-2xl shadow-slate-200/50 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] p-6 md:p-8 will-change-transform"
                   whileHover={{ y: -10 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >
@@ -411,7 +411,7 @@ const HowItWorks = () => {
 
             <motion.div variants={itemVariants} className="order-2 relative group">
               {/* High-End Visual: Global Node Network */}
-              <div className="relative rounded-[2.5rem] bg-[#0b1121] dark:bg-[#070b14] border border-slate-800 shadow-2xl h-[360px] sm:h-[400px] w-full overflow-hidden flex items-center justify-center">
+              <div className="relative rounded-[2.5rem] bg-[#0b1121] dark:bg-[#050C14] border dark:border-emerald-500/10 border-slate-800 shadow-2xl dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] h-[360px] sm:h-[400px] w-full overflow-hidden flex items-center justify-center">
 
                 {/* Inner Atmospheric Glows (Hardware Accelerated) */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(20,184,166,0.15)_0%,transparent_70%)] pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
@@ -514,7 +514,7 @@ const HowItWorks = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="mt-32 relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-[#0f172a] shadow-2xl border border-slate-800 transform translateZ(0)"
+          className="mt-32 relative rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden bg-[#050C14] shadow-2xl border dark:border-emerald-500/20 border-slate-800 transform translateZ(0)"
         >
           {/* Advanced Gradient Overlay (Hardware Accelerated) */}
           <div className="absolute inset-0 bg-gradient-to-br from-teal-900/80 via-[#0f172a] to-emerald-900/80 z-0"></div>

@@ -50,7 +50,7 @@ const RealLifeFeedback = ({ onSoloPractice, onFindPartner }) => {
   if (!isMounted) return null;
 
   return (
-    <section className="relative py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#070b14] overflow-hidden transition-colors duration-500 font-sans border-t border-slate-200/60 dark:border-slate-800/60">
+    <section className="relative py-24 lg:py-32 bg-[#f8fbff] dark:bg-[#050C14] overflow-hidden transition-colors duration-500 font-sans border-t border-slate-200/60 dark:border-emerald-500/20">
       
       {/* --- Ambient Background Glow --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -175,7 +175,7 @@ const RealLifeFeedback = ({ onSoloPractice, onFindPartner }) => {
           
           {/* --- EXACT LOWER OPACITY EFFECT (FADE OUT TO BOTTOM) --- */}
           {/* This overlays the bottom of the graphic exactly like the reference image */}
-          <div className="absolute bottom-[-50px] left-0 w-full h-[250px] bg-gradient-to-t from-[#f8fbff] via-[#f8fbff]/90 dark:from-[#070b14] dark:via-[#070b14]/90 to-transparent z-40 pointer-events-none transition-colors duration-500"></div>
+          <div className="absolute bottom-[-50px] left-0 w-full h-[250px] bg-gradient-to-t from-[#f8fbff] via-[#f8fbff]/90 dark:from-[#050C14] dark:via-[#050C14]/90 to-transparent z-40 pointer-events-none transition-colors duration-500"></div>
         </div>
 
         {/* --- BOTTOM TYPOGRAPHY --- */}
@@ -201,7 +201,7 @@ const RealLifeFeedback = ({ onSoloPractice, onFindPartner }) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="bg-white/80 dark:bg-[#151b23]/80 backdrop-blur-2xl border border-slate-200/60 dark:border-slate-800/80 rounded-[2rem] p-6 lg:p-8 flex flex-col items-center text-center shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group transition-all hover:border-blue-300 dark:hover:border-blue-800/50"
+            className="bg-white/80 dark:bg-[#050C14]/80 backdrop-blur-2xl border border-slate-200/60 dark:border-emerald-500/20 rounded-[2rem] p-6 lg:p-8 flex flex-col items-center text-center shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group transition-all hover:border-blue-300 dark:hover:border-blue-500/50"
           >
             {/* Visual Graphic Representation */}
             <div className="w-full h-48 mb-6 rounded-[1.5rem] bg-slate-50 dark:bg-[#0d1117] border border-slate-100 dark:border-slate-800/60 relative flex items-center justify-center overflow-hidden">
@@ -214,12 +214,12 @@ const RealLifeFeedback = ({ onSoloPractice, onFindPartner }) => {
                </div>
 
                {/* Floating Badges */}
-               <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-[#151b23]/90 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-2 px-3 rounded-xl flex items-center gap-2 shadow-lg transform group-hover:-translate-y-1 transition-transform duration-300">
+               <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-[#050C14]/90 backdrop-blur-md border border-slate-200/60 dark:border-emerald-500/20 p-2 px-3 rounded-xl flex items-center gap-2 shadow-lg transform group-hover:-translate-y-1 transition-transform duration-300">
                  <Activity className="w-3.5 h-3.5 text-blue-500" />
                  <span className="text-[10px] font-extrabold text-[#0f172a] dark:text-white uppercase tracking-wider">Score: <span className="text-blue-600 dark:text-blue-400">92</span></span>
                </div>
                
-               <div className="absolute top-4 left-4 bg-white/90 dark:bg-[#151b23]/90 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-2 px-3 rounded-xl flex items-center gap-2 shadow-lg transform group-hover:translate-y-1 transition-transform duration-300">
+               <div className="absolute top-4 left-4 bg-white/90 dark:bg-[#050C14]/90 backdrop-blur-md border border-slate-200/60 dark:border-emerald-500/20 p-2 px-3 rounded-xl flex items-center gap-2 shadow-lg transform group-hover:translate-y-1 transition-transform duration-300">
                  <BookOpen className="w-3 h-3 text-fuchsia-500" />
                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Passage Mode</span>
                </div>
@@ -244,7 +244,7 @@ const RealLifeFeedback = ({ onSoloPractice, onFindPartner }) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white/80 dark:bg-[#151b23]/80 backdrop-blur-2xl border border-slate-200/60 dark:border-slate-800/80 rounded-[2rem] p-6 lg:p-8 flex flex-col items-center text-center shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group transition-all hover:border-emerald-300 dark:hover:border-emerald-800/50"
+            className="bg-white/80 dark:bg-[#050C14]/80 backdrop-blur-2xl border border-slate-200/60 dark:border-emerald-500/20 rounded-[2rem] p-6 lg:p-8 flex flex-col items-center text-center shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group transition-all hover:border-emerald-300 dark:hover:border-emerald-500/50"
           >
             {/* High-End Visual Graphic Representation */}
             <div className="w-full h-48 mb-6 rounded-[1.5rem] bg-slate-50 dark:bg-[#0d1117] border border-slate-100 dark:border-slate-800/60 relative flex items-center justify-center overflow-hidden perspective-1000">
@@ -306,12 +306,12 @@ const RealLifeFeedback = ({ onSoloPractice, onFindPartner }) => {
                </div>
 
                {/* Floating Badges */}
-               <div className="absolute top-3 left-4 bg-white/90 dark:bg-[#151b23]/90 backdrop-blur-md border border-slate-200/60 dark:border-slate-800 p-1.5 px-2.5 rounded-lg flex items-center gap-1.5 shadow-lg">
+               <div className="absolute top-3 left-4 bg-white/90 dark:bg-[#050C14]/90 backdrop-blur-md border border-slate-200/60 dark:border-emerald-500/20 p-1.5 px-2.5 rounded-lg flex items-center gap-1.5 shadow-lg">
                  <Globe2 className="w-3 h-3 text-blue-500" />
                  <span className="text-[9px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">C1 Match</span>
                </div>
                
-               <div className="absolute bottom-3 right-4 bg-white/90 dark:bg-[#151b23]/90 backdrop-blur-md border border-emerald-500/30 p-1.5 px-2.5 rounded-lg flex items-center gap-1.5 shadow-lg">
+               <div className="absolute bottom-3 right-4 bg-white/90 dark:bg-[#050C14]/90 backdrop-blur-md border border-emerald-500/30 p-1.5 px-2.5 rounded-lg flex items-center gap-1.5 shadow-lg">
                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                  <span className="text-[9px] font-extrabold text-[#0f172a] dark:text-white uppercase tracking-wider">Analysis Active</span>
                </div>

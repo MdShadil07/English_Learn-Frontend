@@ -149,7 +149,21 @@ const createApiFunction = <T = unknown>(
 
       // Handle API errors
       if (!result.success && response.status >= 400) {
-        throw new Error(result.message || 'API request failed');
+        let errorMessage = result.message || 'API request failed';
+        
+        // Enhance error message with specific validation errors if present
+        if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
+          const details = result.errors
+            .map((err: any) => err.msg || err.message)
+            .filter(Boolean)
+            .join(' | ');
+          
+          if (details) {
+            errorMessage = `${errorMessage}: ${details}`;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return result;
@@ -215,6 +229,12 @@ export const api = {
 
     refreshToken: (data: { refreshToken: string }) =>
       createApiFunction('POST', '/auth/refresh-token', { requiresAuth: false })(data),
+      
+    setupTwoFactor: () => 
+      createApiFunction('POST', '/auth/2fa/setup')(),
+      
+    enableTwoFactor: (data: { challengeId: string; code: string }) =>
+      createApiFunction('POST', '/auth/2fa/enable')(data),
   },
 
   // Profile management endpoints (comprehensive system)
@@ -367,6 +387,12 @@ export const api = {
       createApiFunction('POST', '/accuracy/analyze')(data),
   },
 
+  // AI Chat endpoints
+  aiChat: {
+    explainText: (data: { text: string }) =>
+      createApiFunction('POST', '/ai-chat/explain')(data),
+  },
+
   // Admin endpoints
   admin: {
     getUsers: () => createApiFunction('GET', '/admin/users')(),
@@ -408,9 +434,22 @@ export const api = {
     //   createApiFunction('POST', '/payment/create-subscription-trial', { requiresAuth: true, suppressAuthRedirect: true })(data),
     // Fetch current user's active subscription
     getMySubscription: () => createApiFunction('GET', '/payment/my-subscription', { requiresAuth: true })(undefined),
+    // Fetch user's billing history
+    getBillingHistory: () => createApiFunction('GET', '/payment/billing-history', { requiresAuth: true })(undefined),
     // Tax preview (no persistence)
     taxPreview: (data: { amount: number; buyerState?: string; taxRatePercent?: number }) =>
       createApiFunction('POST', '/payment/tax-preview', { requiresAuth: false })(data),
+    // Validate coupon
+    validateCoupon: (data: { code: string; planId?: string }) =>
+      createApiFunction('POST', '/payment/validate-coupon', { requiresAuth: true })(data),
+    // Simulate payment failure for testing/agent integration (now supports dynamic reasons)
+    simulateFailure: (data?: { reason?: string; code?: string; step?: string; source?: string }) =>
+      createApiFunction('POST', '/payment/simulate-failure', { requiresAuth: true })(data),
+  },
+
+  // Word of the Day endpoints
+  wotd: {
+    getToday: () => createApiFunction('GET', '/wotd/today')(),
   },
 };
 
@@ -439,6 +478,7 @@ export interface UserData {
   createdAt: string;
   updatedAt: string;
   fullName: string;
+  hasPassword?: boolean;
 }
 
 export interface ProfileData {

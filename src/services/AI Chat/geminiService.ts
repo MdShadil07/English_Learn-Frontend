@@ -406,6 +406,38 @@ Return only a JSON array of topic strings, like: ["topic1", "topic2", "topic3", 
       return { healthy: false, error: 'API unavailable' };
     }
   }
+
+  /**
+   * Transcribe recorded audio using the backend Whisper engine
+   */
+  async transcribeAudio(audioBlob: Blob): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      
+      // Use the actual API URL instead of Gemini
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      
+      const response = await axios.post(`${apiUrl}/ai-chat/transcribe`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        timeout: 60000 // 60s timeout for transcription
+      });
+
+      if (response.data && response.data.success) {
+        return response.data.text;
+      }
+
+      throw new Error(response.data?.error || 'Failed to transcribe audio');
+    } catch (error: any) {
+      console.error('Audio transcription error:', error);
+      throw new Error(error.response?.data?.error || error.message || 'Transcription failed');
+    }
+  }
 }
 
 // Export singleton instance

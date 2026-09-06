@@ -59,12 +59,22 @@ const LazySection = ({ children, fallback }: { children: React.ReactNode, fallba
   );
 };
 
+import { getSavedSession, SavedSession } from '@/utils/sessionManager';
+import { SavedSessionCard } from '@/components/auth/SavedSessionCard';
+
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
+  const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
 
   // Enable smooth anchor scrolling for hash-link navigation
   useEffect(() => {
+    const session = getSavedSession();
+    setSavedSession(session);
+    if (session && (session.hasValidToken || session.isTrustedDevice || session.user)) {
+      setIsSessionModalOpen(true);
+    }
     document.documentElement.style.scrollBehavior = 'smooth';
     document.documentElement.style.scrollPaddingTop = '4rem';
     return () => {
@@ -106,7 +116,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-white via-slate-50/30 to-emerald-50/20 dark:from-slate-950 dark:via-slate-900/50 dark:to-emerald-950/10 flex flex-col overflow-x-hidden">
+    <div className="relative min-h-screen bg-white dark:bg-[#050C14] flex flex-col overflow-x-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 -z-50 overflow-hidden pointer-events-none" aria-hidden="true">
         {/* Neural network pattern */}
@@ -117,14 +127,14 @@ const LandingPage = () => {
           }}
         ></div>
 
-        {/* Subtle gradient orbs (Optimized with radial gradients instead of heavy blur filters) */}
-        <div className="absolute top-[10%] right-[10%] w-96 h-96 rounded-full bg-[radial-gradient(circle,rgba(167,243,208,0.2)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(6,78,59,0.1)_0%,transparent_70%)]" style={{ transform: 'translateZ(0)' }}></div>
-        <div className="absolute bottom-[20%] left-[5%] w-80 h-80 rounded-full bg-[radial-gradient(circle,rgba(207,250,254,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(8,145,178,0.05)_0%,transparent_70%)]" style={{ transform: 'translateZ(0)' }}></div>
+        {/* Subtle gradient orbs for Obsidian/Emerald theme */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/5 dark:bg-teal-500/10 blur-[120px] pointer-events-none" />
       </div>
 
       {/* Navbar */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm will-change-transform">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-950/10 dark:via-transparent dark:to-teal-950/10"></div>
+      <header className="fixed top-0 inset-x-0 z-50 bg-white/80 dark:bg-[#050C14]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-emerald-500/10 shadow-sm will-change-transform">
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/20 via-transparent to-teal-50/20 dark:from-emerald-500/5 dark:via-transparent dark:to-teal-500/5 pointer-events-none"></div>
         <div className="container mx-auto px-4 relative">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -262,7 +272,7 @@ const LandingPage = () => {
       </header>
 
       {/* Main content */}
-      <main className="relative z-10 flex-grow pt-16">
+      <main className={`relative z-10 flex-grow pt-16 transition-all duration-500 ${isSessionModalOpen ? 'blur-sm pointer-events-none' : ''}`}>
         
         {/* Hero — still eager visually, but code chunk is lazy loaded */}
         <Suspense fallback={<HeroSkeleton />}>
@@ -292,8 +302,36 @@ const LandingPage = () => {
 
       {/* Footer */}
       <LazySection fallback={<FooterSkeleton />}>
-        <Footer />
+        <div className={`transition-all duration-500 ${isSessionModalOpen ? 'blur-sm pointer-events-none' : ''}`}>
+          <Footer />
+        </div>
       </LazySection>
+
+      {/* Floating Session Modal / Widget */}
+      {savedSession && (savedSession.hasValidToken || savedSession.isTrustedDevice || savedSession.user) && (
+        isSessionModalOpen ? (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/20 dark:bg-black/40 p-4">
+            <div className="w-full max-w-sm animate-in zoom-in-95 fade-in duration-300">
+              <SavedSessionCard 
+                session={savedSession} 
+                onRemove={() => {
+                  setSavedSession(getSavedSession());
+                  setIsSessionModalOpen(false);
+                }} 
+                onClose={() => setIsSessionModalOpen(false)}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="fixed bottom-6 right-6 z-[90] animate-in slide-in-from-bottom-10 fade-in duration-500 drop-shadow-2xl">
+            <SavedSessionCard 
+              session={savedSession} 
+              onRemove={() => setSavedSession(getSavedSession())} 
+              minimized={true}
+            />
+          </div>
+        )
+      )}
     </div>
 
   );

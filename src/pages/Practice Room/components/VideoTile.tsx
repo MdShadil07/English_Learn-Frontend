@@ -86,25 +86,21 @@ const VideoTile = React.forwardRef<HTMLDivElement, VideoTileProps>(({
     tryPlay();
   }, [stream, paused]);
 
-  // IntersectionObserver to pause offscreen video (saves decode and bandwidth)
+  // Handle pausing when document is hidden to save battery/bandwidth on mobile
   useEffect(() => {
-    const el = containerRef.current;
     const vid = videoRef.current;
-    if (!el || !vid) return;
-    const obs = new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        if (entry.isIntersecting && !paused) {
-          vid.play().catch(() => {});
-          if (!isLocal) roomService.resumeConsumer(userId, 'video');
-        } else {
-          try { vid.pause(); } catch {};
-          if (!isLocal) roomService.pauseConsumer(userId, 'video');
-        }
+    if (!vid) return;
+    
+    if (paused) {
+      try { vid.pause(); } catch { /* Ignore browser media errors. */ }
+      if (!isLocal) roomService.pauseConsumer(userId, 'video');
+    } else {
+      if (stream) {
+        vid.play().catch(() => undefined);
       }
-    }, { threshold: 0.25 });
-    obs.observe(el);
-    return () => { obs.disconnect(); };
-  }, [paused, isLocal, userId]);
+      if (!isLocal) roomService.resumeConsumer(userId, 'video');
+    }
+  }, [paused, isLocal, userId, stream]);
 
   const isFeatured = size === 'featured';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -119,7 +115,7 @@ const VideoTile = React.forwardRef<HTMLDivElement, VideoTileProps>(({
       ref={setRefs} 
       className={cn(
         'relative group rounded-2xl overflow-hidden flex-shrink-0 transition-all duration-300',
-        'bg-slate-900/90 dark:bg-slate-950/90 border border-slate-700/50 dark:border-slate-800/50',
+        'bg-[#050C14]/90 border border-emerald-500/20',
         isFeatured ? 'w-full h-full' : 'w-24 h-20 sm:w-44 sm:h-28 cursor-pointer',
         isPinned && 'ring-1 sm:ring-2 ring-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.25)]',
         !isFeatured && 'hover:ring-1 sm:hover:ring-2 hover:ring-emerald-400/50 hover:scale-[1.02]',
@@ -136,7 +132,7 @@ const VideoTile = React.forwardRef<HTMLDivElement, VideoTileProps>(({
       />
 
       {(isVideoOff || !stream) && (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950/30">
+        <div className="w-full h-full flex items-center justify-center bg-[#050C14]">
           <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
             <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-emerald-500/5 blur-2xl" />
             <div className="absolute -bottom-8 -left-8 w-20 h-20 rounded-full bg-teal-500/5 blur-2xl" />
@@ -157,7 +153,7 @@ const VideoTile = React.forwardRef<HTMLDivElement, VideoTileProps>(({
         style={{ opacity: 0 }}
       />
 
-      <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-slate-950/90 to-transparent pointer-events-none" />
+      <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-[#050C14]/90 to-transparent pointer-events-none" />
 
       <div className="absolute bottom-2 left-2.5 right-2.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
@@ -228,7 +224,7 @@ const VideoTile = React.forwardRef<HTMLDivElement, VideoTileProps>(({
       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
         <button
           onClick={onPin}
-          className="p-1.5 rounded-lg bg-slate-900/70 hover:bg-emerald-600/30 border border-slate-700/50 hover:border-emerald-400/50 text-slate-300 hover:text-emerald-400 backdrop-blur transition-all duration-200"
+          className="p-1.5 rounded-lg bg-[#050C14]/70 hover:bg-emerald-600/30 border border-emerald-500/20 hover:border-emerald-400/50 text-slate-300 hover:text-emerald-400 backdrop-blur transition-all duration-200"
           title={isPinned ? 'Unpin' : 'Pin to main view'}
         >
           {isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}

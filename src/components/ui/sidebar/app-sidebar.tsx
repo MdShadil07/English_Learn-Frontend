@@ -164,12 +164,19 @@ export function AppSidebar({
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50"
+      className="border-r border-slate-200 dark:border-emerald-500/20 bg-slate-50/80 dark:bg-[#050C14] backdrop-blur-xl [&_[data-sidebar=sidebar]]:bg-transparent"
       {...props}
     >
+      {/* Background Glow Orbs for Analytics Theme Match */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[30%] bg-emerald-500/10 blur-[100px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[-20%] w-[150%] h-[30%] bg-teal-500/10 blur-[100px] rounded-full mix-blend-screen" />
+      </div>
+
       {/* Header */}
-      <SidebarHeader className="border-b border-slate-200 dark:border-slate-800 p-4 h-16 flex items-center">
-        <div className="flex items-center justify-between gap-3 w-full overflow-hidden">
+      <SidebarHeader className="border-b border-slate-200 dark:border-emerald-500/10 p-4 h-16 flex items-center relative z-20">
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none" />
+        <div className="flex items-center justify-between gap-3 w-full overflow-hidden relative z-10">
           <button 
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-3 font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:opacity-80 transition-opacity group"
@@ -223,14 +230,14 @@ export function AppSidebar({
                     key={item.title}
                     onClick={() => handleNavigation(item.id)}
                     className={cn(
-                      "flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                      "relative flex items-center w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 z-10",
                       isCollapsed ? "justify-center" : "justify-start gap-3",
                       item.isActive
-                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-200 dark:border-emerald-500/30 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.1)]"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-emerald-500/10 hover:text-slate-900 dark:hover:text-emerald-300 border border-transparent dark:hover:border-emerald-500/30"
                     )}
                   >
-                    <Icon className={cn("h-5 w-5 shrink-0", item.isActive ? "text-white" : "")} />
+                    <Icon className={cn("h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110", item.isActive ? "text-white" : "")} />
                     {!isCollapsed && <span>{item.title}</span>}
                   </button>
                 );
@@ -254,14 +261,14 @@ export function AppSidebar({
                         key={item.title}
                         onClick={() => handleNavigation(item.id)}
                         className={cn(
-                          "relative flex items-center w-full rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
+                          "relative flex items-center w-full rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300 z-10",
                           isCollapsed ? "justify-center" : "justify-start gap-3",
                           item.isActive
-                            ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-slate-700"
-                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
+                            ? "bg-white dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200 dark:border-emerald-500/30 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.1)]"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-emerald-500/10 border border-transparent dark:hover:border-emerald-500/30"
                         )}
                       >
-                        <Icon className={cn("h-4 w-4 shrink-0", item.isActive ? "text-emerald-500" : "")} />
+                        <Icon className={cn("h-4 w-4 shrink-0 transition-transform duration-300 group-hover:scale-110", item.isActive ? "text-emerald-500 dark:text-emerald-400" : "")} />
                         {!isCollapsed && (
                           <>
                             <span className="flex-1 text-left truncate text-xs sm:text-sm">{item.title}</span>
@@ -290,15 +297,15 @@ export function AppSidebar({
         </div>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-slate-200 dark:border-slate-800 p-3 bg-white/50 dark:bg-slate-900/50 relative z-50">
+      <SidebarFooter className="border-t border-slate-200 dark:border-emerald-500/10 p-3 bg-white/50 dark:bg-transparent relative z-50 backdrop-blur-xl">
         {!isCollapsed ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button 
-                className="flex items-center gap-3 w-full rounded-xl px-2 py-2 hover:bg-white dark:hover:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm cursor-pointer"
+                className="flex items-center gap-3 w-full rounded-xl px-2 py-2 hover:bg-slate-100 dark:hover:bg-emerald-500/10 transition-all border border-transparent hover:border-slate-200 dark:hover:border-emerald-500/30 hover:shadow-sm cursor-pointer"
                 type="button"
               >
-                <Avatar className="h-9 w-9 border-2 border-white dark:border-slate-800 shadow-sm">
+                <Avatar className="h-9 w-9 border-2 border-white dark:border-emerald-500/20 shadow-sm">
                   <AvatarImage src={user?.avatar} />
                   <AvatarFallback className="bg-emerald-100 text-emerald-700">{getInitials(user?.fullName || user?.email)}</AvatarFallback>
                 </Avatar>

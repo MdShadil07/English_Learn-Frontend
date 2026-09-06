@@ -18,15 +18,16 @@ const DailyProgressCard: React.FC<DailyProgressCardProps> = ({ profile }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.1, duration: 0.6, type: "spring", stiffness: 100 }}
-      whileHover={{ y: -8, scale: 1.02, rotate: 1, transition: { duration: 0.2 } }}
-      className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50/90 via-green-50/90 to-teal-50/90 dark:from-emerald-900/20 dark:via-green-900/20 dark:to-teal-900/20 backdrop-blur-xl border border-emerald-200/50 dark:border-emerald-800/50 shadow-xl hover:shadow-2xl transition-all duration-500"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
+      whileHover={{ y: -4, transition: { duration: 0.2, ease: "easeOut" } }}
+      className="group relative overflow-hidden rounded-[2.5rem] bg-white/88 sm:backdrop-blur-2xl dark:bg-[#050C14]/60 border border-emerald-200/40 dark:border-emerald-500/10 shadow-xl dark:shadow-[0_8px_40px_rgba(16,185,129,0.15)] transition-all duration-500"
     >
-      {/* Background decorative elements */}
-      <div className="absolute -top-10 -right-10 w-16 h-16 rounded-full bg-gradient-to-br from-emerald-300/20 to-green-300/20 dark:from-emerald-700/20 dark:to-green-700/20 blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-      <div className="absolute -bottom-8 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-teal-300/20 to-emerald-300/20 dark:from-teal-700/20 dark:to-emerald-700/20 blur-lg group-hover:scale-125 transition-transform duration-500"></div>
+      {/* Background decorative elements matching AIChatPage pulses */}
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none z-0"></div>
+      <div className="absolute -top-[20%] -right-[10%] w-[55%] h-[55%] bg-emerald-300/20 dark:bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none animate-[pulse_8s_ease-in-out_infinite] z-0 group-hover:bg-emerald-400/20 transition-colors duration-700"></div>
+      <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-teal-300/20 dark:bg-teal-500/10 rounded-full blur-[70px] pointer-events-none animate-[pulse_10s_ease-in-out_infinite_1s] z-0 group-hover:bg-teal-400/20 transition-colors duration-700"></div>
 
       <div className="relative p-4 sm:p-5 md:p-6">
         <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
@@ -89,8 +90,6 @@ const DailyProgressCard: React.FC<DailyProgressCardProps> = ({ profile }) => {
         </div>
       </div>
 
-      {/* Hover glow effect */}
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-emerald-400/0 via-green-400/0 to-teal-400/0 group-hover:from-emerald-400/10 group-hover:via-green-400/10 group-hover:to-teal-400/10 transition-all duration-500 -z-10"></div>
     </motion.div>
   );
 };

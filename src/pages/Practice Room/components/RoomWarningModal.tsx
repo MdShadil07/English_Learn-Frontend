@@ -66,12 +66,12 @@ const RoomWarningModal: React.FC<RoomWarningModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md rounded-[2.5rem] bg-slate-950/95 backdrop-blur-2xl border border-white/10 p-8 text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden outline-none">
+      <DialogContent className="sm:max-w-md rounded-[2.5rem] bg-[#050C14]/95 backdrop-blur-2xl border border-emerald-500/20 p-8 text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden outline-none">
         {/* Dynamic Accent Glow */}
         <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r via-current to-transparent opacity-50", getAccentColor())} />
         <div className={cn("absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 blur-3xl -z-10 opacity-20", getAccentColor().replace('from-', 'bg-'))} />
         
-        <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-white/5 flex items-center justify-center mx-auto mb-6 shadow-inner relative group">
+        <div className="w-16 h-16 rounded-3xl bg-[#050C14] border border-emerald-500/10 flex items-center justify-center mx-auto mb-6 shadow-inner relative group">
            <div className={cn("absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-10 transition-opacity blur-xl", getAccentColor().replace('from-', 'bg-'))} />
            {getIcon()}
         </div>
@@ -90,7 +90,7 @@ const RoomWarningModal: React.FC<RoomWarningModalProps> = ({
             <Button 
               variant="outline"
               onClick={secondaryAction || onClose}
-              className="flex-1 py-6 rounded-2xl border-white/5 bg-white/5 text-white hover:bg-white/10 font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+              className="flex-1 py-6 rounded-2xl border-emerald-500/10 bg-white/5 text-white hover:bg-white/10 font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
             >
               {secondaryActionLabel}
             </Button>
@@ -99,14 +99,14 @@ const RoomWarningModal: React.FC<RoomWarningModalProps> = ({
             onClick={onAction || onClose}
             className={cn(
                "flex-1 py-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg",
-               type === 'exit' ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-white text-slate-950 hover:bg-emerald-400 hover:text-slate-950 shadow-white/5"
+               type === 'exit' ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" : "bg-white text-slate-950 hover:bg-emerald-400 hover:text-slate-950 shadow-emerald-500/10"
             )}
           >
             {actionLabel}
           </Button>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-center gap-2 opacity-40">
+        <div className="mt-8 pt-8 border-t border-emerald-500/10 flex items-center justify-center gap-2 opacity-40">
            <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Security Verified</span>
         </div>

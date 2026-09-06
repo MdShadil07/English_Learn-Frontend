@@ -47,8 +47,8 @@ const QuickActionCard = ({ action, index, onActionClick }) => {
     >
       <div 
         className={cn(
-          "group relative h-full overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all duration-500 cursor-pointer",
-          "hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-none hover:-translate-y-1",
+          "group relative h-full overflow-hidden rounded-3xl bg-white dark:bg-[#050C14] border border-slate-200 dark:border-emerald-500/10 transition-all duration-500 cursor-pointer",
+          "hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-[0_12px_30px_rgba(16,185,129,0.15)] hover:-translate-y-1",
           theme.border
         )}
       >
@@ -71,7 +71,7 @@ const QuickActionCard = ({ action, index, onActionClick }) => {
             </div>
 
             {action.badge && (
-              <Badge className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-0 font-bold px-2.5 py-0.5 shadow-sm">
+              <Badge className="bg-slate-900 dark:bg-white text-white dark:text-[#050C14] border-0 font-bold px-2.5 py-0.5 shadow-sm">
                 {action.badge}
               </Badge>
             )}
@@ -88,16 +88,16 @@ const QuickActionCard = ({ action, index, onActionClick }) => {
           </div>
 
           {/* Footer: Action Arrow */}
-          <div className="mt-6 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/50 pt-4">
-            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors uppercase tracking-wider">
+          <div className="mt-6 flex items-center justify-between border-t border-slate-100 dark:border-emerald-500/10 pt-4">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-600 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-wider">
               Action
             </span>
             
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 transform group-hover:translate-x-1 group-hover:-translate-y-1",
-              "bg-slate-50 dark:bg-slate-800 group-hover:bg-slate-900 dark:group-hover:bg-white"
+              "bg-slate-50 dark:bg-[#050C14] border dark:border-emerald-500/20 group-hover:bg-slate-900 dark:group-hover:bg-emerald-500/20"
             )}>
-              <ArrowUpRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-white dark:group-hover:text-slate-900" />
+              <ArrowUpRight className="w-4 h-4 text-slate-400 dark:text-emerald-500 group-hover:text-white dark:group-hover:text-emerald-400" />
             </div>
           </div>
 

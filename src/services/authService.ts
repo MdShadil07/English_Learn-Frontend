@@ -19,6 +19,7 @@ export interface SignupData {
 export interface LoginData {
   email: string;
   password: string;
+  deviceToken?: string;
 }
 
 export interface AuthResponse {
@@ -55,7 +56,11 @@ export interface LoginResponse {
   message: string;
   code?: string;
   data?: {
-    user: {
+    twoFactorRequired?: boolean;
+    challengeId?: string;
+    email?: string;
+    expiresAt?: string;
+    user?: {
       id: string;
       email: string;
       firstName: string;
@@ -70,7 +75,7 @@ export interface LoginResponse {
       lastLoginAt?: string;
       createdAt: string;
     };
-    tokens: {
+    tokens?: {
       accessToken: string;
       refreshToken: string;
     };
@@ -136,6 +141,7 @@ class AuthService {
         return {
           success: false,
           message: result.message || 'Login failed',
+          code: result.code,
         };
       }
 
@@ -288,14 +294,14 @@ class AuthService {
     }
   }
 
-  async googleSignIn(token: string): Promise<LoginResponse> {
+  async googleSignIn(idToken: string, deviceToken?: string | string[]): Promise<LoginResponse> {
     try {
       const response = await fetch(`${this.baseURL}/auth/google/verify-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ idToken: token }),
+        body: JSON.stringify({ idToken, deviceToken }),
       });
 
       const result = await response.json();
@@ -304,6 +310,38 @@ class AuthService {
         return {
           success: false,
           message: result.message || 'Google sign-in failed',
+          code: result.code,
+          data: result.data,
+        };
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async verifyTwoFactorLogin(challengeId: string, code: string, rememberDevice?: boolean): Promise<LoginResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/2fa/verify-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ challengeId, code, rememberDevice }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Security code verification failed',
+          code: result.code,
+          data: result.data,
         };
       }
 
@@ -510,6 +548,145 @@ class AuthService {
         return { success: false, message: result.message || 'Failed to reset password' };
       }
       return result;
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+  async getActiveSessions(accessToken: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/sessions`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async revokeSession(accessToken: string, sessionId: string, twoFactorCode?: string, challengeId?: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/sessions/revoke`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId, twoFactorCode, challengeId }),
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async setupTwoFactor(accessToken: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/2fa/setup`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async verifyAndEnableTwoFactor(accessToken: string, challengeId: string, code: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/2fa/enable`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ challengeId, code }),
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async disableTwoFactor(accessToken: string, challengeId?: string, twoFactorCode?: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/2fa/disable`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ challengeId, twoFactorCode }),
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async changePassword(accessToken: string, data: any): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async getLoginHistory(accessToken: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/login-history`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async exportUserData(accessToken: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/data-export`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      return await response.json();
+    } catch (error) {
+      return { success: false, message: 'Network error. Please try again.' };
+    }
+  }
+
+  async deleteAccount(accessToken: string, password?: string, twoFactorCode?: string, challengeId?: string): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.baseURL}/auth/account`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password, twoFactorCode, challengeId }),
+      });
+      return await response.json();
     } catch (error) {
       return { success: false, message: 'Network error. Please try again.' };
     }

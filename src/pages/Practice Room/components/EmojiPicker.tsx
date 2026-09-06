@@ -69,6 +69,7 @@ export const EmojiSelectorPopover = ({
   className 
 }) => {
   const scrollContainerRef = useRef(null);
+  const popoverRef = useRef(null);
   
   const [hoveredEmoji, setHoveredEmoji] = useState(null);
   
@@ -78,7 +79,9 @@ export const EmojiSelectorPopover = ({
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      onClose();
+      if (popoverRef.current && !popoverRef.current.contains(event.target)) {
+        onClose();
+      }
     };
     if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -111,6 +114,10 @@ export const EmojiSelectorPopover = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          key="emoji-popover"
+          ref={popoverRef}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           initial={{ opacity: 0, scale: 0.9, y: 10, transformOrigin: 'bottom center' }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 10 }}
@@ -128,8 +135,9 @@ export const EmojiSelectorPopover = ({
                 <AnimatePresence>
                   {hoveredEmoji && (
                     <motion.div 
+                      key="tooltip"
                       initial={{ opacity: 0, y: 5, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.9 }}
-                      className="bg-slate-800/95 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-xl border border-white/10 whitespace-nowrap"
+                      className="bg-[#050C14]/95 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-xl border border-white/10 whitespace-nowrap"
                     >
                       {hoveredEmoji}
                     </motion.div>
@@ -138,21 +146,24 @@ export const EmojiSelectorPopover = ({
              </div>
 
              {/* Left Scroll Arrow */}
-             {canScrollLeft && (
-               <motion.button 
+             <AnimatePresence>
+               {canScrollLeft && (
+                 <motion.button 
+                 key="scroll-left"
                  initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }}
-                 onClick={(e) => { e.stopPropagation(); scroll('left'); }}
-                 className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors mr-1"
+                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); scroll('left'); }}
+                 className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors mr-1 cursor-pointer pointer-events-auto"
                >
                  <ChevronLeft className="w-5 h-5" />
                </motion.button>
-             )}
+               )}
+             </AnimatePresence>
 
              {/* Horizontal Scroll Area */}
              <div 
                ref={scrollContainerRef}
                onScroll={checkScroll}
-               className="flex-1 flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1"
+               className="flex-1 flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar px-1 touch-pan-x"
              >
                {QUICK_REACTIONS.map((emoji) => (
                  <motion.button
@@ -180,15 +191,18 @@ export const EmojiSelectorPopover = ({
              </div>
 
              {/* Right Scroll Arrow */}
-             {canScrollRight && (
-               <motion.button 
+             <AnimatePresence>
+               {canScrollRight && (
+                 <motion.button 
+                 key="scroll-right"
                  initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }}
-                 onClick={(e) => { e.stopPropagation(); scroll('right'); }}
-                 className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors ml-1"
+                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); scroll('right'); }}
+                 className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors ml-1 cursor-pointer pointer-events-auto"
                >
                  <ChevronRight className="w-5 h-5" />
                </motion.button>
-             )}
+               )}
+             </AnimatePresence>
           </div>
           
           {/* Custom Scrollbar override for this component to hide it completely */}
@@ -219,11 +233,11 @@ export default function EmojiSelectorDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-end pb-12 sm:pb-24 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-[#050C14] flex flex-col items-center justify-end pb-12 sm:pb-24 font-sans relative overflow-hidden">
       
       {/* Background Room Mockup */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
-         <div className="w-[90%] max-w-[800px] aspect-video border border-white/20 rounded-3xl bg-slate-900 shadow-2xl flex items-center justify-center">
+         <div className="w-[90%] max-w-[800px] aspect-video border border-white/20 rounded-3xl bg-[#050C14]/90 shadow-2xl flex items-center justify-center">
             <Smile className="w-24 h-24 text-slate-800" />
          </div>
       </div>

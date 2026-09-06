@@ -16,7 +16,7 @@ interface RoomParticipantsProps {
 
 const RoomParticipants = ({ room, isVisible, onToggle }: RoomParticipantsProps) => {
   return (
-    <Card>
+    <Card className="bg-[#050C14]/90 border-emerald-500/20 text-white backdrop-blur-xl">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -43,7 +43,7 @@ const RoomParticipants = ({ room, isVisible, onToggle }: RoomParticipantsProps) 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 transition-all"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
@@ -53,7 +53,7 @@ const RoomParticipants = ({ room, isVisible, onToggle }: RoomParticipantsProps) 
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900 truncate">
+                      <span className="text-sm font-medium text-white truncate">
                         {participantId}
                       </span>
                       {participantId === room.hostId && (
@@ -79,9 +79,9 @@ const RoomParticipants = ({ room, isVisible, onToggle }: RoomParticipantsProps) 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg"
+              className="mt-3 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg"
             >
-              <p className="text-xs text-yellow-800 text-center">
+              <p className="text-xs text-amber-400 text-center">
                 Room is nearing capacity
               </p>
             </motion.div>

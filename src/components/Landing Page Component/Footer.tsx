@@ -59,7 +59,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-[#f8fbff] dark:bg-[#070b14] text-slate-600 dark:text-slate-400 pt-20 pb-8 relative overflow-hidden transition-colors duration-500 font-sans border-t border-slate-200/60 dark:border-slate-800/60" id="contact">
+    <footer className="bg-transparent text-slate-600 dark:text-slate-400 pt-20 pb-8 relative overflow-hidden transition-colors duration-500 font-sans border-t border-slate-200/60 dark:border-emerald-500/10" id="contact">
       
       {/* --- Optimized Background Effects (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -84,7 +84,7 @@ const Footer = () => {
           {/* Brand Info */}
           <div className="lg:col-span-5">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-800 bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center text-white shadow-lg">
+              <div className="w-10 h-10 rounded-full border-2 border-white dark:border-[#050C14] bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center text-white shadow-lg">
                 <Globe className="w-5 h-5" />
               </div>
               <span className="text-2xl font-extrabold text-[#0f172a] dark:text-white tracking-tight">CognitoSpeak</span>
@@ -110,7 +110,7 @@ const Footer = () => {
 
           {/* Newsletter Card */}
           <div className="lg:col-span-7 flex lg:justify-end">
-            <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm p-8 rounded-3xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/40 dark:shadow-none relative overflow-hidden group w-full lg:max-w-xl transition-all duration-300 hover:border-teal-200 dark:hover:border-teal-800/50">
+            <div className="bg-white/60 dark:bg-[#050C14]/60 backdrop-blur-sm p-8 rounded-3xl border border-slate-200/60 dark:border-emerald-500/10 shadow-xl shadow-slate-200/40 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] relative overflow-hidden group w-full lg:max-w-xl transition-all duration-300 hover:border-teal-200 dark:hover:border-emerald-500/30">
               
               {/* Card internal gradient glow (optimized) */}
               <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(16,185,129,0.1)_0%,transparent_70%)] transform translate-x-1/3 -translate-y-1/3 transition-transform duration-700 group-hover:scale-125" style={{ transform: 'translateZ(0)' }}></div>
@@ -124,7 +124,7 @@ const Footer = () => {
                 <input 
                   type="email" 
                   placeholder="Enter your email address" 
-                  className="flex-1 px-5 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400 font-medium text-sm shadow-inner dark:shadow-none"
+                  className="flex-1 px-5 py-3.5 rounded-xl border border-slate-200 dark:border-emerald-500/20 bg-white dark:bg-[#050C14] text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 outline-none transition-all placeholder:text-slate-400 font-medium text-sm shadow-inner dark:shadow-[inset_0_0_10px_rgba(16,185,129,0.02)]"
                 />
                 <Button className="bg-[#0f172a] dark:bg-emerald-500 text-white dark:hover:bg-emerald-400 hover:bg-black h-auto py-3.5 px-6 rounded-xl font-bold text-sm shadow-md transition-transform hover:-translate-y-0.5">
                   Subscribe

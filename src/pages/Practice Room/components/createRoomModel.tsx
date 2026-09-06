@@ -28,8 +28,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant = "default", size = "default", ...props }, ref) => {
   const variants = {
-    default: "bg-blue-600 text-white hover:bg-blue-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg shadow-blue-500/25",
-    outline: "border-2 border-slate-200 bg-transparent hover:bg-slate-100 text-slate-900 dark:border-slate-800 dark:text-slate-100 dark:hover:bg-slate-800",
+    default: "bg-blue-600 text-white hover:bg-blue-700 dark:bg-white dark:text-slate-900 dark:hover:bg-[#050C14] shadow-lg shadow-blue-500/25",
+    outline: "border-2 border-slate-200 bg-transparent hover:bg-slate-100 text-slate-900 dark:border-emerald-500/20 dark:text-slate-100 dark:hover:bg-[#050C14]/80",
   };
   const sizes = {
     default: "h-11 px-6 py-2 text-sm",
@@ -314,7 +314,7 @@ export default function CreateRoomModal({ isOpen, onClose, onSuccess }: CreateRo
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all appearance-none cursor-pointer"
                       >
                         {levels.map(l => (
-                          <option key={l} value={l} className="bg-slate-900 text-white">
+                          <option key={l} value={l} className="bg-[#050C14] text-white">
                             {l} {l === 'B2' ? '(Upper Int.)' : ''}
                           </option>
                         ))}

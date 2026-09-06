@@ -23,11 +23,12 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white/90 via-emerald-50/50 to-teal-50/80 dark:from-slate-800/90 dark:via-emerald-900/30 dark:to-teal-900/40 backdrop-blur-xl border border-emerald-200/30 dark:border-emerald-700/30 shadow-xl hover:shadow-2xl transition-all duration-500"
+      className="relative overflow-hidden rounded-[2.5rem] bg-white/88 sm:backdrop-blur-2xl dark:bg-[#050C14]/60 border border-emerald-200/40 dark:border-emerald-500/10 shadow-xl dark:shadow-[0_8px_40px_rgba(16,185,129,0.15)] transition-all duration-500"
     >
-      {/* Background decorative elements */}
-      <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-gradient-to-br from-emerald-300/20 to-teal-300/20 dark:from-emerald-700/20 dark:to-teal-700/20 blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-      <div className="absolute -bottom-8 -left-8 w-16 h-16 rounded-full bg-gradient-to-br from-cyan-300/20 to-emerald-300/20 dark:from-cyan-700/20 dark:to-emerald-700/20 blur-lg group-hover:scale-125 transition-transform duration-500"></div>
+      {/* Background decorative elements matching AIChatPage pulses */}
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none z-0"></div>
+      <div className="absolute -top-[20%] -right-[10%] w-[55%] h-[55%] bg-emerald-300/20 dark:bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none animate-[pulse_8s_ease-in-out_infinite] z-0 group-hover:bg-emerald-400/20 transition-colors duration-700"></div>
+      <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-teal-300/20 dark:bg-teal-500/10 rounded-full blur-[70px] pointer-events-none animate-[pulse_10s_ease-in-out_infinite_1s] z-0 group-hover:bg-teal-400/20 transition-colors duration-700"></div>
 
       {/* Enhanced Floating Icons */}
       <motion.div
@@ -104,7 +105,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
             whileHover={{ y: -2, scale: 1.02 }}
             className="group"
           >
-            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 shadow-lg hover:shadow-xl">
               <div className="flex items-center gap-3 sm:gap-4">
                 <motion.div
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
@@ -135,7 +136,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
             whileHover={{ y: -2, scale: 1.02 }}
             className="group"
           >
-            <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 shadow-lg hover:shadow-xl">
               <div className="flex items-center gap-3 sm:gap-4">
                 <motion.div
                   className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
@@ -167,7 +168,7 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
               whileHover={{ y: -2, scale: 1.02 }}
               className="group"
             >
-              <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-emerald-700/40 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-all duration-300 shadow-lg hover:shadow-xl">
+              <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-5 border border-emerald-200/40 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 shadow-lg hover:shadow-xl">
                 <div className="flex items-center gap-3 sm:gap-4">
                   <motion.div
                     className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-600 to-cyan-700 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300"
@@ -396,4 +397,3 @@ const PersonalInformationCard: React.FC<PersonalInformationCardProps> = ({ profi
 };
 
 export default PersonalInformationCard;
-               

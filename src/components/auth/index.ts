@@ -8,4 +8,3 @@ export {
 } from './AuthComponents';
 
 export { default as ProtectedRoute } from './ProtectedRoute';
-export { SecureEmailVerificationSection } from './SecureEmailVerificationSection';

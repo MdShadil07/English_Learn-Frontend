@@ -134,8 +134,8 @@ const RoomChat = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 shadow-2xl flex-1 min-h-0">
-      <div className="px-6 py-4 border-b border-white/5 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+    <div className="flex flex-col h-full bg-[#050C14] shadow-2xl flex-1 min-h-0">
+      <div className="px-6 py-4 border-b border-emerald-500/10 bg-[#050C14]/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
@@ -172,7 +172,7 @@ const RoomChat = ({
               if (isSystem) {
                 return (
                   <motion.div key={message.id} className="flex justify-center py-2">
-                    <div className="px-3 py-1 rounded-full bg-slate-800/40 border border-white/5 flex items-center gap-2">
+                    <div className="px-3 py-1 rounded-full bg-[#050C14]/40 border border-emerald-500/10 flex items-center gap-2">
                        <Info className="w-3 h-3 text-slate-500" />
                        <span className="text-[10px] text-slate-400 font-medium">{content}</span>
                     </div>
@@ -189,9 +189,9 @@ const RoomChat = ({
                 >
                   <div className={cn("flex gap-2 max-w-[85%]", isCurrentUser ? "flex-row-reverse" : "flex-row")}>
                     {showAvatar ? (
-                      <Avatar className="w-7 h-7 mt-0.5 border border-white/10 shrink-0">
+                      <Avatar className="w-7 h-7 mt-0.5 border border-emerald-500/20 shrink-0">
                         <AvatarImage src={senderAvatar} />
-                        <AvatarFallback className="bg-slate-800 text-[10px] text-slate-400">
+                        <AvatarFallback className="bg-[#050C14]/80 text-[10px] text-slate-400">
                           {senderName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -208,7 +208,7 @@ const RoomChat = ({
                         "px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed shadow-sm relative group/msg",
                         isCurrentUser 
                           ? "bg-emerald-600 text-white rounded-tr-none shadow-emerald-900/20" 
-                          : "bg-slate-800 text-slate-100 rounded-tl-none border border-white/5"
+                          : "bg-[#050C14]/80 text-slate-100 rounded-tl-none border border-emerald-500/10"
                       )}>
                         {renderMessageContent(content)}
                         
@@ -220,7 +220,7 @@ const RoomChat = ({
                                "p-1 rounded-full border transition-all shadow-lg",
                                currentUserId && messageReactions[message.id]?.['💖']?.includes(currentUserId)
                                  ? "bg-pink-500/20 border-pink-500/50 scale-110" 
-                                 : "bg-slate-800 border-white/10 hover:bg-slate-700 hover:scale-110 active:scale-95"
+                                 : "bg-[#050C14]/80 border-emerald-500/20 hover:bg-slate-700 hover:scale-110 active:scale-95"
                              )}
                            >
                               <Heart className={cn("w-2.5 h-2.5", currentUserId && messageReactions[message.id]?.['💖']?.includes(currentUserId) ? "text-pink-500 fill-pink-500" : "text-slate-400")} />
@@ -228,7 +228,7 @@ const RoomChat = ({
                         </div>
 
                         {messageReactions[message.id] && Object.entries(messageReactions[message.id]).map(([emoji, userList]) => (
-                          <div key={emoji} className={cn("absolute -bottom-3 px-1.5 py-0.5 rounded-full bg-slate-800 border border-white/10 text-[9px] flex items-center gap-1 shadow-md", isCurrentUser ? "right-4" : "left-6")}>
+                          <div key={emoji} className={cn("absolute -bottom-3 px-1.5 py-0.5 rounded-full bg-[#050C14]/80 border border-emerald-500/20 text-[9px] flex items-center gap-1 shadow-md", isCurrentUser ? "right-4" : "left-6")}>
                              <span>{emoji}</span>
                              <span className="text-slate-400 font-bold">{userList.length}</span>
                           </div>
@@ -249,7 +249,7 @@ const RoomChat = ({
         </div>
       </ScrollArea>
 
-      <div className="p-4 bg-slate-900 border-t border-white/5 space-y-3">
+      <div className="p-4 bg-[#050C14] border-t border-emerald-500/10 space-y-3">
         {/* Context-Aware Mention Suggestions */}
         <AnimatePresence>
           {newMessage.endsWith('@') && (
@@ -281,7 +281,7 @@ const RoomChat = ({
           )}
         </AnimatePresence>
 
-        <div className="flex items-center gap-2 bg-slate-800/50 border border-white/5 p-1.5 rounded-2xl focus-within:border-emerald-500/50 transition-all">
+        <div className="flex items-center gap-2 bg-[#050C14]/50 border border-emerald-500/10 p-1.5 rounded-2xl focus-within:border-emerald-500/50 transition-all">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}

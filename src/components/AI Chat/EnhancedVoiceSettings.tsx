@@ -1,18 +1,18 @@
 /**
- * Enhanced Voice Settings Component
- * Comprehensive voice controls with premium features
+ * EnhancedVoiceSettings — Premium Voice Configuration Panel
+ * Full glassmorphism design, hidden scrollbars, animated interactions,
+ * tier-gated controls, voice presets, pitch/volume sliders, and personality explorer.
  */
 
-import React, { useState, useEffect } from 'react';
-import { Volume2, Crown, Sparkles, User, Users } from 'lucide-react';
-// Update the import path if the Slider component exists elsewhere, for example:
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Volume2, Crown, Sparkles, User, Users, Play, Check, Lock,
+  Mic, Sliders, Wand2, BarChart3, ChevronRight,
+} from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-// Or, if you don't have a Slider component, you can install one (like @radix-ui/react-slider) and import it:
-// import { Slider } from '@radix-ui/react-slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
   VOICE_PRESETS,
@@ -20,9 +20,14 @@ import {
   getBestVoiceForPersonality,
   getVoiceSettings,
   getPremiumVoices,
-  getVoicesByGender
+  getVoicesByGender,
+  VoicePreset,
+  VoicePersonality,
 } from '@/utils/AI Chat/voicePersonalities';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 interface VoiceSettingsProps {
   voices: SpeechSynthesisVoice[];
   selectedVoice: SpeechSynthesisVoice | null;
@@ -30,7 +35,7 @@ interface VoiceSettingsProps {
   speechPitch?: number;
   speechVolume?: number;
   userTier: 'free' | 'pro' | 'premium';
-  currentPersonalityId?: string; // AI personality ID for voice matching
+  currentPersonalityId?: string;
   onVoiceSelect: (voice: SpeechSynthesisVoice) => void;
   onSpeechRateChange: (rate: number) => void;
   onSpeechPitchChange?: (pitch: number) => void;
@@ -38,6 +43,120 @@ interface VoiceSettingsProps {
   onTestVoice: () => void;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+const tierOrder: Record<string, number> = { free: 0, pro: 1, premium: 2 };
+
+const isPremiumVoice = (voice: SpeechSynthesisVoice) =>
+  ['Premium', 'Enhanced', 'Neural', 'Desktop', 'Natural', 'HD'].some((kw) =>
+    voice.name.includes(kw)
+  );
+
+// Hide-scrollbar style string
+const noScrollbar: React.CSSProperties = { scrollbarWidth: 'none', msOverflowStyle: 'none' };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Slim section label */
+const Label = ({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) => (
+  <div className="flex items-center gap-1.5 mb-2.5">
+    {icon && <span className="text-emerald-500 dark:text-emerald-400">{icon}</span>}
+    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+      {children}
+    </p>
+  </div>
+);
+
+/** Premium slider row with glowing value badge */
+const SliderRow = ({
+  label, value, min, max, step, format, onChange, locked, color = 'emerald',
+}: {
+  label: string; value: number; min: number; max: number; step: number;
+  format: (v: number) => string; onChange: (v: number) => void;
+  locked?: boolean; color?: 'emerald' | 'purple' | 'amber';
+}) => {
+  const pct = ((value - min) / (max - min)) * 100;
+  const colorMap = {
+    emerald: {
+      badge: 'border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10',
+      track: 'from-emerald-400 to-teal-400',
+    },
+    purple: {
+      badge: 'border-purple-200 dark:border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-500/10',
+      track: 'from-purple-400 to-indigo-400',
+    },
+    amber: {
+      badge: 'border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10',
+      track: 'from-amber-400 to-orange-400',
+    },
+  };
+  const c = colorMap[color];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className={cn('text-xs font-semibold', locked ? 'text-slate-400 dark:text-slate-600' : 'text-slate-700 dark:text-slate-200')}>
+          {label}
+        </span>
+        <motion.span
+          key={value}
+          initial={{ scale: 0.8, opacity: 0.6 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className={cn('text-[10px] font-mono px-2 py-0.5 rounded-lg border font-bold', locked
+            ? 'border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-600 bg-slate-50 dark:bg-white/5'
+            : c.badge
+          )}
+        >
+          {format(value)}
+        </motion.span>
+      </div>
+
+      {/* Gradient track indicator */}
+      <div className="relative h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden mb-1">
+        <motion.div
+          className={cn('absolute left-0 top-0 h-full rounded-full bg-gradient-to-r', c.track)}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        />
+      </div>
+
+      <Slider
+        value={[value]}
+        onValueChange={([v]) => !locked && onChange(v)}
+        min={min} max={max} step={step}
+        disabled={locked}
+        className={cn('w-full', locked && 'opacity-40 pointer-events-none')}
+      />
+      <div className="flex justify-between text-[9px] text-slate-400 dark:text-slate-600 font-mono">
+        <span>{format(min)}</span>
+        <span>{format((min + max) / 2)}</span>
+        <span>{format(max)}</span>
+      </div>
+    </div>
+  );
+};
+
+/** Waveform bars for active voice indicator */
+const MiniWaveform = ({ active }: { active: boolean }) => (
+  <div className="flex items-end gap-[2px] h-3">
+    {[0.5, 0.9, 0.6, 1, 0.4, 0.8, 0.5].map((h, i) => (
+      <motion.div
+        key={i}
+        className={cn('w-[2px] rounded-full', active ? 'bg-emerald-400' : 'bg-slate-300 dark:bg-slate-600')}
+        animate={active ? { scaleY: [h, 1, h * 0.4, h] } : { scaleY: h * 0.3 }}
+        transition={active ? { duration: 0.7 + i * 0.09, repeat: Infinity, ease: 'easeInOut', delay: i * 0.06 } : {}}
+        style={{ height: '100%', transformOrigin: 'bottom' }}
+      />
+    ))}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────────────────────────────────────
 export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
   voices,
   selectedVoice,
@@ -50,292 +169,271 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
   onSpeechRateChange,
   onSpeechPitchChange,
   onSpeechVolumeChange,
-  onTestVoice
+  onTestVoice,
 }) => {
-  // Precise tier checking: Premium users have all Pro features too
   const isPremium = userTier === 'premium';
-  const isPro = userTier === 'pro' || userTier === 'premium'; // Premium users get Pro features
-  const isFree = userTier === 'free';
+  const isPro     = userTier === 'pro' || userTier === 'premium';
+  const isFree    = userTier === 'free';
 
-  // State for advanced filters (Premium/Pro features)
-  const [genderFilter, setGenderFilter] = useState<'all' | 'male' | 'female'>('all');
+  const [genderFilter, setGenderFilter]       = useState<'all' | 'male' | 'female'>('all');
   const [showPremiumOnly, setShowPremiumOnly] = useState(false);
   const [personalityMatchedVoice, setPersonalityMatchedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [activePresetId, setActivePresetId]   = useState<string | null>(null);
+  const [isTesting, setIsTesting]             = useState(false);
 
-  // Get personality-matched voice recommendation
+  // ── Load personality-matched voice ────────────────────────────────────────
   useEffect(() => {
-    const loadPersonalityVoice = async () => {
-      if (!currentPersonalityId) {
-        setPersonalityMatchedVoice(null);
-        return;
-      }
-      const matchedVoice = await getBestVoiceForPersonality(currentPersonalityId, voices, userTier);
-      setPersonalityMatchedVoice(matchedVoice || null);
-    };
-    loadPersonalityVoice();
+    if (!currentPersonalityId) { setPersonalityMatchedVoice(null); return; }
+    getBestVoiceForPersonality(currentPersonalityId, voices, userTier)
+      .then((v) => setPersonalityMatchedVoice(v ?? null));
   }, [currentPersonalityId, voices, userTier]);
 
-  // Get personality voice settings
-  const personalityVoiceSettings = React.useMemo(() => {
-    if (!currentPersonalityId) return null;
-    return getVoiceSettings(currentPersonalityId);
-  }, [currentPersonalityId]);
+  // ── Auto-apply personality voice settings (Pro/Premium) ───────────────────
+  const personalityVoiceSettings = React.useMemo(
+    () => (currentPersonalityId ? getVoiceSettings(currentPersonalityId) : null),
+    [currentPersonalityId]
+  );
 
-  // Auto-apply personality settings when personality changes
   useEffect(() => {
-    if (personalityVoiceSettings && (isPro || isPremium)) {
-      if (onSpeechRateChange) onSpeechRateChange(personalityVoiceSettings.rate);
-      if (onSpeechPitchChange) onSpeechPitchChange(personalityVoiceSettings.pitch);
-      if (onSpeechVolumeChange) onSpeechVolumeChange(personalityVoiceSettings.volume);
+    if (personalityVoiceSettings && isPro) {
+      onSpeechRateChange(personalityVoiceSettings.rate);
+      onSpeechPitchChange?.(personalityVoiceSettings.pitch);
+      onSpeechVolumeChange?.(personalityVoiceSettings.volume);
     }
-  }, [personalityVoiceSettings, isPro, isPremium, onSpeechRateChange, onSpeechPitchChange, onSpeechVolumeChange]);
+  }, [personalityVoiceSettings, isPro]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Filter voices based on user selections
+  // ── Apply a voice preset ──────────────────────────────────────────────────
+  const applyPreset = useCallback((preset: VoicePreset) => {
+    setActivePresetId(preset.id);
+    onSpeechRateChange(preset.rate);
+    onSpeechPitchChange?.(preset.pitch);
+    onSpeechVolumeChange?.(preset.volume);
+  }, [onSpeechRateChange, onSpeechPitchChange, onSpeechVolumeChange]);
+
+  // ── Apply a personality ───────────────────────────────────────────────────
+  const applyPersonality = useCallback(async (personality: VoicePersonality) => {
+    onSpeechRateChange(personality.rate);
+    onSpeechPitchChange?.(personality.pitch);
+    onSpeechVolumeChange?.(personality.volume);
+    const matched = await getBestVoiceForPersonality(personality.id, voices, userTier);
+    if (matched) onVoiceSelect(matched);
+  }, [voices, userTier, onVoiceSelect, onSpeechRateChange, onSpeechPitchChange, onSpeechVolumeChange]);
+
+  // ── Test voice with animation ─────────────────────────────────────────────
+  const handleTest = useCallback(() => {
+    setIsTesting(true);
+    onTestVoice();
+    setTimeout(() => setIsTesting(false), 2500);
+  }, [onTestVoice]);
+
+  // ── Filtered voice list ───────────────────────────────────────────────────
   const filteredVoices = React.useMemo(() => {
-    let filtered = voices;
-
-    // Gender filter (Premium/Pro feature)
-    if (genderFilter !== 'all' && (isPro || isPremium)) {
-      filtered = getVoicesByGender(filtered, genderFilter);
-    }
-
-    // Premium quality filter (Premium feature only)
-    if (showPremiumOnly && isPremium) {
-      filtered = getPremiumVoices(filtered);
-    }
-
-    return filtered;
+    let list = voices;
+    if (genderFilter !== 'all' && isPro) list = getVoicesByGender(list, genderFilter);
+    if (showPremiumOnly && isPremium)    list = getPremiumVoices(list);
+    return list;
   }, [voices, genderFilter, showPremiumOnly, isPro, isPremium]);
 
-  // Group filtered voices by language
+  // ── Group by language ─────────────────────────────────────────────────────
   const voicesByLanguage = React.useMemo(() => {
     const grouped: Record<string, SpeechSynthesisVoice[]> = {};
-    
-    filteredVoices.forEach(voice => {
-      const langCode = voice.lang.split('-')[0];
-      const langGroup = voice.lang.startsWith('en-US') ? 'English (US)'
-        : voice.lang.startsWith('en-GB') ? 'English (UK)'
-        : voice.lang.startsWith('en-') ? 'English (Other)'
-        : voice.lang.startsWith('hi') ? 'Hindi'
-        : voice.lang.startsWith('ur') ? 'Urdu'
-        : voice.lang.startsWith('es') ? 'Spanish'
-        : voice.lang.startsWith('fr') ? 'French'
-        : voice.lang.startsWith('de') ? 'German'
-        : voice.lang.startsWith('zh') ? 'Chinese'
-        : voice.lang.startsWith('ja') ? 'Japanese'
-        : voice.lang.startsWith('ko') ? 'Korean'
-        : voice.lang.startsWith('ar') ? 'Arabic'
-        : voice.lang.startsWith('pt') ? 'Portuguese'
-        : voice.lang.startsWith('ru') ? 'Russian'
-        : voice.lang.startsWith('it') ? 'Italian'
-        : voice.lang.startsWith('bn') ? 'Bengali'
-        : 'Other Languages';
-      
-      if (!grouped[langGroup]) {
-        grouped[langGroup] = [];
-      }
-      grouped[langGroup].push(voice);
+    filteredVoices.forEach((voice) => {
+      const group =
+        voice.lang.startsWith('en-US') ? 'English (US)'  :
+        voice.lang.startsWith('en-GB') ? 'English (UK)'  :
+        voice.lang.startsWith('en-AU') ? 'English (AU)'  :
+        voice.lang.startsWith('en-')   ? 'English (Other)' :
+        voice.lang.startsWith('hi')    ? 'Hindi'   :
+        voice.lang.startsWith('ur')    ? 'Urdu'    :
+        voice.lang.startsWith('es')    ? 'Spanish' :
+        voice.lang.startsWith('fr')    ? 'French'  :
+        voice.lang.startsWith('de')    ? 'German'  :
+        voice.lang.startsWith('zh')    ? 'Chinese' :
+        voice.lang.startsWith('ja')    ? 'Japanese':
+        voice.lang.startsWith('ko')    ? 'Korean'  :
+        voice.lang.startsWith('ar')    ? 'Arabic'  :
+        voice.lang.startsWith('pt')    ? 'Portuguese':
+        voice.lang.startsWith('ru')    ? 'Russian' :
+        voice.lang.startsWith('it')    ? 'Italian' :
+        voice.lang.startsWith('bn')    ? 'Bengali' :
+        'Other';
+      (grouped[group] = grouped[group] ?? []).push(voice);
     });
-    
     return grouped;
   }, [filteredVoices]);
 
-  const isPremiumVoice = (voice: SpeechSynthesisVoice) => {
-    return voice.name.includes('Premium') || 
-           voice.name.includes('Enhanced') || 
-           voice.name.includes('Neural') || 
-           voice.name.includes('Desktop') ||
-           voice.name.includes('Natural');
-  };
-
-  // Debug: Log tier on mount and changes
-  useEffect(() => {
-    console.log('🔐 Voice Settings - User Tier:', userTier, {
-      isPremium,
-      isPro,
-      isFree,
-      currentPersonalityId
-    });
-  }, [userTier, isPremium, isPro, isFree, currentPersonalityId]);
-
   return (
-    <div className="w-full max-w-full min-w-0 box-border space-y-4 overflow-hidden">
-      {/* Subscription Tier Indicator */}
-      <div className="flex min-w-0 items-center justify-between gap-2 p-2 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-        <div className="flex min-w-0 items-center gap-2">
-          <Crown className={cn(
-            "h-4 w-4",
-            isPremium ? "text-amber-500" : isPro ? "text-blue-500" : "text-slate-400"
-          )} />
-          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            Your Plan:
-          </span>
-        </div>
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "flex-shrink-0 text-xs font-semibold",
-            isPremium ? "border-amber-400 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30" :
-            isPro ? "border-blue-400 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30" :
-            "border-slate-400 text-slate-700 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/30"
-          )}
-        >
-          {userTier.toUpperCase()}
-        </Badge>
-      </div>
+    <div className="w-full min-w-0 space-y-5">
 
-      {/* Personality-Matched Voice Recommendation (Pro/Premium) */}
-      {personalityMatchedVoice && (isPro || isPremium) && (
-        <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800 min-w-0 w-full box-border overflow-hidden">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-lg">
-              <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex min-w-0 items-center gap-2 mb-1">
-                <h4 className="text-xs font-semibold text-emerald-900 dark:text-emerald-100 min-w-0 truncate">
-                  AI Personality Match
-                </h4>
-                <Badge variant="outline" className="h-4 flex-shrink-0 py-0 text-[10px] border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">
-                  {isPremium ? 'Premium' : 'Pro'}
-                </Badge>
+      {/* ── Tier pill ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          'relative overflow-hidden flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-black',
+          isPremium ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/15 border-amber-200 dark:border-amber-700/40 text-amber-800 dark:text-amber-300'
+          : isPro   ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/15 border-emerald-200 dark:border-emerald-700/40 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400',
+        )}
+      >
+        {/* Shimmer */}
+        <motion.div
+          className="pointer-events-none absolute inset-0 w-[40%] bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12"
+          animate={{ x: ['-100%', '400%'] }}
+          transition={{ duration: 3, repeat: Infinity, repeatDelay: 5, ease: 'easeInOut' }}
+        />
+        <div className="flex items-center gap-2 relative z-10">
+          <Crown className={cn('h-3.5 w-3.5', isPremium ? 'text-amber-500' : isPro ? 'text-emerald-500' : 'text-slate-400')} />
+          <span>Voice Plan</span>
+        </div>
+        <span className="relative z-10 uppercase tracking-widest text-[9px] px-2 py-0.5 rounded-full bg-current/10 border border-current/20">
+          {userTier}
+        </span>
+      </motion.div>
+
+      {/* ── AI Personality Voice Match (Pro/Premium) ── */}
+      <AnimatePresence>
+        {personalityMatchedVoice && isPro && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="relative overflow-hidden rounded-xl border border-emerald-200 dark:border-emerald-700/40 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-3"
+          >
+            <motion.div
+              className="pointer-events-none absolute -top-3 -right-3 h-12 w-12 rounded-full bg-emerald-300/20 blur-xl"
+              animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 4, repeat: Infinity }}
+            />
+            <div className="relative z-10 flex items-start gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-800/40 border border-emerald-200 dark:border-emerald-700/50">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-2 truncate">
-                Recommended for your current AI personality
-              </p>
-              <Button
-                onClick={() => onVoiceSelect(personalityMatchedVoice)}
-                variant="outline"
-                size="sm"
-                className="h-7 w-full max-w-full min-w-0 text-left overflow-hidden justify-start text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
-              >
-                <span className="truncate block">{personalityMatchedVoice.name}</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Advanced Filters (Premium/Pro) */}
-      {(isPro || isPremium) && (
-        <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 min-w-0">
-          <div className="flex items-center gap-2">
-            <Crown className="h-3.5 w-3.5 text-amber-500" />
-            <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Advanced Filters
-            </h4>
-          </div>
-          
-          <div className="grid grid-cols-1 gap-2 w-full">
-            {/* Gender Filter */}
-            <div className="min-w-0 space-y-1.5">
-              <label className="text-[10px] font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                Gender
-              </label>
-              <Select value={genderFilter} onValueChange={(value: 'all' | 'male' | 'female') => setGenderFilter(value)}>
-                <SelectTrigger className="h-8 min-w-0 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="h-3 w-3" />
-                      All Voices
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="male" className="text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <User className="h-3 w-3" />
-                      Male
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="female" className="text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <User className="h-3 w-3" />
-                      Female
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Premium Quality Filter (Premium only) */}
-            {isPremium && (
-              <div className="min-w-0 space-y-1.5">
-                <label className="text-[10px] font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                  Quality
-                </label>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-emerald-900 dark:text-emerald-100 mb-0.5">
+                  AI Personality Voice Match
+                </p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 truncate mb-2">
+                  {personalityMatchedVoice.name}
+                </p>
                 <Button
-                  onClick={() => setShowPremiumOnly(!showPremiumOnly)}
-                  variant={showPremiumOnly ? "default" : "outline"}
                   size="sm"
-                  className={cn(
-                    "h-8 w-full min-w-0 px-2 text-xs",
-                    showPremiumOnly && "bg-amber-500 hover:bg-amber-600"
-                  )}
+                  variant="outline"
+                  onClick={() => onVoiceSelect(personalityMatchedVoice)}
+                  className="h-6 w-full text-[10px] font-black border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
                 >
-                  <Crown className="h-3 w-3 mr-1.5" />
-                  <span className="truncate">Premium Only</span>
+                  <Check className="h-3 w-3 mr-1" /> Use This Voice
                 </Button>
               </div>
-            )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Advanced Filters (Pro/Premium) ── */}
+      {isPro && (
+        <div className="space-y-3 p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-gradient-to-br from-slate-50/80 to-white/60 dark:from-white/[0.03] dark:to-white/[0.02]">
+          <div className="flex items-center gap-2">
+            <Sliders className="h-3 w-3 text-emerald-500" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
+              Advanced Filters
+            </span>
+            <span className="ml-auto text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">
+              {isPremium ? 'Premium' : 'Pro'}
+            </span>
           </div>
+
+          {/* Gender filter */}
+          <div className="w-full min-w-0">
+            <Label icon={<Users className="h-3 w-3" />}>Gender Filter</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {(['all', 'male', 'female'] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGenderFilter(g)}
+                  className={cn(
+                    'flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black border transition-all duration-150',
+                    genderFilter === g
+                      ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                      : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-emerald-300 dark:hover:border-emerald-600/50',
+                  )}
+                >
+                  {g === 'all' ? <Users className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                  {g.charAt(0).toUpperCase() + g.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Premium quality toggle (Premium only) */}
+          {isPremium && (
+            <div className="w-full min-w-0">
+              <Label icon={<Crown className="h-3 w-3" />}>Quality</Label>
+              <button
+                onClick={() => setShowPremiumOnly((p) => !p)}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 h-8 rounded-lg text-xs font-black border transition-all duration-200',
+                  showPremiumOnly
+                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 border-amber-400 text-white shadow-[0_2px_8px_rgba(245,158,11,0.4)]'
+                    : 'border-amber-200 dark:border-amber-700/40 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20',
+                )}
+              >
+                <Crown className="h-3 w-3" />
+                {showPremiumOnly ? '✓ Premium Only' : 'Show Premium Only'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Voice Selection */}
-      <div className="space-y-3">
-        <div className="flex min-w-0 items-center justify-between gap-2">
-          <div className="min-w-0">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Voice Selection
-            </label>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {filteredVoices.length} voices • {Object.keys(voicesByLanguage).length} languages
-            </p>
-          </div>
+      {/* ── Voice Selection ── */}
+      <div className="w-full min-w-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <Label icon={<Mic className="h-3 w-3" />}>Voice Selection</Label>
+          <span className="text-[9px] text-slate-400 dark:text-slate-600 mb-2.5">
+            {filteredVoices.length} · {Object.keys(voicesByLanguage).length} langs
+          </span>
         </div>
 
         <Select
-          value={selectedVoice?.name || ''}
-          onValueChange={(value) => {
-            const voice = voices.find((v) => v.name === value);
-            if (voice) {
-              onVoiceSelect(voice);
-            }
+          value={selectedVoice?.name ?? ''}
+          onValueChange={(name) => {
+            const voice = voices.find((v) => v.name === name);
+            if (voice) onVoiceSelect(voice);
           }}
         >
-          <SelectTrigger className="w-full min-w-0">
-            <SelectValue placeholder="Select a voice" />
+          <SelectTrigger className="w-full h-9 text-xs bg-white/60 dark:bg-white/[0.04] border-slate-200 dark:border-white/15">
+            <SelectValue placeholder="Select a voice…" />
           </SelectTrigger>
-          <SelectContent className="max-h-[300px] w-full max-w-full overflow-y-auto">
-            {Object.entries(voicesByLanguage).map(([language, langVoices]) => (
-              <React.Fragment key={language}>
-                <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 sticky top-0">
-                  {language} ({langVoices.length})
+          <SelectContent
+            className="max-h-[260px] w-full overflow-y-auto"
+            style={noScrollbar}
+          >
+            {Object.entries(voicesByLanguage).map(([lang, langVoices]) => (
+              <React.Fragment key={lang}>
+                <div className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 bg-slate-50 dark:bg-[#050C14] sticky top-0 z-10 flex items-center justify-between">
+                  <span>{lang}</span>
+                  <span className="font-mono text-slate-400">({langVoices.length})</span>
                 </div>
                 {langVoices.map((voice) => {
-                  const isPremiom = isPremiumVoice(voice);
-                  // Precise locking: Premium voices only for Premium tier
-                  const isLocked = isPremiom && !isPremium;
-                  const isMale = voice.name.toLowerCase().includes('male') && !voice.name.toLowerCase().includes('female');
-                  const isFemale = voice.name.toLowerCase().includes('female');
-
+                  const premium = isPremiumVoice(voice);
+                  const locked  = premium && !isPremium;
+                  const glyph   = voice.name.toLowerCase().includes('female') ? '♀'
+                                : voice.name.toLowerCase().includes('male')   ? '♂' : null;
                   return (
-                    <SelectItem 
-                      key={voice.name} 
+                    <SelectItem
+                      key={voice.name}
                       value={voice.name}
-                      disabled={isLocked}
-                      className="cursor-pointer py-1.5"
+                      disabled={locked}
+                      className="text-xs py-1.5"
                     >
-                      <div className="flex min-w-0 items-center justify-between w-full gap-2">
+                      <div className="flex items-center justify-between w-full gap-2">
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          {(isMale || isFemale) && <span className="text-xs">{isMale ? '♂' : '♀'}</span>}
-                          <span className="truncate text-xs">{voice.name}</span>
+                          {glyph && <span className="text-[10px] shrink-0 text-slate-400">{glyph}</span>}
+                          <span className="truncate">{voice.name}</span>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {isPremiom && <Crown className="h-3 w-3 text-amber-500" />}
-                          {isLocked && <Badge variant="outline" className="text-[10px] py-0 h-4">Locked</Badge>}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {premium && <Crown className="h-3 w-3 text-amber-500" />}
+                          {locked  && <Lock  className="h-3 w-3 text-slate-400" />}
                         </div>
                       </div>
                     </SelectItem>
@@ -346,241 +444,295 @@ export const EnhancedVoiceSettings: React.FC<VoiceSettingsProps> = ({
           </SelectContent>
         </Select>
 
-        {/* Selected Voice Info - Compact */}
-        {selectedVoice && (
-          <div className="p-2 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 min-w-0 overflow-hidden">
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
-                  {selectedVoice.name}
-                </p>
-                <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">
-                  {selectedVoice.lang} • {selectedVoice.localService ? 'Local' : 'Online'}
-                </p>
+        {/* Selected voice card + test button */}
+        <AnimatePresence>
+          {selectedVoice && (
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border border-emerald-200/60 dark:border-emerald-700/30 bg-gradient-to-r from-emerald-50/60 to-teal-50/40 dark:from-emerald-950/20 dark:to-teal-950/15"
+            >
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <MiniWaveform active={isTesting} />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{selectedVoice.name}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-500 truncate">
+                    {selectedVoice.lang} · {selectedVoice.localService ? '📶 Local' : '☁️ Online'}
+                    {isPremiumVoice(selectedVoice) && ' · ⭐'}
+                  </p>
+                </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onTestVoice}
-                className="h-7 px-2 text-xs flex-shrink-0"
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleTest}
+                disabled={isTesting}
+                className={cn(
+                  'flex items-center gap-1 h-7 px-3 rounded-lg text-[10px] font-black border transition-all duration-200 shrink-0',
+                  isTesting
+                    ? 'bg-emerald-500 border-emerald-500 text-white'
+                    : 'border-emerald-300 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30',
+                )}
               >
-                <Volume2 className="h-3 w-3 mr-1" />
-                Test
-              </Button>
-            </div>
-          </div>
-        )}
+                <Play className="h-3 w-3" />
+                {isTesting ? 'Playing…' : 'Test'}
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      <Separator />
+      {/* ── Divider ── */}
+      <div className="border-t border-slate-200 dark:border-white/8" />
 
-      {/* Speech Rate Control - Compact */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            Speech Rate
-          </label>
-          <Badge variant="outline" className="text-[10px] font-mono h-5">
-            {speechRate.toFixed(2)}x
-          </Badge>
-        </div>
-        <Slider
-          value={[speechRate]}
-          onValueChange={([value]) => onSpeechRateChange(value)}
-          min={0.5}
-          max={2.0}
-          step={0.05}
-          className="w-full"
+      {/* ── Speech Rate (all tiers) ── */}
+      <div className="w-full min-w-0 space-y-1">
+        <Label icon={<Volume2 className="h-3 w-3" />}>Speech Rate</Label>
+        <SliderRow
+          label="Rate"
+          value={speechRate}
+          min={0.5} max={2.0} step={0.05}
+          format={(v) => `${v.toFixed(2)}×`}
+          onChange={onSpeechRateChange}
+          color="emerald"
         />
-        <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400">
-          <span>0.5x</span>
-          <span>1.0x</span>
-          <span>2.0x</span>
+      </div>
+
+      {/* ── Quick Presets ── */}
+      <div className="w-full min-w-0 space-y-2">
+        <Label icon={<Wand2 className="h-3 w-3" />}>Quick Presets</Label>
+        <div className="grid grid-cols-1 gap-1.5">
+          {VOICE_PRESETS.map((preset, idx) => {
+            const isActive = activePresetId === preset.id;
+            return (
+              <motion.button
+                key={preset.id}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                whileHover={{ x: 2 }}
+                onClick={() => applyPreset(preset)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-all duration-200',
+                  isActive
+                    ? 'border-emerald-400 dark:border-emerald-500/60 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/20 shadow-sm'
+                    : 'border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] hover:border-emerald-200 dark:hover:border-emerald-700/50 hover:bg-emerald-50/40 dark:hover:bg-emerald-900/15',
+                )}
+              >
+                <span className="text-base shrink-0">{preset.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-800 dark:text-slate-100 leading-none">{preset.displayName}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">{preset.description}</p>
+                </div>
+                <div className="shrink-0 flex flex-col items-end gap-0.5">
+                  <span className="text-[9px] font-mono text-slate-400 dark:text-slate-600">{preset.rate}×</span>
+                  {isActive && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                    >
+                      <Check className="h-3 w-3 text-emerald-500" />
+                    </motion.div>
+                  )}
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Voice Personalities Explorer (Premium/Pro) */}
-      {(isPremium || isPro) && (
-        <>
-          <Separator />
-          <div className="space-y-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-              <h4 className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Voice Personalities
-              </h4>
-              <Badge variant="outline" className="h-4 flex-shrink-0 py-0 text-[10px] border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300">
-                {Object.keys(VOICE_PERSONALITIES).length} Personalities
-              </Badge>
+      {/* ── Advanced Controls: Pitch + Volume (Pro/Premium) ── */}
+      {isPro && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full min-w-0 space-y-4"
+        >
+          <div className="border-t border-slate-200 dark:border-white/8" />
+          <div className="relative overflow-hidden w-full min-w-0 space-y-4 p-4 rounded-xl border border-emerald-200 dark:border-emerald-700/40 bg-gradient-to-br from-emerald-50 to-teal-50/60 dark:from-emerald-950/30 dark:to-teal-950/20">
+            {/* Orb */}
+            <motion.div
+              className="pointer-events-none absolute -top-4 -right-4 h-16 w-16 rounded-full bg-emerald-300/20 dark:bg-emerald-600/10 blur-xl"
+              animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 5, repeat: Infinity }}
+            />
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Crown className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-200">
+                  Advanced Controls
+                </span>
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                {isPremium ? 'Premium' : 'Pro'}
+              </span>
             </div>
-            
-            <div className="grid gap-2">
-              {Object.values(VOICE_PERSONALITIES).map((personality) => {
-                const tierOrder = { free: 0, pro: 1, premium: 2 };
-                const hasAccess = tierOrder[userTier] >= tierOrder[personality.tier];
-                const isCurrentPersonality = currentPersonalityId === personality.id;
 
-                return (
-                  <div
-                    key={personality.id}
-                    className={cn(
-                      "p-2.5 rounded-lg border transition-all",
-                      hasAccess 
-                        ? isCurrentPersonality
-                          ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30"
-                          : "border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700"
-                        : "border-slate-200 dark:border-slate-700 opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                            <div className="flex min-w-0 items-start gap-2">
-                              <div className="mt-0.5 flex-shrink-0 text-lg">{personality.displayName.split(' ')[0]}</div>
-                              <div className="flex-1 min-w-0 overflow-hidden">
-                                <div className="flex min-w-0 items-center gap-1.5 mb-0.5">
-                                  <h5 className="min-w-0 truncate text-xs font-medium text-slate-900 dark:text-slate-100">
-                                    {personality.displayName.split(' ').slice(1).join(' ')}
-                                  </h5>
-                          {!hasAccess && <Crown className="h-3 w-3 flex-shrink-0 text-amber-500" />}
-                          {isCurrentPersonality && (
-                            <Badge variant="outline" className="h-3.5 flex-shrink-0 py-0 text-[9px] border-emerald-500 text-emerald-700 dark:text-emerald-300">
-                              Active
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mb-1.5 truncate">
-                          {personality.description}
-                        </p>
-                        {hasAccess && (
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-slate-500 dark:text-slate-400">
-                            <span>Rate: {personality.rate}x</span>
-                            <span>•</span>
-                            <span>Pitch: {personality.pitch.toFixed(1)}</span>
-                            <span>•</span>
-                            <span>{personality.lang.toUpperCase()}</span>
-                          </div>
+            {/* Pitch */}
+            {onSpeechPitchChange && (
+              <div className="relative z-10">
+                <SliderRow
+                  label="Pitch"
+                  value={speechPitch}
+                  min={0.5} max={1.5} step={0.05}
+                  format={(v) => v.toFixed(2)}
+                  onChange={onSpeechPitchChange}
+                  color="purple"
+                />
+              </div>
+            )}
+
+            {/* Volume */}
+            {onSpeechVolumeChange && (
+              <div className="relative z-10">
+                <SliderRow
+                  label="Volume"
+                  value={speechVolume}
+                  min={0.1} max={1.0} step={0.05}
+                  format={(v) => `${Math.round(v * 100)}%`}
+                  onChange={onSpeechVolumeChange}
+                  color="amber"
+                />
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Voice Personalities Explorer (Pro/Premium) ── */}
+      {isPro && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="w-full min-w-0 space-y-3"
+        >
+          <div className="border-t border-slate-200 dark:border-white/8" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+              <Label>Voice Personalities</Label>
+            </div>
+            <span className="text-[9px] text-slate-400 dark:text-slate-600 mb-2.5">
+              {Object.keys(VOICE_PERSONALITIES).length} AI voices
+            </span>
+          </div>
+
+          <div className="grid gap-2">
+            {Object.values(VOICE_PERSONALITIES).map((personality, idx) => {
+              const hasAccess = tierOrder[userTier] >= tierOrder[personality.tier];
+              const isActive  = currentPersonalityId === personality.id;
+              const tierLabel = personality.tier.charAt(0).toUpperCase() + personality.tier.slice(1);
+
+              return (
+                <motion.div
+                  key={personality.id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={hasAccess ? { x: 2 } : {}}
+                  className={cn(
+                    'relative overflow-hidden rounded-xl border p-3 transition-all duration-200',
+                    isActive
+                      ? 'border-emerald-400 dark:border-emerald-500/60 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/20 shadow-sm'
+                      : hasAccess
+                        ? 'border-slate-200 dark:border-white/10 bg-white/50 dark:bg-white/[0.03] hover:border-purple-300 dark:hover:border-purple-700/50 hover:bg-purple-50/30 dark:hover:bg-purple-900/10 cursor-pointer'
+                        : 'border-slate-100 dark:border-white/5 bg-slate-50/40 dark:bg-white/[0.01] opacity-60',
+                  )}
+                  onClick={() => hasAccess && applyPersonality(personality)}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-xl shrink-0 mt-0.5">{personality.displayName.split(' ')[0]}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                        <span className="text-xs font-black text-slate-900 dark:text-slate-100 leading-none truncate">
+                          {personality.displayName.split(' ').slice(1).join(' ')}
+                        </span>
+                        {isActive && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-white">
+                            <Check className="h-2.5 w-2.5" /> Active
+                          </span>
                         )}
                         {!hasAccess && (
-                          <Badge variant="outline" className="text-[9px] py-0 h-4 border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300">
-                            {personality.tier.charAt(0).toUpperCase() + personality.tier.slice(1)} Required
-                          </Badge>
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-300/60 dark:border-amber-600/40 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400">
+                            <Crown className="h-2.5 w-2.5" /> {tierLabel}
+                          </span>
                         )}
                       </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-snug mb-1.5 truncate">
+                        {personality.description}
+                      </p>
+                      {hasAccess && (
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            `${personality.rate}×`,
+                            `Pitch ${personality.pitch.toFixed(1)}`,
+                            personality.lang.toUpperCase().split('-')[0],
+                            personality.fallbackCriteria.gender ?? null,
+                          ].filter(Boolean).map((tag) => (
+                            <span key={tag} className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                    {hasAccess && !isActive && (
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600 shrink-0 mt-1" />
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  {/* Locked overlay */}
+                  {!hasAccess && (
+                    <div className="absolute inset-0 flex items-center justify-end pr-3 pointer-events-none">
+                      <Lock className="h-4 w-4 text-slate-300 dark:text-slate-700" />
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
-        </>
+        </motion.div>
       )}
 
-      {/* Voice Presets - Compact */}
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-          Quick Presets
-        </label>
-        <div className="grid grid-cols-1 gap-1.5 w-full">
-          {VOICE_PRESETS.map((preset) => (
-            <Button
-              key={preset.id}
-              variant="outline"
-              size="sm"
-              onClick={() => onSpeechRateChange(preset.rate)}
-              className={cn(
-                "flex h-8 min-w-0 items-center justify-start px-2 text-xs transition-all",
-                Math.abs(speechRate - preset.rate) < 0.05 && 
-                "border-emerald-500 bg-emerald-50 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-100"
-              )}
-            >
-              <span className="mr-1.5 flex-shrink-0">{preset.icon}</span>
-              <span className="min-w-0 truncate text-[11px]">{preset.displayName}</span>
-              <span className="ml-auto flex-shrink-0 text-[10px] text-slate-500">{preset.rate}x</span>
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Premium Advanced Controls - Compact */}
-      {(isPremium || isPro) && (
-        <>
-          <Separator />
-          <div className="space-y-3 p-3 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
-            <div className="flex min-w-0 items-center gap-2">
-              <Crown className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <label className="min-w-0 flex-1 truncate text-xs font-semibold text-emerald-900 dark:text-emerald-100">
-                Advanced Controls
-              </label>
-              <Badge variant="secondary" className="h-4 flex-shrink-0 bg-emerald-200 text-[10px] text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
-                {isPremium ? 'Premium' : 'Pro'}
-              </Badge>
-            </div>
-
-            {/* Pitch Control */}
-            {onSpeechPitchChange && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-emerald-800 dark:text-emerald-200">
-                    Pitch
-                  </label>
-                  <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono">
-                    {speechPitch.toFixed(2)}
-                  </span>
-                </div>
-                <Slider
-                  value={[speechPitch]}
-                  onValueChange={([value]) => onSpeechPitchChange(value)}
-                  min={0.5}
-                  max={1.5}
-                  step={0.05}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-[10px] text-emerald-600 dark:text-emerald-400">
-                  <span>Low</span>
-                  <span>Normal</span>
-                  <span>High</span>
-                </div>
-              </div>
-            )}
-
-            {/* Volume Control */}
-            {onSpeechVolumeChange && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-medium text-emerald-800 dark:text-emerald-200">
-                    Volume
-                  </label>
-                  <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono">
-                    {Math.round(speechVolume * 100)}%
-                  </span>
-                </div>
-                <Slider
-                  value={[speechVolume]}
-                  onValueChange={([value]) => onSpeechVolumeChange(value)}
-                  min={0.1}
-                  max={1.0}
-                  step={0.1}
-                  className="w-full"
-                />
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Upgrade prompt for free users - Compact and matching design */}
+      {/* ── Upgrade prompt (free users) ── */}
       {isFree && (
-        <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800">
-          <div className="flex items-start gap-2">
-            <Crown className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-emerald-900 dark:text-emerald-100">
-                Unlock Advanced Controls
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-xl border border-emerald-200 dark:border-emerald-700/40 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-4"
+        >
+          <motion.div
+            className="pointer-events-none absolute -top-3 -left-3 h-14 w-14 rounded-full bg-emerald-300/20 blur-xl"
+            animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 5, repeat: Infinity }}
+          />
+          <div className="relative z-10 flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-[0_4px_10px_rgba(16,185,129,0.4)]">
+              <Crown className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-emerald-900 dark:text-emerald-100 mb-1">
+                Unlock Advanced Voice Controls
               </p>
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-300 leading-relaxed">
-                Premium voices, pitch & volume controls with Pro or Premium.
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-300 leading-snug mb-2.5">
+                Get pitch & volume control, gender filters, premium voices, and AI personality voice matching.
               </p>
+              <div className="flex flex-wrap gap-1 mb-2.5">
+                {['Pitch Control', 'Volume Control', 'Voice Personalities', 'Premium Voices'].map((f) => (
+                  <span key={f} className="text-[9px] font-black px-1.5 py-0.5 rounded-full border border-emerald-300/60 dark:border-emerald-700/40 bg-white/60 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
+                    ✓ {f}
+                  </span>
+                ))}
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-black shadow-[0_4px_14px_rgba(16,185,129,0.35)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.5)] transition-shadow"
+              >
+                <Crown className="h-3.5 w-3.5" /> Upgrade to Pro
+              </motion.button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

@@ -22,10 +22,10 @@ interface AccentConfig {
 
 const ACCENT_STYLES: Record<AnalyticsAccent, AccentConfig> = {
   emerald: {
-    gradient: 'bg-white dark:bg-slate-950',
-    border: 'border border-emerald-100/60 dark:border-emerald-800/30',
-    orbPrimary: 'bg-gradient-to-br from-emerald-200/20 to-teal-200/20 dark:from-emerald-700/15 dark:to-teal-700/15',
-    orbSecondary: 'bg-gradient-to-br from-cyan-200/20 to-emerald-200/20 dark:from-cyan-700/15 dark:to-emerald-700/15'
+    gradient: 'bg-gradient-to-br from-[#F3FAF7] via-[#F9FDFB] to-white dark:bg-[#050C14] dark:bg-none',
+    border: 'border border-slate-100/60 dark:border-emerald-500/20',
+    orbPrimary: 'bg-emerald-400/10 dark:bg-emerald-500/15',
+    orbSecondary: 'bg-teal-400/10 dark:bg-teal-600/15'
   },
   teal: {
     gradient: 'bg-white dark:bg-slate-950',
@@ -122,18 +122,19 @@ const AnalyticsCardShell: React.FC<AnalyticsCardShellProps> = ({
       >
         {showOrbs && (
           <>
+            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay"></div>
             <div
               className={cn(
-                'pointer-events-none absolute -top-20 -right-16 h-32 w-32 rounded-full blur-3xl opacity-70 transition-transform duration-700',
+                'absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[60px] md:blur-[80px] pointer-events-none transition-all duration-1000',
                 style.orbPrimary,
-                hoverEffect && 'group-hover:scale-135'
+                hoverEffect && 'group-hover:scale-110'
               )}
             />
             <div
               className={cn(
-                'pointer-events-none absolute -bottom-16 -left-16 h-28 w-28 rounded-full blur-3xl opacity-60 transition-transform duration-500',
+                'absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[40px] md:blur-[60px] pointer-events-none transition-all duration-1000 delay-100',
                 style.orbSecondary,
-                hoverEffect && 'group-hover:scale-120'
+                hoverEffect && 'group-hover:scale-110'
               )}
             />
           </>
@@ -145,4 +146,3 @@ const AnalyticsCardShell: React.FC<AnalyticsCardShellProps> = ({
 };
 
 export default AnalyticsCardShell;
-                

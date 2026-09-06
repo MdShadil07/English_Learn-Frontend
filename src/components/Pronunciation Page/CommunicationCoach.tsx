@@ -58,13 +58,13 @@ export default function CommunicationCoach({ attempt }: { attempt: any }) {
   if (!attempt) return null;
 
   return (
-    <div className="relative rounded-3xl overflow-hidden shadow-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f1219]">
+    <div className="relative rounded-3xl overflow-hidden shadow-lg border border-slate-200 dark:border-emerald-500/20 bg-white dark:bg-[#050C14]">
       {/* Header with teacher persona styling */}
       <div className="bg-gradient-to-r from-indigo-900 to-[#1e1b4b] p-5 pb-6 relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 blur-[50px] rounded-full pointer-events-none"></div>
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-0.5 shadow-lg shadow-indigo-500/30">
-            <div className="w-full h-full rounded-2xl bg-[#0f1219] flex items-center justify-center">
+            <div className="w-full h-full rounded-2xl bg-[#050C14] flex items-center justify-center">
               <GraduationCap className="w-7 h-7 text-indigo-400" />
             </div>
           </div>
@@ -80,7 +80,7 @@ export default function CommunicationCoach({ attempt }: { attempt: any }) {
         </div>
       </div>
 
-      <div className="p-6 -mt-3 relative z-20 bg-white dark:bg-[#131722] rounded-t-3xl border-t border-white/10 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
+      <div className="p-6 -mt-3 relative z-20 bg-white dark:bg-[#050C14] rounded-t-3xl border-t border-white/10 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
         <AnimatePresence mode="wait">
           {state === 'locked' ? (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-6 flex flex-col items-center text-center">
@@ -119,7 +119,7 @@ export default function CommunicationCoach({ attempt }: { attempt: any }) {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
               
               {/* Strict Narrative */}
-              <div className="bg-slate-50 dark:bg-[#1A1F2B] rounded-2xl p-4 border-l-4 border-l-indigo-500 border border-slate-200 dark:border-slate-800/80 shadow-sm relative">
+              <div className="bg-slate-50 dark:bg-[#050C14] rounded-2xl p-4 border-l-4 border-l-indigo-500 border border-slate-200 dark:border-emerald-500/20 shadow-sm relative">
                 <div className="absolute top-4 right-4 text-indigo-500/20">
                   <Sparkles className="w-8 h-8" />
                 </div>
@@ -141,7 +141,7 @@ export default function CommunicationCoach({ attempt }: { attempt: any }) {
                     {analysis.drillWords.map((word: string, i: number) => (
                       <div key={i} className="group relative flex items-center gap-2 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-100 dark:border-indigo-500/20 px-4 py-2 rounded-xl transition-all cursor-pointer hover:shadow-md hover:shadow-indigo-500/10">
                         <span className="text-indigo-600 dark:text-indigo-400 font-bold text-sm">{word}</span>
-                        <div className="w-5 h-5 rounded-md bg-white dark:bg-[#1A1F2B] flex items-center justify-center shadow-sm">
+                        <div className="w-5 h-5 rounded-md bg-white dark:bg-[#050C14] flex items-center justify-center shadow-sm">
                           <Volume2 className="w-3 h-3 text-indigo-500" />
                         </div>
                       </div>
@@ -158,7 +158,7 @@ export default function CommunicationCoach({ attempt }: { attempt: any }) {
                 </h5>
                 <ul className="space-y-2">
                   {analysis.suggestions.map((s: string, i: number) => (
-                    <li key={i} className="flex items-start gap-3 bg-white dark:bg-[#1A1F2B] p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <li key={i} className="flex items-start gap-3 bg-white dark:bg-[#050C14] p-3 rounded-xl border border-slate-200 dark:border-emerald-500/20 shadow-sm">
                       <div className="w-5 h-5 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center shrink-0 mt-0.5">
                         <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">{i + 1}</span>
                       </div>

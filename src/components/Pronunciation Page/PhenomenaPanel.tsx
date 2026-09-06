@@ -18,13 +18,13 @@ export default function PhenomenaPanel({ attempt }) {
     : 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800/50';
 
   return (
-    <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-900/60 p-4">
+    <div className="rounded-2xl border border-slate-200/60 dark:border-emerald-500/20 bg-white/80 dark:bg-[#050C14]/60 p-4">
       <h4 className="font-extrabold text-sm mb-2">Pronunciation Patterns</h4>
       {profile ? (
         <div className="mb-3">
           <p className="text-xs text-slate-500 mb-2">Detected pattern strengths</p>
           <div className="flex flex-wrap gap-2">{Object.entries(profile.patternScores || {}).map(([k,v]) => (
-            <div key={k} className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold">
+            <div key={k} className="px-3 py-1 rounded-full bg-slate-100 dark:bg-[#050C14] text-xs font-bold border dark:border-emerald-500/20">
               {k.replace(/_/g,' ')}: {Math.round(Number(v) * 100)}%
             </div>
           ))}</div>
@@ -32,25 +32,25 @@ export default function PhenomenaPanel({ attempt }) {
       ) : <p className="text-xs text-slate-400">No pattern profile available.</p>}
 
       {prosody && typeof prosody === 'object' && (
-        <div className="mb-3 rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/70 dark:bg-slate-950/30 p-3">
+        <div className="mb-3 rounded-xl border border-slate-200/70 dark:border-emerald-500/20 bg-slate-50/70 dark:bg-[#050C14]/30 p-3">
           <div className="flex items-center justify-between gap-2 mb-2">
             <p className="text-xs text-slate-500 font-semibold uppercase tracking-widest">Prosody</p>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${severityTone}`}>{severity}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 p-2 border border-slate-200/60 dark:border-slate-800/60">
+            <div className="rounded-lg bg-white/80 dark:bg-[#050C14]/60 p-2 border border-slate-200/60 dark:border-emerald-500/20">
               <div className="text-slate-400 uppercase tracking-widest font-semibold">Speech rate</div>
               <div className="font-bold text-slate-800 dark:text-slate-100">{Math.round(prosody.averageSpeakingRate || 0)} wpm</div>
             </div>
-            <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 p-2 border border-slate-200/60 dark:border-slate-800/60">
+            <div className="rounded-lg bg-white/80 dark:bg-[#050C14]/60 p-2 border border-slate-200/60 dark:border-emerald-500/20">
               <div className="text-slate-400 uppercase tracking-widest font-semibold">Pauses</div>
               <div className="font-bold text-slate-800 dark:text-slate-100">{prosody.pauseCount || 0} / {Math.round(prosody.pauseTotalMs || 0)} ms</div>
             </div>
-            <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 p-2 border border-slate-200/60 dark:border-slate-800/60">
+            <div className="rounded-lg bg-white/80 dark:bg-[#050C14]/60 p-2 border border-slate-200/60 dark:border-emerald-500/20">
               <div className="text-slate-400 uppercase tracking-widest font-semibold">Rhythm</div>
               <div className="font-bold text-slate-800 dark:text-slate-100">Variance {Math.round((prosody.rhythmVariance || 0) * 100)}%</div>
             </div>
-            <div className="rounded-lg bg-white/80 dark:bg-slate-900/60 p-2 border border-slate-200/60 dark:border-slate-800/60">
+            <div className="rounded-lg bg-white/80 dark:bg-[#050C14]/60 p-2 border border-slate-200/60 dark:border-emerald-500/20">
               <div className="text-slate-400 uppercase tracking-widest font-semibold">Hesitation</div>
               <div className="font-bold text-slate-800 dark:text-slate-100">{prosody.hesitationCount || 0} long gaps</div>
             </div>
@@ -65,7 +65,7 @@ export default function PhenomenaPanel({ attempt }) {
             {phenomena.map((p) => (
               <div key={p.id} className="flex items-start gap-3">
                 <motion.div
-                  className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center border"
+                  className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-[#050C14] flex items-center justify-center border border-slate-200 dark:border-emerald-500/20"
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1 + (p.confidence || 0) * 0.25, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 24 }}

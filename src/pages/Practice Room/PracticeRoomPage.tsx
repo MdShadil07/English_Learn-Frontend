@@ -655,30 +655,20 @@ const PracticeRoomPage = () => {
     return map;
   }, [participants]);
 
-  // ── Featured tile logic (Active Speakers Grid) ──
   const featuredIds = useMemo(() => {
-    const speakers = activeSpeakers.filter(uid => uid !== currentUserId);
-    
     // Priority 1: Pinned user (Exclusive Focus Mode)
     if (pinnedUserId) {
       return [pinnedUserId];
     }
     
-    const maxTiles = deviceCapability.getMaxVideoTiles();
-    
-    // Priority 2: Active speakers (up to maxTiles)
-    if (speakers.length > 0) {
-      return speakers.slice(0, Math.max(1, maxTiles - 1));
-    }
-    
-    // Priority 3: Host + You
+    // Priority 2: Host + You (Stable layout)
     const host = room?.hostId ? participantMap.get(String(typeof room.hostId === 'object' ? (room.hostId as any)._id : room.hostId))?.userId : undefined;
     if (host && host !== currentUserId) {
       return [host, currentUserId];
     }
     
     return [currentUserId];
-  }, [activeSpeakers, pinnedUserId, currentUserId, room?.hostId, participants]);
+  }, [pinnedUserId, currentUserId, room?.hostId, participantMap]);
 
   const buildTileData = (uid: string) => {
     if (uid === currentUserId) {
@@ -762,7 +752,7 @@ const PracticeRoomPage = () => {
             <div className="pl-3 pr-6">
               <button
                 onClick={onOpenPanel}
-                className="w-24 h-20 sm:w-44 sm:h-28 rounded-2xl bg-white/5 border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 text-slate-500 hover:bg-white/10 hover:text-slate-300 transition-all cursor-pointer group"
+                className="w-24 h-20 sm:w-44 sm:h-28 rounded-2xl bg-white/5 border border-dashed border-emerald-500/20 flex flex-col items-center justify-center gap-2 text-slate-500 hover:bg-white/10 hover:text-slate-300 transition-all cursor-pointer group"
               >
                 <div className="p-2 rounded-xl bg-slate-800 group-hover:bg-emerald-500/10 transition-colors">
                   <Users className="w-5 h-5 group-hover:text-emerald-400" />
@@ -789,7 +779,7 @@ const PracticeRoomPage = () => {
   // ── Loading / Error ──
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#050C14] flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 animate-pulse" />
@@ -805,7 +795,7 @@ const PracticeRoomPage = () => {
 
   if (showPrivateGate) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-emerald-500 font-medium"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <Suspense fallback={<div className="min-h-screen bg-[#050C14] flex items-center justify-center text-emerald-500 font-medium"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
         <PrivateRoomGate prefillCode={roomCode || undefined} onSuccess={handlePrivateGate} onBack={() => navigate('/rooms')} />
       </Suspense>
     );
@@ -829,7 +819,7 @@ const PracticeRoomPage = () => {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col bg-slate-950 overflow-hidden"
+      className="fixed inset-0 flex flex-col bg-[#050C14] overflow-hidden"
     >
       <AnimatePresence>
         {isMutedByHost && (
@@ -884,7 +874,7 @@ const PracticeRoomPage = () => {
             </button>
             <button
               onClick={() => setIsMentionedNotify(false)}
-              className="absolute -top-2 -right-2 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white border border-white/10 hover:bg-slate-700 transition-all cursor-pointer"
+              className="absolute -top-2 -right-2 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white border border-emerald-500/20 hover:bg-slate-700 transition-all cursor-pointer"
             >
               <X className="w-3 h-3" />
             </button>
@@ -919,7 +909,7 @@ const PracticeRoomPage = () => {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="absolute inset-0 z-[120] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm"
+            className="absolute inset-0 z-[120] flex items-center justify-center p-4 bg-[#050C14]/40 backdrop-blur-sm"
           >
             <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 max-w-sm w-full shadow-[0_0_50px_rgba(16,185,129,0.2)] text-center relative overflow-hidden">
                {/* Decorative glow */}
@@ -988,7 +978,7 @@ const PracticeRoomPage = () => {
       </div>
 
       {/* ── HEADER ── */}
-      <header className="relative flex-shrink-0 z-50 flex items-center justify-between px-4 sm:px-6 py-4 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 shadow-lg overflow-hidden">
+      <header className="relative flex-shrink-0 z-50 flex items-center justify-between px-4 sm:px-6 py-4 bg-[#050C14]/80 backdrop-blur-xl border-b border-emerald-500/10 shadow-lg overflow-hidden">
         {/* Banner Layer */}
         {room?.banner && (
           <div className="absolute inset-0 z-[-1] opacity-30 pointer-events-none">
@@ -1005,7 +995,7 @@ const PracticeRoomPage = () => {
               <div className={cn("w-full h-full bg-gradient-to-br", room.banner)} />
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/40 to-slate-950/80" />
-            <div className="absolute inset-0 bg-slate-950/20" />
+            <div className="absolute inset-0 bg-[#050C14]/20" />
           </div>
         )}
         
@@ -1040,7 +1030,7 @@ const PracticeRoomPage = () => {
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-white/5 text-[11px] font-bold text-slate-400">
+          <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 border border-emerald-500/10 text-[11px] font-bold text-slate-400">
              <div className="flex items-center gap-1.5 text-emerald-400/80">
                 <Wifi className="w-3.5 h-3.5" />
                 <span>Stable</span>
@@ -1085,7 +1075,7 @@ const PracticeRoomPage = () => {
               onClick={() => setIsSettingsOpen(true)}
               className={cn(
                 "flex items-center gap-2 p-2 sm:p-2.5 rounded-xl transition-all active:scale-95",
-                isSettingsOpen ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.2)]" : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5"
+                isSettingsOpen ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.2)]" : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-emerald-500/10"
               )}
               title="Room Settings"
             >
@@ -1097,7 +1087,7 @@ const PracticeRoomPage = () => {
 
       {/* ── MAIN ── */}
       <div
-        className="flex-1 min-h-0 relative bg-slate-950 overflow-y-auto overscroll-y-contain scroll-smooth"
+        className="flex-1 min-h-0 relative bg-[#050C14] overflow-y-auto overscroll-y-contain scroll-smooth"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className={cn(
@@ -1149,7 +1139,7 @@ const PracticeRoomPage = () => {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       key={uid} 
-                      className="flex items-center gap-2 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/10 px-3 py-1.5 text-[10px] text-emerald-400 font-bold shadow-lg"
+                      className="flex items-center gap-2 rounded-full bg-slate-900/80 backdrop-blur-md border border-emerald-500/20 px-3 py-1.5 text-[10px] text-emerald-400 font-bold shadow-lg"
                     >
                       <AudioWave active={true} />
                       <span className="truncate max-w-[80px]">{p?.fullName || 'Active'}</span>
@@ -1186,10 +1176,10 @@ const PracticeRoomPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 100 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="absolute inset-y-2 right-2 w-[340px] sm:w-[380px] z-50 flex flex-col bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                className="absolute inset-y-2 right-2 w-[340px] sm:w-[380px] z-50 flex flex-col bg-[#050C14]/90 border border-emerald-500/20 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
               >
                 {/* Mobile close button inside header for chat */}
-                <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/5">
+                <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-emerald-500/10">
                   <span className="text-white font-bold text-sm h-6">Session Chat</span>
                   <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white">
                     <ChevronLeft className="w-5 h-5 -rotate-90" />
@@ -1229,7 +1219,7 @@ const PracticeRoomPage = () => {
       </div>
 
       {/* ── CONTROLS ── */}
-      <footer className="flex-shrink-0 bg-slate-900/90 backdrop-blur-xl border-t border-slate-700/50 px-2 sm:px-4 py-2.5 sm:py-3">
+      <footer className="flex-shrink-0 bg-[#050C14]/80 backdrop-blur-xl border-t border-slate-700/50 px-2 sm:px-4 py-2.5 sm:py-3">
         {/* Thin emerald top accent line */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
 
@@ -1349,7 +1339,7 @@ const PracticeRoomPage = () => {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 10 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  className="absolute bottom-[calc(100%+16px)] right-0 left-auto w-52 bg-[#1A1A1A]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
+                  className="absolute bottom-[calc(100%+16px)] right-0 left-auto w-52 bg-[#1A1A1A]/95 backdrop-blur-xl rounded-2xl border border-emerald-500/20 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] z-50 overflow-hidden"
                 >
                   <div className="flex flex-col p-1">
                     {/* React */}

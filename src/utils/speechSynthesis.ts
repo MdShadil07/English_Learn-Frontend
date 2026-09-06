@@ -1,25 +1,33 @@
 /**
- * Speech Synthesis Utility
- * Advanced global utility for multi-language text-to-speech functionality
- * Supports emoji descriptions, language-specific voices, and intelligent text cleaning
- * Includes fallback strategies for languages without native browser support
+ * Speech Synthesis Utility — v2 (Multi-Language)
+ * ──────────────────────────────────────────────────────────────────────────────
+ * Robust multi-language TTS with:
+ *   • Smart voice selection per language (exact → partial → any → English)
+ *   • Language-aware text cleaning (non-Latin scripts preserved)
+ *   • Reliable voice loading with voiceschanged retry + timeout
+ *   • Long-text chunking without mid-chunk cancellation
+ *   • Auto-detect language from unicode ranges when no explicit lang given
+ *   • Chrome bug workarounds (silent 14-second limit, stall recovery)
  */
 
-import { 
-  cleanTextForSpeech, 
-  getVoiceCodesForLanguage, 
-  validateTextForSpeech 
+import {
+  cleanTextForSpeech,
+  getVoiceCodesForLanguage,
+  validateTextForSpeech,
 } from './AI Chat/advancedTextCleaner';
 
 import { showVoiceInstallationHelpInConsole } from './AI Chat/voiceInstallationGuide';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Public interface
+// ─────────────────────────────────────────────────────────────────────────────
 export interface SpeechOptions {
   voice?: SpeechSynthesisVoice;
-  rate?: number; // 0.1 to 10 (default: 1)
-  pitch?: number; // 0 to 2 (default: 1)
-  volume?: number; // 0 to 1 (default: 1)
-  lang?: string; // Language code (e.g., 'en-US', 'hi-IN', 'es-ES')
-  language?: string; // Human-readable language name (e.g., 'english', 'hindi', 'spanish')
+  rate?: number;    // 0.1 – 10  (default 1)
+  pitch?: number;   // 0 – 2     (default 1)
+  volume?: number;  // 0 – 1     (default 1)
+  lang?: string;    // BCP-47 e.g. 'en-US', 'hi-IN'
+  language?: string; // Human name e.g. 'english', 'hindi'
   onStart?: () => void;
   onEnd?: () => void;
   onError?: (error: SpeechSynthesisErrorEvent) => void;
@@ -28,554 +36,748 @@ export interface SpeechOptions {
   onBoundary?: (event: SpeechSynthesisEvent) => void;
 }
 
-// Languages that commonly lack browser support
-const FALLBACK_LANGUAGES = ['hindi', 'urdu', 'bengali', 'arabic', 'thai', 'vietnamese'];
+// ─────────────────────────────────────────────────────────────────────────────
+// Language helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-class SpeechSynthesisManager {
-  private synthesis: SpeechSynthesis;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
-  private isEnabled: boolean = true;
-  private isPaused: boolean = false;
-  private queue: string[] = [];
-  private isProcessingQueue: boolean = false;
+/**
+ * Detect likely BCP-47 primary subtag from Unicode script ranges.
+ * Used as a last-resort fallback when no explicit language is given.
+ */
+function detectLanguageFromText(text: string): string | null {
+  const sample = text.slice(0, 200);
+  if (/[\u0900-\u097F]/.test(sample)) return 'hi'; // Devanagari → Hindi
+  if (/[\u0600-\u06FF]/.test(sample)) return 'ar'; // Arabic
+  if (/[\u0980-\u09FF]/.test(sample)) return 'bn'; // Bengali
+  if (/[\u0A00-\u0A7F]/.test(sample)) return 'pa'; // Gurmukhi → Punjabi
+  if (/[\u0B80-\u0BFF]/.test(sample)) return 'ta'; // Tamil
+  if (/[\u0C00-\u0C7F]/.test(sample)) return 'te'; // Telugu
+  if (/[\u0D00-\u0D7F]/.test(sample)) return 'ml'; // Malayalam
+  if (/[\u0900-\u097F]/.test(sample)) return 'mr'; // Marathi (also Devanagari)
+  if (/[\u4E00-\u9FFF]/.test(sample)) return 'zh'; // CJK → Chinese
+  if (/[\u3040-\u30FF]/.test(sample)) return 'ja'; // Hiragana/Katakana → Japanese
+  if (/[\uAC00-\uD7AF]/.test(sample)) return 'ko'; // Hangul → Korean
+  if (/[\u0400-\u04FF]/.test(sample)) return 'ru'; // Cyrillic → Russian
+  if (/[\u0590-\u05FF]/.test(sample)) return 'he'; // Hebrew
+  if (/[\u0E00-\u0E7F]/.test(sample)) return 'th'; // Thai
+  return null;
+}
 
-  constructor() {
-    this.synthesis = window.speechSynthesis;
-    
-    // Handle page visibility change to prevent speech issues
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden && this.currentUtterance) {
-        this.pause();
-      }
-    });
-  }
+/**
+ * Returns true if text contains primarily non-Latin characters that should
+ * NOT be passed through Latin-only cleaning routines.
+ */
+function isNonLatinScript(language: string): boolean {
+  const nonLatin = ['hindi', 'urdu', 'arabic', 'bengali', 'japanese', 'chinese',
+    'korean', 'thai', 'vietnamese', 'russian', 'hebrew', 'persian', 'punjabi',
+    'gujarati', 'tamil', 'telugu', 'kannada', 'malayalam', 'marathi',
+    'odia', 'assamese', 'sindhi', 'konkani', 'maithili', 'santali', 'kashmiri',
+    'dogri', 'bodo', 'bhojpuri'];
+  return nonLatin.includes(language.toLowerCase());
+}
 
-  /**
-   * Check if speech synthesis is supported
-   */
-  isSupported(): boolean {
-    return 'speechSynthesis' in window;
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// Chunk splitter — language-aware, no mid-word cuts
+// ─────────────────────────────────────────────────────────────────────────────
+function splitIntoChunks(text: string, maxLen = 180): string[] {
+  if (text.length <= maxLen) return [text];
 
-  /**
-   * Get available voices
-   */
-  async getVoices(): Promise<SpeechSynthesisVoice[]> {
-    return new Promise((resolve) => {
-      let voices = this.synthesis.getVoices();
+  const chunks: string[] = [];
+  // Split by sentence boundaries first (supports CJK ，。！？ and Arabic ؟،)
+  const sentences = text.match(/[^.!?。！？؟،\n]+[.!?。！？؟،\n]*/g) || [text];
+
+  let current = '';
+  for (const sentence of sentences) {
+    if ((current + sentence).length <= maxLen) {
+      current += sentence;
+    } else {
+      if (current.trim()) chunks.push(current.trim());
       
-      if (voices.length > 0) {
-        resolve(voices);
-      } else {
-        // Wait for voices to be loaded
-        this.synthesis.onvoiceschanged = () => {
-          voices = this.synthesis.getVoices();
-          resolve(voices);
-        };
-      }
-    });
-  }
+      // Sentence itself is too long — split by commas/pauses
+      if (sentence.length > maxLen) {
+        const parts = sentence.split(/[,،、]+/);
+        current = '';
+        for (let part of parts) {
+          // If a part is STILL too long (no commas), force split by spaces
+          if (part.length > maxLen) {
+            const words = part.split(' ');
+            let temp = '';
+            for (const word of words) {
+              if ((temp + word).length <= maxLen) {
+                temp += word + ' ';
+              } else {
+                if (temp.trim()) chunks.push(temp.trim());
+                temp = word + ' ';
+              }
+            }
+            part = temp;
+          }
 
-  /**
-   * Get available voices for a specific language
-   */
-  async getVoicesForLanguage(language: string): Promise<SpeechSynthesisVoice[]> {
-    const voices = await this.getVoices();
-    const voiceCodes = getVoiceCodesForLanguage(language);
-    
-    // Find voices matching the language codes
-    const matchingVoices = voices.filter(voice => 
-      voiceCodes.some(code => voice.lang.startsWith(code.split('-')[0]))
-    );
-    
-    return matchingVoices.length > 0 ? matchingVoices : voices.filter(v => v.lang.startsWith('en'));
-  }
-
-  /**
-   * Get the best voice for a specific language
-   */
-  async getBestVoiceForLanguage(language: string): Promise<SpeechSynthesisVoice | undefined> {
-    const voices = await this.getVoicesForLanguage(language);
-    const voiceCodes = getVoiceCodesForLanguage(language);
-    
-    console.log('🔍 TTS: Finding voice for language:', language);
-    console.log('📋 TTS: Voice codes:', voiceCodes);
-    console.log('🎙️ TTS: Available voices:', voices.length, voices.map(v => `${v.name} (${v.lang})`));
-    
-    // Priority: exact match > local variant > any match > English fallback
-    for (const code of voiceCodes) {
-      const exactMatch = voices.find(v => v.lang === code);
-      if (exactMatch) {
-        console.log('✅ TTS: Exact match found:', exactMatch.name, exactMatch.lang);
-        return exactMatch;
-      }
-    }
-    
-    for (const code of voiceCodes) {
-      const localMatch = voices.find(v => v.lang.startsWith(code.split('-')[0]));
-      if (localMatch) {
-        console.log('✅ TTS: Local match found:', localMatch.name, localMatch.lang);
-        return localMatch;
-      }
-    }
-    
-    const fallback = voices[0] || (await this.getDefaultVoice());
-    console.log('⚠️ TTS: Using fallback voice:', fallback?.name, fallback?.lang);
-    return fallback;
-  }
-
-  /**
-   * Check if a language has proper native voice support
-   */
-  async hasNativeVoiceSupport(language: string): Promise<boolean> {
-    const voices = await this.getVoicesForLanguage(language);
-    const voiceCodes = getVoiceCodesForLanguage(language);
-    
-    // Check if we have any voice matching the language codes
-    const hasMatch = voiceCodes.some(code => 
-      voices.some(v => v.lang.startsWith(code.split('-')[0]))
-    );
-    
-    console.log('🔍 TTS: Native voice support for', language, ':', hasMatch);
-    return hasMatch;
-  }
-
-  /**
-   * Split text into smaller chunks for better pronunciation
-   * Useful for languages with poor voice quality
-   */
-  private splitTextIntoChunks(text: string, maxChunkSize: number = 100): string[] {
-    // Split by sentences first
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-    const chunks: string[] = [];
-    
-    for (const sentence of sentences) {
-      if (sentence.length <= maxChunkSize) {
-        chunks.push(sentence.trim());
-      } else {
-        // Split long sentences by commas or spaces
-        const parts = sentence.split(/[,،]/); // Include Arabic comma
-        for (const part of parts) {
-          if (part.trim()) {
-            chunks.push(part.trim());
+          if ((current + part).length <= maxLen) {
+            current += part + ', ';
+          } else {
+            if (current.trim()) chunks.push(current.trim());
+            current = part + ', ';
           }
         }
+      } else {
+        current = sentence;
       }
     }
+  }
+  if (current.trim()) chunks.push(current.trim());
+  return chunks.filter(c => c.length > 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+export interface TextChunk {
+  text: string;
+  langCode: string;
+}
+
+/**
+ * Script Splitter — robustly divides mixed text by detected Unicode scripts.
+ * Maps characters directly to their target BCP-47 language locale.
+ */
+function splitMixedLanguageText(text: string, primaryLangCode: string = 'en-US'): TextChunk[] {
+  const result: TextChunk[] = [];
+  let currentChunk = '';
+  let currentLang = primaryLangCode;
+
+  // Ordered ranges of non-Latin scripts to evaluate
+  const scriptRanges = [
+    { regex: /[\u0900-\u097F]/, lang: 'hi-IN' }, // Devanagari (Hindi, Marathi)
+    { regex: /[\u0980-\u09FF]/, lang: 'bn-IN' }, // Bengali
+    { regex: /[\u0A00-\u0A7F]/, lang: 'pa-IN' }, // Gurmukhi (Punjabi)
+    { regex: /[\u0A80-\u0AFF]/, lang: 'gu-IN' }, // Gujarati
+    { regex: /[\u0B00-\u0B7F]/, lang: 'or-IN' }, // Odia
+    { regex: /[\u0B80-\u0BFF]/, lang: 'ta-IN' }, // Tamil
+    { regex: /[\u0C00-\u0C7F]/, lang: 'te-IN' }, // Telugu
+    { regex: /[\u0C80-\u0CFF]/, lang: 'kn-IN' }, // Kannada
+    { regex: /[\u0D00-\u0D7F]/, lang: 'ml-IN' }, // Malayalam
+    { regex: /[\u0600-\u06FF]/, lang: 'ar-SA' }, // Arabic / Urdu
+    { regex: /[\u3040-\u30FF\u4E00-\u9FFF]/, lang: 'ja-JP' }, // Japanese / CJK
+    { regex: /[\uAC00-\uD7AF]/, lang: 'ko-KR' }, // Korean
+  ];
+
+  const getCharLang = (char: string): string | null => {
+    // English/Latin fallback
+    if (/[a-zA-Z]/.test(char)) return primaryLangCode.startsWith('en') ? primaryLangCode : 'en-US';
     
-    return chunks.filter(chunk => chunk.length > 0);
+    // Check specific Unicode blocks
+    for (const range of scriptRanges) {
+      if (range.regex.test(char)) return range.lang;
+    }
+    
+    // Return null for punctuation/spaces (they attach to the active chunk)
+    return null;
+  };
+
+  for (const char of text) {
+    const charLang = getCharLang(char);
+    
+    if (charLang) {
+      if (charLang !== currentLang && currentChunk.trim().length > 0) {
+        result.push({ text: currentChunk, langCode: currentLang });
+        currentChunk = '';
+      }
+      currentLang = charLang;
+      currentChunk += char;
+    } else {
+      // Punctuation/spaces — append to current active chunk
+      currentChunk += char;
+    }
   }
 
-  /**
-   * Get English voices only
-   */
-  async getEnglishVoices(): Promise<SpeechSynthesisVoice[]> {
+  if (currentChunk.trim().length > 0) {
+    result.push({ text: currentChunk, langCode: currentLang });
+  }
+
+  return result.filter(c => c.text.trim().length > 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SpeechSynthesisManager
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface QueueItem {
+  text: string;
+  langCode: string;
+  voice: SpeechSynthesisVoice | undefined;
+  options: any;
+  isCloudTTS: boolean;
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+class SpeechQueueManager {
+  private synthesis: SpeechSynthesis;
+  private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private isEnabled = true;
+  private isPaused = false;
+  private currentCloudAudio: HTMLAudioElement | null = null;
+  private sharedCloudAudio: HTMLAudioElement | null = null;
+  private cloudAudioCache = new Map<string, HTMLAudioElement>();
+  private queue: QueueItem[] = [];
+  private currentItem: QueueItem | null = null;
+  private isProcessingQueue = false;
+  private voiceCache = new Map<string, SpeechSynthesisVoice | null>();
+  private cachedVoices: SpeechSynthesisVoice[] = [];
+  private voicesLoaded = false;
+  private stallCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private stallCheckUtterance: SpeechSynthesisUtterance | null = null;
+
+  constructor() {
+    if (typeof window === 'undefined') return;
+    this.synthesis = window.speechSynthesis;
+
+    this._preloadVoices();
+
+    this.synthesis.onvoiceschanged = () => {
+      this._preloadVoices();
+    };
+
+    // Create and unlock shared audio element to bypass autoplay policies
+    this.sharedCloudAudio = new Audio();
+    const unlockAudio = () => {
+      if (this.sharedCloudAudio) {
+        // A tiny silent MP3 base64 to legitimately unlock the audio context
+        this.sharedCloudAudio.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//NkxgAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq';
+        this.sharedCloudAudio.play().then(() => {
+          this.sharedCloudAudio?.pause();
+        }).catch(() => {});
+        
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('touchstart', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+      }
+    };
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.pause();
+    });
+  }
+
+  private _preloadVoices(): void {
+    const v = this.synthesis.getVoices();
+    if (v.length > 0) {
+      this.cachedVoices = v;
+      this.voicesLoaded = true;
+      this.voiceCache.clear();
+    }
+  }
+
+  isSupported(): boolean {
+    return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  }
+
+  async getVoices(): Promise<SpeechSynthesisVoice[]> {
+    if (this.voicesLoaded && this.cachedVoices.length > 0) {
+      return this.cachedVoices;
+    }
+    
+    return new Promise(resolve => {
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        const v = this.synthesis.getVoices();
+        if (v.length > 0) {
+          clearInterval(checkInterval);
+          this.cachedVoices = v;
+          this.voicesLoaded = true;
+          resolve(v);
+        } else if (attempts > 20) {
+          clearInterval(checkInterval);
+          resolve([]);
+        }
+        attempts++;
+      }, 50);
+    });
+  }
+
+  async getVoicesForLanguage(language: string): Promise<SpeechSynthesisVoice[]> {
     const voices = await this.getVoices();
-    return voices.filter(voice => voice.lang.startsWith('en'));
+    const codes = getVoiceCodesForLanguage(language);
+    
+    return voices.filter(voice => {
+      const voiceLang = voice.lang.toLowerCase();
+      return codes.some(code => 
+        voiceLang === code.toLowerCase() || 
+        voiceLang.startsWith(code.split('-')[0].toLowerCase())
+      );
+    });
   }
 
-  /**
-   * Get a specific voice by name or language
-   */
-  async getVoiceByLang(lang: string = 'en-US'): Promise<SpeechSynthesisVoice | undefined> {
-    const voices = await this.getVoices();
-    return voices.find(voice => voice.lang === lang) || voices.find(voice => voice.lang.startsWith(lang.split('-')[0]));
-  }
-
-  /**
-   * Get the default voice for a language
-   */
-  async getDefaultVoice(lang: string = 'en-US'): Promise<SpeechSynthesisVoice | undefined> {
-    const voices = await this.getVoices();
-    return voices.find(voice => voice.default && voice.lang.startsWith(lang.split('-')[0])) || 
-           voices.find(voice => voice.lang === lang) ||
-           voices.find(voice => voice.lang.startsWith(lang.split('-')[0]));
-  }
-
-  /**
-   * Speak the given text with advanced cleaning and language support
-   */
-  async speak(text: string, options: SpeechOptions = {}): Promise<void> {
-    if (!this.isSupported()) {
-      console.error('Speech synthesis is not supported in this browser');
-      return Promise.reject(new Error('Speech synthesis not supported'));
+  async getBestVoiceForLanguage(language: string): Promise<SpeechSynthesisVoice | undefined> {
+    const cacheKey = language.toLowerCase();
+    if (this.voiceCache.has(cacheKey)) {
+      const cached = this.voiceCache.get(cacheKey);
+      return cached === null ? undefined : cached;
     }
 
-    if (!this.isEnabled) {
-      console.log('Speech synthesis is disabled');
-      return Promise.resolve();
+    const voices = await this.getVoices();
+    const codes = getVoiceCodesForLanguage(language);
+    if (!codes.length) return undefined;
+
+    const primaryPrefixes = codes.map(c => c.split('-')[0].toLowerCase());
+
+    for (const code of codes) {
+      const exact = voices.find(v => v.lang.toLowerCase() === code.toLowerCase());
+      if (exact) {
+        this.voiceCache.set(cacheKey, exact);
+        return exact;
+      }
     }
 
-    // Validate and clean text
+    for (const prefix of primaryPrefixes) {
+      const partial = voices.find(v => v.lang.toLowerCase().startsWith(prefix));
+      if (partial) {
+        this.voiceCache.set(cacheKey, partial);
+        return partial;
+      }
+    }
+
+    for (const prefix of primaryPrefixes) {
+      const local = voices.find(v => v.lang.toLowerCase().startsWith(prefix) && v.localService);
+      if (local) {
+        this.voiceCache.set(cacheKey, local);
+        return local;
+      }
+    }
+
+    this.voiceCache.set(cacheKey, null);
+    return undefined;
+  }
+
+  async getVoiceByLang(lang = 'en-US'): Promise<SpeechSynthesisVoice | undefined> {
+    const voices = await this.getVoices();
+    return (
+      voices.find(v => v.lang === lang) ??
+      voices.find(v => v.lang.startsWith(lang.split('-')[0]))
+    );
+  }
+
+  async getDefaultVoice(lang = 'en-US'): Promise<SpeechSynthesisVoice | undefined> {
+    const voices = await this.getVoices();
+    return (
+      voices.find(v => v.default && v.lang.startsWith(lang.split('-')[0])) ??
+      voices.find(v => v.lang === lang) ??
+      voices.find(v => v.lang.startsWith(lang.split('-')[0]))
+    );
+  }
+
+  async hasNativeVoiceSupport(language: string): Promise<boolean> {
+    const matches = await this.getVoicesForLanguage(language);
+    return matches.length > 0;
+  }
+
+  async speak(text: string, options: any = {}): Promise<void> {
+    if (!this.isSupported()) return Promise.reject(new Error('Speech synthesis not supported'));
+    if (!this.isEnabled) return;
+
     const language = options.language || 'english';
-    console.log('🔊 TTS: Speaking with language:', language, 'Original text length:', text.length);
-    
     const validation = validateTextForSpeech(text);
-    
-    if (!validation.valid) {
-      console.error('Text validation failed:', validation.error);
-      return Promise.reject(new Error(validation.error));
-    }
+    if (!validation.valid) return Promise.reject(new Error(validation.error || ''));
 
     const cleanedText = cleanTextForSpeech(text, language);
-    console.log('🧹 TTS: Cleaned text length:', cleanedText.length, 'First 100 chars:', cleanedText.substring(0, 100));
+    if (!cleanedText) return;
+
+    const codes = getVoiceCodesForLanguage(language);
+    const primaryCode = codes[0] || 'en-US';
+
+    // Reset Queue completely
+    this.stop(); 
+    this.queue = [];
+
+    const scriptChunks = splitMixedLanguageText(cleanedText, primaryCode);
+    const voices = await this.getVoices();
     
-    if (!cleanedText || cleanedText.trim().length === 0) {
-      console.warn('No text to speak after cleaning');
-      return Promise.resolve();
+    // Attempt to use the Backend TTS Proxy for mixed language combined audio (Step 8)
+    const hasNonEnglish = scriptChunks.some(c => !c.langCode.startsWith('en'));
+    
+    if (hasNonEnglish) {
+      try {
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token') || '';
+        const response = await fetch('/api/tts/speak', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ text: cleanedText, lang: primaryCode })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.audioBase64) {
+            console.log('🗣️ TTS API SUCCESS: Generated combined audio stream from backend.');
+            await this._playBase64Audio(data.audioBase64, options);
+            return;
+          }
+        } else {
+          console.warn('⚠️ TTS API Error:', await response.text());
+        }
+      } catch (err) {
+        console.error('⚠️ TTS API Fetch failed:', err);
+      }
     }
 
-    // Check if language needs special handling
-    const needsFallback = FALLBACK_LANGUAGES.includes(language.toLowerCase());
-    const hasNativeSupport = await this.hasNativeVoiceSupport(language);
-    
-    if (needsFallback && !hasNativeSupport) {
-      console.warn('⚠️ TTS: Language', language, 'lacks native support. Using chunked speech for better quality.');
+    // Fallback: Use browser native TTS if backend fails or text is English only
+    console.log('🗣️ TTS FALLBACK: Using native Browser Speech Synthesis.');
+    for (let i = 0; i < scriptChunks.length; i++) {
+      const chunk = scriptChunks[i];
+      const isFirstChunk = i === 0;
+      const isLastChunk = i === scriptChunks.length - 1;
+
+      let chunkLangCode = chunk.langCode;
+      let exactVoice = voices.find(v => v.lang.toLowerCase() === chunkLangCode.toLowerCase()) || 
+                       voices.find(v => v.lang.toLowerCase().startsWith(chunkLangCode.split('-')[0].toLowerCase()));
       
-      // Show installation guide once per session for this language
+      let isCloudTTS = false;
+      let chunkVoice = exactVoice;
+
+      if (!exactVoice && !chunkLangCode.startsWith('en')) {
+        isCloudTTS = true;
+      } else if (!exactVoice) {
+        chunkVoice = voices.find(v => v.lang.toLowerCase().startsWith('en'));
+      }
+
+      if (options.voice && chunkLangCode.startsWith('en') && options.voice.lang.toLowerCase().startsWith('en')) {
+        chunkVoice = options.voice;
+      }
+
+      const subChunks = splitIntoChunks(chunk.text, 120);
+      
+      for (let j = 0; j < subChunks.length; j++) {
+        this.queue.push({
+          text: subChunks[j],
+          langCode: chunkVoice ? chunkVoice.lang : chunkLangCode,
+          voice: chunkVoice,
+          options,
+          isCloudTTS,
+          isFirst: isFirstChunk && j === 0,
+          isLast: isLastChunk && j === subChunks.length - 1
+        });
+      }
+    }
+
+    this.playNext();
+  }
+
+  private _playBase64Audio(base64Data: string, options: any): Promise<void> {
+    return new Promise((resolve) => {
+      const audio = this.sharedCloudAudio || new Audio();
+      audio.src = `data:audio/mpeg;base64,${base64Data}`;
+      audio.load();
+      
+      if (options.volume) audio.volume = options.volume;
+      if (options.rate) audio.playbackRate = options.rate;
+
+      this.currentCloudAudio = audio;
+
+      audio.onplay = () => {
+        this.isPaused = false;
+        options.onStart?.();
+      };
+
+      audio.onended = () => {
+        this.currentCloudAudio = null;
+        options.onEnd?.();
+        resolve();
+      };
+
+      audio.onerror = (e) => {
+        console.error('🚨 TTS Base64 Audio Playback Failed', e);
+        this.currentCloudAudio = null;
+        resolve();
+      };
+
+      audio.play().catch(e => {
+        console.error('🚨 TTS Base64 Audio Play Rejected (Autoplay):', e);
+        this.currentCloudAudio = null;
+        resolve();
+      });
+    });
+  }
+
+  private async playNext() {
+    if (this.isProcessingQueue || this.queue.length === 0 || !this.isEnabled) {
+      this.isProcessingQueue = false;
+      return;
+    }
+
+    this.isProcessingQueue = true;
+    const item = this.queue.shift();
+    if (!item) {
+      this.isProcessingQueue = false;
+      this.currentItem = null;
+      return;
+    }
+    
+    this.currentItem = item;
+
+    try {
+      if (item.isCloudTTS) {
+        await this._playCloudTTSFallback(item.text, item.langCode, item.options, item.isFirst, item.isLast);
+      } else {
+        await this._utterAndWait(item.text, item.voice, item.langCode, item.options, item.isFirst, item.isLast);
+      }
+    } catch (err) {
+      console.warn('Queue item playback failed:', err);
+    } finally {
+      this.isProcessingQueue = false;
+      if (this.queue.length > 0 && !this.isPaused) {
+        this.playNext();
+      }
+    }
+  }
+
+  private _utterAndWait(
+    text: string,
+    voice: SpeechSynthesisVoice | undefined,
+    langCode: string,
+    options: any,
+    fireOnStart: boolean,
+    fireOnEnd: boolean
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      this.currentUtterance = utterance;
+
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = langCode;
+      }
+      
+      if (options.rate) utterance.rate = options.rate;
+      if (options.pitch) utterance.pitch = options.pitch;
+      if (options.volume) utterance.volume = options.volume;
+
+      const cleanup = () => {
+        if (this.stallCheckInterval) clearInterval(this.stallCheckInterval);
+        this.stallCheckInterval = null;
+        this.stallCheckUtterance = null;
+        this.currentUtterance = null;
+      };
+
+      utterance.onstart = () => {
+        this.isPaused = false;
+        if (fireOnStart) options.onStart?.();
+
+        let lastPos = 0;
+        let stallCount = 0;
+        this.stallCheckUtterance = utterance;
+        this.stallCheckInterval = setInterval(() => {
+          if (!this.isPaused && this.synthesis.speaking) {
+            if (this.stallCheckUtterance !== utterance) {
+              cleanup();
+              return;
+            }
+            if (lastPos === stallCount) {
+              stallCount++;
+              if (stallCount > 140) {
+                console.warn('TTS stalled — recovering...');
+                this.synthesis.pause();
+                this.synthesis.resume();
+                stallCount = 0;
+              }
+            } else {
+              lastPos = stallCount;
+              stallCount = 0;
+            }
+          }
+        }, 100);
+      };
+
+      utterance.onend = () => {
+        cleanup();
+        if (fireOnEnd) options.onEnd?.();
+        resolve();
+      };
+
+      utterance.onerror = (event) => {
+        cleanup();
+        if (event.error === 'interrupted' || event.error === 'canceled') {
+          resolve();
+          return;
+        }
+        console.warn(`⚠️ TTS native failed (${event.error}). Auto-recovering via Cloud Fallback...`);
+        
+        // Auto-recover using Cloud TTS if native engine crashes
+        this._playCloudTTSFallback(text, langCode, options, fireOnStart, fireOnEnd)
+          .then(resolve)
+          .catch(() => {
+             options.onError?.(event);
+             resolve();
+          });
+      };
+
+      utterance.onpause  = () => { this.isPaused = true;  options.onPause?.();  };
+      utterance.onresume = () => { this.isPaused = false; options.onResume?.(); };
+      utterance.onboundary = (e) => options.onBoundary?.(e);
+
+      try {
+        this.synthesis.speak(utterance);
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    });
+  }
+
+  private async _playCloudTTSFallback(text: string, langCode: string, options: any, fireOnStart: boolean, fireOnEnd: boolean): Promise<void> {
+    try {
+      console.log('🗣️ Executing Cloud TTS Fallback for text chunk...');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token') || '';
+      const response = await fetch('/api/tts/speak', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ text, lang: langCode })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.audioBase64) {
+          const cloudOptions = { ...options };
+          if (!fireOnStart) delete cloudOptions.onStart;
+          if (!fireOnEnd) delete cloudOptions.onEnd;
+          await this._playBase64Audio(data.audioBase64, cloudOptions);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Cloud TTS Fallback completely failed:', e);
+    }
+    throw new Error('Cloud TTS Fallback failed');
+  }
+
+  async speakAIResponse(text: string, options: any = {}): Promise<void> {
+    const language = options.language || 'english';
+
+    const hasNative = await this.hasNativeVoiceSupport(language);
+    if (!hasNative && language !== 'english') {
       const sessionKey = `tts_guide_shown_${language}`;
       if (!sessionStorage.getItem(sessionKey)) {
         showVoiceInstallationHelpInConsole(language);
         sessionStorage.setItem(sessionKey, 'true');
       }
-      
-      return this.speakWithChunking(cleanedText, options);
     }
 
-    // Cancel any ongoing speech
-    this.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(cleanedText);
-    this.currentUtterance = utterance;
-
-    // Get voice codes for the language
-    const voiceCodes = getVoiceCodesForLanguage(language);
-    const primaryLangCode = voiceCodes[0] || 'en-US';
-
-    // Set voice with language-specific selection
-    if (options.voice) {
-      utterance.voice = options.voice;
-      utterance.lang = options.voice.lang || primaryLangCode;
-      console.log('🎤 TTS: Using provided voice:', options.voice.name);
-    } else if (options.language) {
-      const voice = await this.getBestVoiceForLanguage(options.language);
-      if (voice) {
-        utterance.voice = voice;
-        utterance.lang = voice.lang;
-        console.log('🎤 TTS: Selected voice for', options.language, ':', voice.name, 'Lang:', voice.lang);
-      } else {
-        // Even if no voice found, set the language code so browser can try
-        utterance.lang = primaryLangCode;
-        console.warn('⚠️ TTS: No voice found for language:', options.language, 'Using lang code:', primaryLangCode);
-      }
-    } else if (options.lang) {
-      const voice = await this.getVoiceByLang(options.lang);
-      if (voice) {
-        utterance.voice = voice;
-        utterance.lang = options.lang;
-      } else {
-        utterance.lang = options.lang;
-      }
-    } else {
-      const defaultVoice = await this.getDefaultVoice();
-      if (defaultVoice) {
-        utterance.voice = defaultVoice;
-        utterance.lang = defaultVoice.lang || 'en-US';
-      } else {
-        utterance.lang = 'en-US';
-      }
-    }
-
-    // Set speech parameters with optimized defaults
-    utterance.rate = options.rate ?? 0.95; // Slightly slower for clarity
-    utterance.pitch = options.pitch ?? 1.0;
-    utterance.volume = options.volume ?? 1.0;
-
-    return new Promise((resolve, reject) => {
-      // Event handlers
-      utterance.onstart = () => {
-        this.isPaused = false;
-        options.onStart?.();
-      };
-
-      utterance.onend = () => {
-        this.currentUtterance = null;
-        this.isPaused = false;
-        options.onEnd?.();
-        resolve();
-      };
-
-      utterance.onerror = (event) => {
-        this.currentUtterance = null;
-        this.isPaused = false;
-        console.error('Speech synthesis error:', event);
-        options.onError?.(event);
-        reject(event);
-      };
-
-      utterance.onpause = () => {
-        this.isPaused = true;
-        options.onPause?.();
-      };
-
-      utterance.onresume = () => {
-        this.isPaused = false;
-        options.onResume?.();
-      };
-      
-      utterance.onboundary = (event) => {
-        options.onBoundary?.(event);
-      };
-
-      // Speak
-      try {
-        this.synthesis.speak(utterance);
-      } catch (error) {
-        console.error('Error speaking:', error);
-        this.currentUtterance = null;
-        reject(error);
-      }
+    return this.speak(text, {
+      rate:   0.9,
+      pitch:  1.0,
+      volume: 1.0,
+      ...options,
     });
   }
 
-  /**
-   * Speak with chunking for better pronunciation quality
-   * Splits text into smaller chunks and speaks them with pauses
-   */
-  private async speakWithChunking(text: string, options: SpeechOptions = {}): Promise<void> {
-    const chunks = this.splitTextIntoChunks(text, 80);
-    console.log('📦 TTS: Split text into', chunks.length, 'chunks for better pronunciation');
-    
-    const language = options.language || 'english';
-    const voiceCodes = getVoiceCodesForLanguage(language);
-    const primaryLangCode = voiceCodes[0] || 'en-US';
-    
-    // Get voice once for all chunks
-    let voice: SpeechSynthesisVoice | undefined;
-    if (options.voice) {
-      voice = options.voice;
-    } else if (options.language) {
-      voice = await this.getBestVoiceForLanguage(options.language);
+  setRealtimeSettings(rate: number, pitch: number, volume: number): void {
+    if (this.currentCloudAudio) {
+      this.currentCloudAudio.volume = volume;
+      this.currentCloudAudio.playbackRate = rate;
     }
-    
-    // Trigger onStart for the first chunk
-    if (chunks.length > 0 && options.onStart) {
-      options.onStart();
-    }
-    
-    // Speak each chunk sequentially with small pauses
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      const isLastChunk = i === chunks.length - 1;
+
+    // Update upcoming chunks
+    this.queue.forEach(item => {
+      item.options.rate = rate;
+      item.options.pitch = pitch;
+      item.options.volume = volume;
+    });
+
+    // If native TTS is playing, we must cancel and restart the current chunk to apply the settings instantly
+    if (this.synthesis.speaking && this.currentItem && !this.currentItem.isCloudTTS) {
+      this.currentItem.options.rate = rate;
+      this.currentItem.options.pitch = pitch;
+      this.currentItem.options.volume = volume;
       
-      await new Promise<void>((resolve, reject) => {
-        this.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(chunk);
-        this.currentUtterance = utterance;
-        
-        if (voice) {
-          utterance.voice = voice;
-          utterance.lang = voice.lang;
-        } else {
-          utterance.lang = primaryLangCode;
+      this.isProcessingQueue = false;
+      this.queue.unshift(this.currentItem); // Put it back at the front
+      
+      // We must cancel without clearing the entire queue (unlike stop())
+      this.synthesis.cancel();
+      
+      // `cancel` triggers `onend` or `onerror` which might naturally try to call `playNext`.
+      // But we just re-queued it, so it will play the current item again!
+      setTimeout(() => {
+        if (!this.isProcessingQueue && this.queue.length > 0 && !this.isPaused) {
+          this.playNext();
         }
-        
-        // Slower rate for better clarity on unsupported languages
-        utterance.rate = (options.rate ?? 0.95) * 0.9;
-        utterance.pitch = options.pitch ?? 1.0;
-        utterance.volume = options.volume ?? 1.0;
-        
-        utterance.onend = () => {
-          this.currentUtterance = null;
-          
-          // Add small pause between chunks (200ms)
-          if (!isLastChunk) {
-            setTimeout(() => resolve(), 200);
-          } else {
-            // Trigger onEnd only for the last chunk
-            if (options.onEnd) {
-              options.onEnd();
-            }
-            resolve();
-          }
-        };
-        
-        utterance.onerror = (event) => {
-          this.currentUtterance = null;
-          console.error('Chunk speech error:', event);
-          if (options.onError) {
-            options.onError(event);
-          }
-          // Continue to next chunk even on error
-          if (!isLastChunk) {
-            setTimeout(() => resolve(), 100);
-          } else {
-            reject(event);
-          }
-        };
-        
-        try {
-          this.synthesis.speak(utterance);
-        } catch (error) {
-          console.error('Error speaking chunk:', error);
-          this.currentUtterance = null;
-          if (!isLastChunk) {
-            resolve();
-          } else {
-            reject(error);
-          }
-        }
-      });
+      }, 50);
     }
   }
 
-  /**
-   * Speak with queue - useful for multiple messages
-   */
-  async speakWithQueue(text: string, options: SpeechOptions = {}): Promise<void> {
-    this.queue.push(text);
-    
-    if (!this.isProcessingQueue) {
-      await this.processQueue(options);
-    }
-  }
-
-  /**
-   * Process the speech queue
-   */
-  private async processQueue(options: SpeechOptions = {}): Promise<void> {
-    this.isProcessingQueue = true;
-
-    while (this.queue.length > 0) {
-      const text = this.queue.shift();
-      if (text) {
-        try {
-          await this.speak(text, options);
-        } catch (error) {
-          console.error('Error speaking queued text:', error);
-        }
-      }
-    }
-
-    this.isProcessingQueue = false;
-  }
-
-  /**
-   * Pause current speech
-   */
   pause(): void {
-    if (this.synthesis.speaking && !this.isPaused) {
-      this.synthesis.pause();
+    if (this.currentCloudAudio) {
+      this.currentCloudAudio.pause();
     }
+    this.synthesis.pause();
+    this.isPaused = true;
   }
 
-  /**
-   * Resume paused speech
-   */
   resume(): void {
-    if (this.synthesis.paused) {
-      this.synthesis.resume();
+    if (this.currentCloudAudio) {
+      this.currentCloudAudio.play().catch(() => {});
+    }
+    this.synthesis.resume();
+    this.isPaused = false;
+    
+    if (this.queue.length > 0 && !this.isProcessingQueue) {
+      this.playNext();
     }
   }
 
-  /**
-   * Cancel current speech
-   */
-  cancel(): void {
+  stop(): void {
+    this.queue = [];
+    this.currentItem = null;
+    this.isProcessingQueue = false;
     this.synthesis.cancel();
+    if (this.currentCloudAudio) {
+      this.currentCloudAudio.pause();
+      this.currentCloudAudio = null;
+    }
+    this.cloudAudioCache.forEach(audio => { audio.src = ''; });
+    this.cloudAudioCache.clear();
+    
     this.currentUtterance = null;
     this.isPaused = false;
   }
 
-  /**
-   * Clear the queue
-   */
-  clearQueue(): void {
-    this.queue = [];
-    this.isProcessingQueue = false;
+  cancel(): void {
+    this.stop();
   }
 
-  /**
-   * Check if currently speaking
-   */
-  isSpeaking(): boolean {
-    return this.synthesis.speaking;
-  }
+  isSpeaking(): boolean      { return this.synthesis.speaking || this.isProcessingQueue; }
+  isPausedState(): boolean   { return this.isPaused; }
+  isEnabledState(): boolean  { return this.isEnabled; }
+  getCurrentUtterance()      { return this.currentUtterance; }
 
-  /**
-   * Check if speech is paused
-   */
-  isPausedState(): boolean {
-    return this.isPaused;
-  }
-
-  /**
-   * Enable speech synthesis
-   */
   enable(): void {
     this.isEnabled = true;
   }
 
-  /**
-   * Disable speech synthesis
-   */
   disable(): void {
     this.isEnabled = false;
-    this.cancel();
-    this.clearQueue();
+    this.stop();
   }
 
-  /**
-   * Toggle speech synthesis
-   */
   toggle(): boolean {
     this.isEnabled = !this.isEnabled;
-    if (!this.isEnabled) {
-      this.cancel();
-      this.clearQueue();
-    }
+    if (!this.isEnabled) { this.stop(); }
     return this.isEnabled;
   }
 
-  /**
-   * Check if speech is enabled
-   */
-  isEnabledState(): boolean {
-    return this.isEnabled;
-  }
-
-  /**
-   * Get current utterance
-   */
-  getCurrentUtterance(): SpeechSynthesisUtterance | null {
-    return this.currentUtterance;
-  }
-
-  /**
-   * Speak AI response with enhanced features
-   * Optimized for AI chat responses with emoji support and advanced cleaning
-   */
-  async speakAIResponse(text: string, options: SpeechOptions = {}): Promise<void> {
-    // Get language from options or default to english
-    const language = options.language || 'english';
-    
-    // Text will be cleaned automatically in the speak method
-    // Use slightly slower rate for AI responses for better comprehension
-    const enhancedOptions: SpeechOptions = {
-      rate: 0.9,
-      pitch: 1.0,
-      volume: 1.0,
-      language, // Pass language for proper voice selection
-      ...options
-    };
-
-    return this.speak(text, enhancedOptions);
+  clearVoiceCache(): void {
+    this.voiceCache.clear();
   }
 }
 
-// Create and export singleton instance
-const speechSynthesis = new SpeechSynthesisManager();
-
+const speechSynthesis = new SpeechQueueManager();
 export default speechSynthesis;
-export { SpeechSynthesisManager };
+export { SpeechQueueManager as SpeechSynthesisManager };

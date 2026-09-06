@@ -24,11 +24,11 @@ const RoomPageHeader = ({
   onShare,
 }: RoomPageHeaderProps) => {
   return (
-    <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50">
+    <header className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-[#050C14]/80 backdrop-blur-xl border-b border-emerald-500/20">
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onBack}
-          className="flex-shrink-0 p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 text-slate-400 hover:text-white transition-all duration-200"
+          className="flex-shrink-0 p-2 rounded-xl bg-[#050C14]/60 hover:bg-[#050C14]/80 border border-emerald-500/10 text-slate-400 hover:text-white transition-all duration-200"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -78,7 +78,7 @@ const RoomPageHeader = ({
         )}
         <button
           onClick={onShare}
-          className="p-2 rounded-xl bg-slate-800/60 hover:bg-emerald-600/20 border border-slate-700/50 hover:border-emerald-500/40 text-slate-400 hover:text-emerald-400 transition-all duration-200"
+          className="p-2 rounded-xl bg-[#050C14]/60 hover:bg-emerald-600/20 border border-emerald-500/10 hover:border-emerald-500/40 text-slate-400 hover:text-emerald-400 transition-all duration-200"
           title="Share room"
         >
           <Share2 className="w-4 h-4" />

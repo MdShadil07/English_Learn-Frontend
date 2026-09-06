@@ -10,10 +10,11 @@ interface LearningRecommendationsProps {
 
 const LearningRecommendations: React.FC<LearningRecommendationsProps> = ({ profile }) => {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-50/90 via-purple-50/90 to-fuchsia-50/90 dark:from-violet-900/20 dark:via-purple-900/20 dark:to-fuchsia-900/20 backdrop-blur-xl border border-violet-200/50 dark:border-violet-800/50 shadow-xl hover:shadow-2xl transition-all duration-500">
-      {/* Background decorative elements */}
-      <div className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-gradient-to-br from-violet-300/20 to-fuchsia-300/20 dark:from-violet-700/20 dark:to-fuchsia-700/20 blur-xl"></div>
-      <div className="absolute -bottom-8 -left-8 w-16 h-16 rounded-full bg-gradient-to-br from-purple-300/20 to-violet-300/20 dark:from-purple-700/20 dark:to-violet-700/20 blur-lg"></div>
+    <div className="group relative overflow-hidden rounded-[2.5rem] bg-white/88 sm:backdrop-blur-2xl dark:bg-[#050C14]/60 border border-emerald-200/40 dark:border-emerald-500/10 shadow-xl dark:shadow-[0_8px_40px_rgba(16,185,129,0.15)] transition-all duration-500">
+      {/* Background decorative elements matching AIChatPage pulses */}
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none z-0"></div>
+      <div className="absolute -top-[20%] -right-[10%] w-[55%] h-[55%] bg-violet-300/20 dark:bg-violet-500/10 rounded-full blur-[80px] pointer-events-none animate-[pulse_8s_ease-in-out_infinite] z-0 group-hover:bg-violet-400/20 transition-colors duration-700"></div>
+      <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-fuchsia-300/20 dark:bg-fuchsia-500/10 rounded-full blur-[70px] pointer-events-none animate-[pulse_10s_ease-in-out_infinite_1s] z-0 group-hover:bg-fuchsia-400/20 transition-colors duration-700"></div>
 
       <div className="relative p-4 sm:p-6 md:p-8">
         {/* Title and Sub-cards Row */}
@@ -34,7 +35,7 @@ const LearningRecommendations: React.FC<LearningRecommendationsProps> = ({ profi
           </div>
 
           {/* AI Chat Card */}
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-violet-200/40 dark:border-violet-800/40 flex-1 min-w-0 hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300">
+          <div className="bg-white/40 dark:bg-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-violet-200/40 dark:border-white/10 flex-1 min-w-0 hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 shadow-md hover:shadow-lg">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
@@ -57,7 +58,7 @@ const LearningRecommendations: React.FC<LearningRecommendationsProps> = ({ profi
           </div>
 
           {/* Voice Room Card */}
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-violet-200/40 dark:border-violet-800/40 flex-1 min-w-0 hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-300">
+          <div className="bg-white/40 dark:bg-white/5 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-violet-200/40 dark:border-white/10 flex-1 min-w-0 hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-300 shadow-md hover:shadow-lg">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400" />

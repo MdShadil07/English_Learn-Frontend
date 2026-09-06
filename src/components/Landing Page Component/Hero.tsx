@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SavedSessionCard } from '../auth/SavedSessionCard';
+import { SavedSession } from '@/utils/sessionManager';
 
 // --- TYPES ---
 interface User {
@@ -82,7 +84,7 @@ const RealisticGlobe = () => {
       <div className="absolute inset-[-20%] bg-[radial-gradient(circle,rgba(45,212,191,0.15)_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(45,212,191,0.1)_0%,transparent_70%)] rounded-full pointer-events-none" style={{ transform: 'translateZ(0)' }}></div>
 
       {/* 3D Sphere Base */}
-      <div className="relative w-full h-full rounded-full overflow-hidden shadow-[inset_-30px_-30px_60px_rgba(0,0,0,0.8),inset_10px_10px_40px_rgba(255,255,255,0.3),0_0_40px_rgba(45,212,191,0.4)] dark:shadow-[inset_-30px_-30px_60px_rgba(0,0,0,0.9),inset_10px_10px_40px_rgba(255,255,255,0.1),0_0_40px_rgba(45,212,191,0.2)] bg-[#0f172a]">
+      <div className="relative w-full h-full rounded-full overflow-hidden shadow-[inset_-30px_-30px_60px_rgba(0,0,0,0.8),inset_10px_10px_40px_rgba(255,255,255,0.3),0_0_40px_rgba(45,212,191,0.4)] dark:shadow-[inset_-30px_-30px_60px_rgba(0,0,0,0.9),inset_10px_10px_40px_rgba(255,255,255,0.1),0_0_40px_rgba(45,212,191,0.2)] bg-[#050C14]">
 
         {/* Scrolling World Map - Optimized via Hardware-Accelerated Masking instead of heavy CSS filters */}
         <div
@@ -139,7 +141,7 @@ const RealisticGlobe = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.5, duration: 0.8 }}
-        className="absolute -bottom-4 bg-slate-900/80 dark:bg-black/80 backdrop-blur-md border border-slate-700/50 px-4 py-2 rounded-full shadow-lg z-30 flex items-center gap-2"
+        className="absolute -bottom-4 bg-white/90 dark:bg-[#050C14]/80 backdrop-blur-md border border-slate-200 dark:border-emerald-500/20 px-4 py-2 rounded-full shadow-lg z-30 flex items-center gap-2"
       >
         <span className="flex h-2.5 w-2.5 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -218,7 +220,7 @@ export default function Hero() {
   if (!isMounted) return null;
 
   return (
-    <section className="relative min-h-screen bg-[#f8fbff] dark:bg-[#070b14] font-sans overflow-hidden flex items-center pt-8 pb-20 selection:bg-emerald-100 dark:selection:bg-emerald-900/50 selection:text-emerald-900 dark:selection:text-emerald-200 transition-colors duration-500 ease-in-out">
+    <section className="relative min-h-screen bg-transparent font-sans overflow-hidden flex items-center pt-8 pb-20 selection:bg-emerald-100 dark:selection:bg-emerald-900/50 selection:text-emerald-900 dark:selection:text-emerald-200 transition-colors duration-500 ease-in-out">
 
       {/* Global CSS Animations */}
       <style>{`
@@ -257,7 +259,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mx-auto lg:mx-0 mb-6 inline-flex w-fit items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm backdrop-blur-sm transition-colors duration-500 ease-in-out"
+              className="mx-auto lg:mx-0 mb-6 inline-flex w-fit items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50/80 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/30 shadow-sm backdrop-blur-sm transition-colors duration-500 ease-in-out"
             >
               <Activity className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 tracking-tight transition-colors duration-500 ease-in-out">Active: 100+ Countries Connected</span>
@@ -291,16 +293,16 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.5 }}
-              className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-10"
+              className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-10 w-full"
             >
               <Link
                 to="/signup"
-                className="w-full sm:w-auto h-14 px-8 rounded-full bg-[#0f172a] dark:bg-emerald-500 text-white dark:hover:bg-emerald-400 hover:bg-black font-semibold text-base shadow-xl shadow-slate-900/10 dark:shadow-emerald-900/20 transition-all hover:-translate-y-1 flex items-center justify-center gap-2 group"
+                className="w-full sm:w-auto h-14 px-8 rounded-full bg-[#0f172a] dark:bg-emerald-500/10 text-white dark:text-emerald-400 dark:border dark:border-emerald-500/30 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.1)] hover:bg-black dark:hover:bg-emerald-500/20 font-semibold text-base shadow-xl shadow-slate-900/10 dark:shadow-emerald-900/20 transition-all hover:-translate-y-1 flex items-center justify-center gap-2 group"
               >
                 Get Started Free
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link to="/demo" className="w-full sm:w-auto h-14 px-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-semibold text-base shadow-sm transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
+              <Link to="/demo" className="w-full sm:w-auto h-14 px-8 rounded-full border border-slate-200 dark:border-emerald-500/20 bg-white dark:bg-transparent hover:bg-slate-50 dark:hover:bg-emerald-500/5 text-slate-900 dark:text-white font-semibold text-base shadow-sm transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
                 Try Voice Demo
               </Link>
             </motion.div>
@@ -490,7 +492,7 @@ export default function Hero() {
       </div>
 
       {/* Bottom Fade Transition into the next section */}
-      <div className="absolute bottom-0 left-0 w-full h-32 md:h-48 bg-gradient-to-t from-[#f8fbff] dark:from-[#070b14] to-transparent z-20 pointer-events-none transition-colors duration-500 ease-in-out"></div>
+      <div className="absolute bottom-0 left-0 w-full h-32 md:h-48 bg-gradient-to-t from-white dark:from-[#050C14] to-transparent z-20 pointer-events-none transition-colors duration-500 ease-in-out"></div>
     </section>
   );
 }

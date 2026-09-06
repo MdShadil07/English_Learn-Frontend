@@ -50,7 +50,7 @@ const AIChatSettingsPanel: React.FC<AIChatSettingsPanelProps> = ({
           transition={{ duration: 0.3 }}
           className="overflow-hidden"
         >
-          <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-emerald-200/30 dark:border-emerald-700/30 shadow-xl">
+          <Card className="bg-white/70 dark:bg-[#050C14]/70 backdrop-blur-xl border-emerald-200/30 dark:border-emerald-500/20 shadow-xl">
             <CardContent className="p-3 sm:p-4">
               <Tabs defaultValue="general" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 gap-1 sm:gap-2 mb-4 h-auto p-1">
@@ -126,7 +126,7 @@ const AIChatSettingsPanel: React.FC<AIChatSettingsPanelProps> = ({
                             if (voice && onVoiceSelect) onVoiceSelect(voice);
                           }}
                         >
-                          <SelectTrigger className="bg-white/70 dark:bg-slate-900/70">
+                          <SelectTrigger className="bg-white/70 dark:bg-[#050C14]/70">
                             <SelectValue placeholder="Choose a voice..." />
                           </SelectTrigger>
                           <SelectContent className="max-h-60">
@@ -224,7 +224,7 @@ const AIChatSettingsPanel: React.FC<AIChatSettingsPanelProps> = ({
                       value={settings.language}
                       onValueChange={(value) => setSettings((prev) => ({ ...prev, language: value }))}
                     >
-                      <SelectTrigger className="bg-white/70 dark:bg-slate-900/70">
+                      <SelectTrigger className="bg-white/70 dark:bg-[#050C14]/70">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

@@ -66,7 +66,7 @@ export default function LivePracticeModal({ isOpen = true, onClose = () => {} })
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/60 dark:bg-[#070b14]/80 backdrop-blur-xl"
+            className="absolute inset-0 bg-slate-900/60 dark:bg-[#050C14]/80 backdrop-blur-xl"
             onClick={handleClose}
           />
 
@@ -102,7 +102,7 @@ export default function LivePracticeModal({ isOpen = true, onClose = () => {} })
                     className="flex flex-col items-center justify-center w-full py-10"
                   >
                     {/* Rectangular Card with Border Radius */}
-                    <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl p-8 md:p-10 shadow-2xl border border-slate-200 dark:border-slate-700 rounded-[2rem] w-full max-w-2xl">
+                    <div className="bg-white/95 dark:bg-[#050C14]/95 backdrop-blur-xl p-8 md:p-10 shadow-2xl border border-slate-200 dark:border-emerald-500/20 rounded-[2rem] w-full max-w-2xl">
                       
                       <div className="flex flex-col md:flex-row items-center gap-8 md:gap-10">
                         {/* Left: Radar Animation */}
@@ -124,7 +124,7 @@ export default function LivePracticeModal({ isOpen = true, onClose = () => {} })
                           {[1, 2, 3].map((i) => (
                             <motion.div 
                               key={i}
-                              className="absolute w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-500 overflow-hidden shadow-md z-30 bg-white dark:bg-slate-600"
+                              className="absolute w-8 h-8 rounded-full border-2 border-slate-300 dark:border-emerald-500/20 overflow-hidden shadow-md z-30 bg-white dark:bg-[#050C14]"
                               style={{
                                 top: `${50 + 28 * Math.sin(i * Math.PI * 0.6)}%`,
                                 left: `${50 + 28 * Math.cos(i * Math.PI * 0.6)}%`,
@@ -148,7 +148,7 @@ export default function LivePracticeModal({ isOpen = true, onClose = () => {} })
                           </p>
 
                           {/* Progress Bar */}
-                          <div className="w-full bg-slate-200 dark:bg-slate-700/80 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-300/50 dark:border-slate-600/50">
+                          <div className="w-full bg-slate-200 dark:bg-[#050C14]/80 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-300/50 dark:border-emerald-500/20">
                             <motion.div 
                               className="bg-gradient-to-r from-blue-500 to-teal-400 h-full rounded-full"
                               style={{ width: `${searchProgress}%` }}
@@ -174,7 +174,7 @@ export default function LivePracticeModal({ isOpen = true, onClose = () => {} })
                     transition={{ type: "spring", stiffness: 200, damping: 20 }}
                     className="flex flex-col items-center justify-center w-full py-10"
                   >
-                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-2xl border border-emerald-200 dark:border-emerald-800/50 p-8 md:p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center max-w-md w-full relative overflow-hidden">
+                    <div className="bg-white/80 dark:bg-[#050C14]/80 backdrop-blur-2xl border border-emerald-200 dark:border-emerald-500/20 p-8 md:p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center max-w-md w-full relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
                       
                       <div className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-8 border border-emerald-200 dark:border-emerald-800/50">
@@ -182,8 +182,8 @@ export default function LivePracticeModal({ isOpen = true, onClose = () => {} })
                       </div>
 
                       <div className="flex items-center gap-6 mb-8 relative z-10">
-                        <div className="w-20 h-20 rounded-full border-[3px] border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg opacity-80">
-                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=You&backgroundColor=b6e3f4" alt="You" className="w-full h-full bg-slate-100 dark:bg-slate-900" />
+                        <div className="w-20 h-20 rounded-full border-[3px] border-slate-200 dark:border-emerald-500/20 overflow-hidden shadow-lg opacity-80">
+                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=You&backgroundColor=b6e3f4" alt="You" className="w-full h-full bg-slate-100 dark:bg-[#050C14]" />
                         </div>
                         
                         <div className="w-12 h-1 bg-emerald-500/30 relative rounded-full">

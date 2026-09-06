@@ -12,6 +12,8 @@ import AdminUsers from "@/components/admin/AdminUsers";
 import AdminTasks from "@/components/admin/AdminTasks";
 import AdminAnalytics from "@/components/admin/AdminAnalytics";
 
+import AdminRecoverAI from "@/components/admin/AdminRecoverAI";
+
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -92,8 +94,12 @@ const Admin = () => {
       />
 
       <div className="p-8 max-w-7xl mx-auto pt-20">
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+        <Tabs defaultValue="recover-ai" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="recover-ai" className="flex items-center gap-2 text-blue-600 data-[state=active]:bg-blue-50">
+              <Shield className="h-4 w-4" />
+              RecoverAI
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Users
@@ -107,6 +113,10 @@ const Admin = () => {
               Analytics
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="recover-ai">
+            <AdminRecoverAI />
+          </TabsContent>
 
           <TabsContent value="users">
             <AdminUsers />

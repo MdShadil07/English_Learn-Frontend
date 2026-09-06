@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '../../lib/utils';
 import { useAuth, User } from '../../contexts/AuthContext';
 import { ProfileSidebar } from '../../components/Profile/ProfileSidebar';
 import { AchievementCard, LearningGoalCard, ActivityCard } from '../../components/Profile/ProfileComponents';
@@ -16,7 +17,13 @@ import {
   RecentActivity,
   LearningRecommendations,
   BasicPlanCard,
-  PremiumPlanCard
+  PremiumPlanCard,
+  FluencyLevelCard,
+  ActivityHeatMapCard,
+  LearningGoalsCard,
+  DailyQuestsCard,
+  InventoryCard,
+  LearningJourneyPath
 } from '../../components/Profile';
 import { BasicHeader } from '../../components/layout';
 import { Button } from '../../components/ui/button';
@@ -126,6 +133,7 @@ const Profile: React.FC = () => {
     username: user?.username || '',
     avatar: user?.avatar || null, // Use AuthContext avatar - single source of truth
     level: 1, // Default level since no stats available
+    tier: resolvedTier,
     isPremium: resolvedTier === 'premium',
     isVerified: Boolean(user?.isVerified ?? profileData.user?.isVerified ?? false),
     subscriptionStatus: profileData.user?.subscriptionStatus || profileData.profile?.subscriptionStatus || mapTierToStatus(resolvedTier),
@@ -235,7 +243,7 @@ const Profile: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-blue-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 transition-all duration-500 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50/30 via-white to-teal-50/30 dark:bg-none dark:bg-[#050C14] transition-all duration-500 overflow-x-hidden">
       {/* Header */}
       <BasicHeader
         user={{
@@ -245,6 +253,7 @@ const Profile: React.FC = () => {
           avatar: user?.avatar, // Use avatar from AuthContext for consistency
           isPremium: profile?.isPremium,
           isVerified: profile?.isVerified,
+          tier: profile?.tier,
           subscriptionStatus: profile?.subscriptionStatus,
           role: (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student') as 'student' | 'teacher' | 'admin',
         }}
@@ -268,6 +277,7 @@ const Profile: React.FC = () => {
             level: profile.level,
             role: (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Student') as 'student' | 'teacher' | 'admin',
             stats: { currentStreak: profile.stats.currentStreak, totalXP: profile.stats.totalXP },
+            tier: profile.tier,
             isPremium: profile.isPremium,
             subscriptionStatus: profile.subscriptionStatus,
             preferences: profile.preferences,
@@ -279,21 +289,21 @@ const Profile: React.FC = () => {
         {/* Backdrop Overlay - Only behind sidebar */}
         {showSidebar && (
           <div
-            className="fixed top-16 left-0 w-80 sm:w-96 h-[calc(100vh-4rem)] bg-black/5 dark:bg-black/10 z-30"
+            className="fixed top-16 left-0 w-80 h-[calc(100vh-4rem)] bg-black/5 dark:bg-black/10 z-30"
           />
         )}
 
         {/* Clickable Backdrop - For closing sidebar */}
         {showSidebar && (
           <div
-            className="fixed top-16 left-80 sm:left-96 right-0 h-[calc(100vh-4rem)] bg-transparent z-35"
+            className="fixed top-16 left-80 right-0 h-[calc(100vh-4rem)] bg-transparent z-35"
             onClick={() => setShowSidebar(false)}
           />
         )}
 
         {/* Main Content */}
         <div className={`flex-1 p-2 xs:p-3 sm:p-4 md:p-6 lg:p-8 pr-4 sm:pr-6 md:pr-8 lg:pr-12 space-y-3 sm:space-y-4 md:space-y-6 lg:space-y-8 transition-all duration-300 pt-14 xs:pt-16 sm:pt-20 overflow-x-hidden ${
-          showSidebar ? 'lg:ml-80 xl:ml-96' : 'ml-0'
+          showSidebar ? 'lg:ml-80' : 'ml-0'
         }`}>
 
         {/* ================================================================== */}
@@ -306,19 +316,66 @@ const Profile: React.FC = () => {
         </div>
 
 
-        {/* Daily Progress, Skill Overview & Recent Activity - Below Hero */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 w-full">
-          <DailyProgressCard profile={profile} />
+        {/* ================================================================== */}
+        {/* GAMIFICATION BENTO BOX (New Layout)                                */}
+        {/* ================================================================== */}
+        <div className={cn(
+          "grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full",
+          showSidebar 
+            ? "xl:grid-cols-2 2xl:grid-cols-12" // Stack on XL when sidebar open, Bento on 2XL
+            : "lg:grid-cols-2 xl:grid-cols-12" // Bento on XL when sidebar closed
+        )}>
+          {/* Main Journey Path */}
+          <div className={cn(
+            "md:col-span-2",
+            showSidebar ? "xl:col-span-2 2xl:col-span-5 2xl:row-span-2" : "xl:col-span-5 xl:row-span-2"
+          )}>
+            <LearningJourneyPath profile={profile} />
+          </div>
+          
+          {/* Daily Quests */}
+          <div className={cn(
+            "md:col-span-2",
+            showSidebar ? "xl:col-span-2 2xl:col-span-4 2xl:row-span-2" : "xl:col-span-4 xl:row-span-2"
+          )}>
+            <DailyQuestsCard profile={profile} />
+          </div>
+
+          {/* Top Right - Inventory */}
+          <div className={cn(
+            "md:col-span-1",
+            showSidebar ? "xl:col-span-1 2xl:col-span-3 2xl:row-span-2" : "xl:col-span-3 xl:row-span-2"
+          )}>
+            <InventoryCard />
+          </div>
+        </div>
+
+        {/* Existing Data Grid (Trophy Room & Analytics) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 w-full mt-2">
+          <FluencyLevelCard profile={profile} />
           <SkillOverview profile={profile} />
+          <DailyProgressCard profile={profile} />
           <RecentActivity profile={profile} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full">
+
+        {/* Activity Heatmap */}
+        <div className="w-full overflow-hidden mt-2">
+          <ActivityHeatMapCard profile={profile} />
+        </div>
+
+        {/* Learning Goals */}
+        <div className="w-full overflow-hidden mt-2">
+          <LearningGoalsCard profile={profile} />
+        </div>
+
+        {/* Personal & Education */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full mt-2">
           <PersonalInformationCard profile={profile} />
           <EducationJourneyCard profile={profile} />
         </div>
 
         {/* Badges & Achievements and Certificates - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full mt-2">
           <BadgesAndAchievementsCard profile={profile} />
           {profile.certificates && profile.certificates.length > 0 && (
             <CertificatesCard profile={profile} />
@@ -326,48 +383,14 @@ const Profile: React.FC = () => {
         </div>
 
         {/* Learning Recommendations */}
-        <div className="w-full overflow-hidden">
+        <div className="w-full overflow-hidden mt-2">
           <LearningRecommendations profile={profile} />
         </div>
 
-        {/* ================================================================== */}
-        {/* END OF REQUESTED LAYOUT. OTHER COMPONENTS FOLLOW.                */}
-        {/* ================================================================== */}
-
-
-        {/* Quick Actions & Progress Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        </div>
-
         {/* Subscription Plans */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full mt-2 mb-8">
           <BasicPlanCard />
           {profile.isPremium !== undefined && (profile.isPremium || profile.subscriptionStatus === 'pro') && <PremiumPlanCard isPremium={profile.isPremium} />}
-        </div>
-
-        
-        {/* Learning Goals & Achievements */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6 md:mt-8 w-full">
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">🎯 Learning Goals</h3>
-            <div className="space-y-3 sm:space-y-4">
-              {profile.learningGoals.map(goal => <LearningGoalCard key={goal.id} goal={goal} />)}
-            </div>
-          </div>
-          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">🏆 Recent Achievements</h3>
-            <div className="space-y-3 sm:space-y-4">
-              {profile.achievements && profile.achievements.map(ach => <AchievementCard key={ach.id} achievement={ach} />)}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 md:p-6 shadow-lg border border-white/20 dark:border-slate-700/50 w-full overflow-hidden">
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center gap-2">📈 Recent Activity</h3>
-          <div className="space-y-2 sm:space-y-3 md:space-y-4">
-            {profile.recentActivity && profile.recentActivity.slice(0, 5).map(activity => <ActivityCard key={activity.id} activity={activity} />)}
-          </div>
         </div>
 
         </div>

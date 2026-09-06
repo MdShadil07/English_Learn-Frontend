@@ -16,7 +16,7 @@ const DashboardCTACard: React.FC<DashboardCTACardProps> = ({
 }) => {
   return (
     <motion.div
-      className="bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-600 dark:to-teal-700 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden"
+      className="bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-[#050C14] dark:to-emerald-900/20 border border-transparent dark:border-emerald-500/20 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -39,7 +39,7 @@ const DashboardCTACard: React.FC<DashboardCTACardProps> = ({
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
               size="lg"
-              className="bg-white text-emerald-600 hover:bg-slate-100 font-semibold"
+              className="bg-white dark:bg-emerald-500 text-emerald-600 dark:text-white hover:bg-slate-100 dark:hover:bg-emerald-600 font-semibold"
               onClick={onStartPractice}
             >
               Start Practice
@@ -47,7 +47,7 @@ const DashboardCTACard: React.FC<DashboardCTACardProps> = ({
             <Button
               size="lg"
               variant="outline"
-              className="bg-transparent text-black border-white hover:bg-transparent hover:text-black hover:border-white font-semibold"
+              className="bg-transparent text-black dark:text-white border-white hover:bg-transparent hover:text-black dark:hover:text-emerald-50 hover:border-white font-semibold"
               onClick={onExploreFeatures}
             >
               Explore Features

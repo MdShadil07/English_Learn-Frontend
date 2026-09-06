@@ -36,40 +36,7 @@ export const useSpeechSynthesis = (
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false); // Default to disabled (muted)
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
-
-  // Load voices on mount
-  useEffect(() => {
-    const loadVoices = async () => {
-      try {
-        const availableVoices = await speechSynthesis.getEnglishVoices();
-        setVoices(availableVoices);
-        
-        // Set default voice based on user tier
-        if (availableVoices.length > 0 && !selectedVoice) {
-          let defaultVoice: SpeechSynthesisVoice | undefined;
-          
-          if (userTier === 'premium') {
-            const premiumVoices = getPremiumVoices(availableVoices);
-            defaultVoice = premiumVoices[0];
-          }
-          
-          if (!defaultVoice) {
-            defaultVoice = await speechSynthesis.getDefaultVoice();
-          }
-          
-          setSelectedVoice(defaultVoice || availableVoices[0]);
-        }
-      } catch (error) {
-        console.error('Error loading voices:', error);
-      }
-    };
-
-    loadVoices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userTier]);
 
   // Monitor speaking state
   useEffect(() => {
@@ -94,7 +61,6 @@ export const useSpeechSynthesis = (
       setIsPaused(false);
       
       const finalOptions: SpeechOptions = {
-        voice: selectedVoice || undefined,
         ...options,
         onStart: () => {
           setIsSpeaking(true);
@@ -126,7 +92,7 @@ export const useSpeechSynthesis = (
       setIsSpeaking(false);
       setIsPaused(false);
     }
-  }, [selectedVoice]);
+  }, []);
 
   // Speak AI response with personality, tier, and language support
   const speakAIResponse = useCallback(async (
@@ -136,13 +102,14 @@ export const useSpeechSynthesis = (
     overrideSettings?: { rate?: number; pitch?: number; volume?: number }
   ) => {
     try {
-      let voice = selectedVoice;
       let settings = { rate: 0.9, pitch: 1.0, volume: 1.0 };
+      let personalityVoice: SpeechSynthesisVoice | undefined;
 
-      // If personality is provided, get the best voice for it based on tier
+      // If personality is provided, get the voice settings for it
       if (personalityId) {
-        voice = await getBestVoiceForPersonality(personalityId, voices, userTier);
         settings = getVoiceSettings(personalityId);
+        const voices = await speechSynthesis.getVoices();
+        personalityVoice = getBestVoiceForPersonality(personalityId, voices, userTier);
       }
 
       // Apply global settings (from sliders in settings)
@@ -156,7 +123,7 @@ export const useSpeechSynthesis = (
       if (overrideSettings?.volume !== undefined) settings.volume = overrideSettings.volume;
 
       await speak(text, {
-        voice: voice || undefined,
+        voice: personalityVoice,
         rate: settings.rate,
         pitch: settings.pitch,
         volume: settings.volume,
@@ -165,19 +132,21 @@ export const useSpeechSynthesis = (
     } catch (error) {
       console.error('Error speaking AI response:', error);
     }
-  }, [speak, voices, selectedVoice, userTier, globalRate, globalPitch, globalVolume]);
+  }, [speak, globalRate, globalPitch, globalVolume, userTier]);
 
   // Get voice for personality with tier
   const getVoicesForPersonality = useCallback(async (
     personalityId: string
   ) => {
+    const voices = await speechSynthesis.getVoices();
     return getBestVoiceForPersonality(personalityId, voices, userTier);
-  }, [voices, userTier]);
+  }, [userTier]);
 
   // Get filtered voices by gender and tier
-  const getFilteredVoices = useCallback((
+  const getFilteredVoices = useCallback(async (
     gender: 'male' | 'female' | 'all' = 'all'
-  ): SpeechSynthesisVoice[] => {
+  ): Promise<SpeechSynthesisVoice[]> => {
+    const voices = await speechSynthesis.getVoices();
     const filteredVoices = getVoicesByGender(voices, gender);
     
     // For premium users, prioritize premium voices
@@ -191,7 +160,7 @@ export const useSpeechSynthesis = (
     }
     
     return filteredVoices;
-  }, [voices, userTier]);
+  }, [userTier]);
 
   // Cancel speech
   const cancel = useCallback(() => {
@@ -251,9 +220,6 @@ export const useSpeechSynthesis = (
     isSpeaking,
     isPaused,
     isEnabled,
-    voices,
-    selectedVoice,
-    setVoice,
     enable,
     disable,
     toggle,

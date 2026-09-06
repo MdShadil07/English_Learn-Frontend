@@ -16,11 +16,12 @@ const SkillOverview: React.FC<SkillOverviewProps> = ({ profile }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: 0.2, duration: 0.6, type: "spring", stiffness: 100 }}
       whileHover={{ y: -8, scale: 1.02, rotate: -1, transition: { duration: 0.2 } }}
-      className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-50/90 via-indigo-50/90 to-purple-50/90 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 backdrop-blur-xl border border-blue-200/50 dark:border-blue-800/50 shadow-xl hover:shadow-2xl transition-all duration-500"
+      className="group relative overflow-hidden rounded-[2.5rem] bg-white/88 sm:backdrop-blur-2xl dark:bg-[#050C14]/60 border border-emerald-200/40 dark:border-emerald-500/10 shadow-xl dark:shadow-[0_8px_40px_rgba(16,185,129,0.15)] transition-all duration-500"
     >
-      {/* Background decorative elements */}
-      <div className="absolute -top-10 -right-10 w-16 h-16 rounded-full bg-gradient-to-br from-blue-300/20 to-indigo-300/20 dark:from-blue-700/20 dark:to-indigo-700/20 blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-      <div className="absolute -bottom-8 -left-8 w-12 h-12 rounded-full bg-gradient-to-br from-purple-300/20 to-blue-300/20 dark:from-purple-700/20 dark:to-blue-700/20 blur-lg group-hover:scale-125 transition-transform duration-500"></div>
+      {/* Background decorative elements matching AIChatPage pulses */}
+      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none z-0"></div>
+      <div className="absolute -top-[20%] -left-[10%] w-[55%] h-[55%] bg-blue-300/20 dark:bg-blue-500/10 rounded-full blur-[80px] pointer-events-none animate-[pulse_8s_ease-in-out_infinite] z-0 group-hover:bg-blue-400/20 transition-colors duration-700"></div>
+      <div className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-purple-300/20 dark:bg-purple-500/10 rounded-full blur-[70px] pointer-events-none animate-[pulse_10s_ease-in-out_infinite_1s] z-0 group-hover:bg-purple-400/20 transition-colors duration-700"></div>
 
       <div className="relative p-4 sm:p-5 md:p-6">
         <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">

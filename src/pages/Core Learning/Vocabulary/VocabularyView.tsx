@@ -23,6 +23,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 
 interface VocabularySet {
   id: string;
@@ -49,6 +50,7 @@ interface Word {
 const VocabularyView = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('sets');
+  const { speakAIResponse } = useSpeechSynthesis();
 
   const vocabularySets: VocabularySet[] = [
     {
@@ -127,27 +129,51 @@ const VocabularyView = () => {
 
   const recentWords: Word[] = [
     {
-      word: 'Eloquent',
+      word: 'Adaptable',
       partOfSpeech: 'Adjective',
-      definition: 'Fluent or persuasive in speaking or writing',
-      example: 'Her eloquent speech moved the entire audience.',
-      pronunciation: '/ˈeləkwənt/',
-      difficulty: 'Advanced'
-    },
-    {
-      word: 'Pragmatic',
-      partOfSpeech: 'Adjective',
-      definition: 'Dealing with things sensibly and realistically',
-      example: 'We need a pragmatic approach to solve this problem.',
-      pronunciation: '/præɡˈmætɪk/',
+      definition: 'Able to adjust to new conditions',
+      example: "To survive in today's fast-paced world, you must be adaptable.",
+      pronunciation: '/əˈdæptəbl/',
       difficulty: 'Intermediate'
     },
     {
-      word: 'Meticulous',
+      word: 'Crucial',
       partOfSpeech: 'Adjective',
-      definition: 'Showing great attention to detail; very careful',
-      example: 'She is meticulous about her work.',
-      pronunciation: '/məˈtɪkjələs/',
+      definition: 'Decisive or critical, especially in the success or failure of something',
+      example: 'Negotiation skills are crucial for this role.',
+      pronunciation: '/ˈkruːʃl/',
+      difficulty: 'Intermediate'
+    },
+    {
+      word: 'Efficient',
+      partOfSpeech: 'Adjective',
+      definition: 'Achieving maximum productivity with minimum wasted effort or expense',
+      example: 'She is a very efficient worker who always meets her deadlines.',
+      pronunciation: '/ɪˈfɪʃnt/',
+      difficulty: 'Intermediate'
+    },
+    {
+      word: 'Genuine',
+      partOfSpeech: 'Adjective',
+      definition: 'Truly what something is said to be; authentic',
+      example: 'He showed a genuine interest in our project.',
+      pronunciation: '/ˈdʒenjuɪn/',
+      difficulty: 'Intermediate'
+    },
+    {
+      word: 'Initiative',
+      partOfSpeech: 'Noun',
+      definition: 'The ability to assess and initiate things independently',
+      example: 'She took the initiative to organize the team building event.',
+      pronunciation: '/ɪˈnɪʃətɪv/',
+      difficulty: 'Advanced'
+    },
+    {
+      word: 'Persevere',
+      partOfSpeech: 'Verb',
+      definition: 'Continue in a course of action even in the face of difficulty or with little or no indication of success',
+      example: 'If you persevere, you will eventually reach your goals.',
+      pronunciation: '/ˌpɜːsəˈvɪə(r)/',
       difficulty: 'Advanced'
     }
   ];
@@ -337,7 +363,7 @@ const VocabularyView = () => {
                       <div className="flex items-center gap-3">
                         <h3 className="text-2xl font-bold text-primary">{word.word}</h3>
                         <Badge variant="outline">{word.partOfSpeech}</Badge>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => speakAIResponse(word.word)}>
                           <Volume2 className="h-4 w-4" />
                         </Button>
                       </div>

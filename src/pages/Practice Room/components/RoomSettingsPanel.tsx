@@ -64,7 +64,7 @@ const RoomSettingsPanel = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100]"
+            className="fixed inset-0 bg-[#050C14]/80 backdrop-blur-md z-[100]"
             onClick={onClose}
           />
           <motion.div
@@ -72,10 +72,10 @@ const RoomSettingsPanel = ({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 border-l border-white/10 z-[110] shadow-2xl flex flex-col"
+            className="fixed inset-y-0 right-0 w-full max-w-md bg-[#050C14] border-l border-emerald-500/20 z-[110] shadow-2xl flex flex-col"
           >
             {/* Header */}
-            <div className="p-4 sm:p-6 border-b border-white/5 flex items-center justify-between bg-slate-900/50 backdrop-blur-xl sticky top-0 z-20">
+            <div className="p-4 sm:p-6 border-b border-emerald-500/10 flex items-center justify-between bg-[#050C14]/50 backdrop-blur-xl sticky top-0 z-20">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
@@ -106,7 +106,7 @@ const RoomSettingsPanel = ({
                   <div className="space-y-3">
                     <div className={cn(
                       "p-4 rounded-2xl border transition-all duration-300",
-                      isLocked ? "bg-amber-500/5 border-amber-500/20" : "bg-white/5 border-white/5"
+                      isLocked ? "bg-amber-500/5 border-amber-500/20" : "bg-white/5 border-emerald-500/10"
                     )}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ const RoomSettingsPanel = ({
 
                     <button
                       onClick={onClearChat}
-                      className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-slate-800 border border-white/5 hover:bg-slate-700 transition-all gap-2 group"
+                      className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-slate-800 border border-emerald-500/10 hover:bg-slate-700 transition-all gap-2 group"
                     >
                       <div className="p-1.5 sm:p-2 rounded-xl bg-white/5 group-hover:scale-110 transition-transform">
                         <Trash2 className="w-3.5 h-3.5 sm:w-4 h-4 text-slate-400" />
@@ -188,9 +188,9 @@ const RoomSettingsPanel = ({
                       return (
                         <div 
                           key={p.userId}
-                          className="group flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-all duration-200"
+                          className="group flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-emerald-500/10 hover:border-emerald-500/20 hover:bg-white/10 transition-all duration-200"
                         >
-                          <Avatar className="w-10 h-10 border border-white/10 shadow-lg">
+                          <Avatar className="w-10 h-10 border border-emerald-500/20 shadow-lg">
                             <AvatarImage src={p.avatar} />
                             <AvatarFallback className="bg-slate-800 text-slate-400 font-bold">
                               {p.fullName?.[0] || '?'}

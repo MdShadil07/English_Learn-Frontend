@@ -328,6 +328,23 @@ export const LANGUAGE_VOICE_CODES: Record<string, string[]> = {
   indonesian: ['id-ID'],
   bengali: ['bn-IN', 'bn-BD'],
   urdu: ['ur-PK', 'ur-IN'],
+  marathi: ['mr-IN'],
+  tamil: ['ta-IN', 'ta-LK', 'ta-MY', 'ta-SG'],
+  malayalam: ['ml-IN'],
+  telugu: ['te-IN'],
+  kannada: ['kn-IN'],
+  odia: ['or-IN'],
+  assamese: ['as-IN'],
+  sindhi: ['sd-IN', 'sd-PK', 'hi-IN'],
+  konkani: ['kok-IN', 'mr-IN', 'hi-IN'],
+  maithili: ['mai-IN', 'hi-IN'],
+  santali: ['sat-IN', 'hi-IN', 'bn-IN', 'or-IN'],
+  kashmiri: ['ks-IN', 'hi-IN', 'ur-IN'],
+  dogri: ['doi-IN', 'hi-IN', 'pa-IN'],
+  bodo: ['brx-IN', 'as-IN', 'hi-IN'],
+  bhojpuri: ['bho-IN', 'hi-IN'],
+  gujarati: ['gu-IN', 'hi-IN'],
+  punjabi: ['pa-IN', 'pa-PK', 'hi-IN'],
 };
 
 /**
@@ -354,8 +371,8 @@ export function emojiToText(text: string): string {
  */
 export function cleanMarkdown(text: string): string {
   return text
-    // Remove code blocks
-    .replace(/```[\s\S]*?```/g, ' code block ')
+    // Remove code blocks with 'Code snippet omitted'
+    .replace(/```[\s\S]*?```/g, ' Code snippet omitted. ')
     .replace(/`([^`]+)`/g, '$1')
     
     // Remove bold, italic, strikethrough
@@ -375,18 +392,23 @@ export function cleanMarkdown(text: string): string {
     // Remove links but keep text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     
+    // Remove raw URLs seamlessly (avoiding speaking out http://...)
+    .replace(/https?:\/\/[^\s]+/g, ' ')
+    
     // Remove images
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, 'image: $1')
     
     // Remove HTML tags
     .replace(/<[^>]+>/g, '')
     
-    // Remove special markers (VOCAB_WORD, etc.)
-    .replace(/\[VOCAB_WORD:[^\]]+\]/g, '')
-    .replace(/\[PHRASE:[^\]]+\]/g, '')
-    .replace(/\[GRAMMAR:[^\]]+\]/g, '')
-    .replace(/\[EXAMPLE:[^\]]+\]/g, '')
-    .replace(/\[TRANSLATION:[^\]]+\]/g, '');
+    // Extract text from custom markers with pipes [MARKER:category|text] -> text
+    .replace(/\[(?:VOCAB_WORD|TRANSLATION|STORY_ELEMENT|ESSAY_SECTION):[^|]+\|([^\]]+)\]/g, ' $1 ')
+    
+    // Extract text from custom markers without pipes [MARKER:text] -> text
+    .replace(/\[(?:ERROR|CORRECTION|GRAMMAR_POINT|NOTE|TIP|IMPORTANT|BUSINESS_TIP|PHRASE|GRAMMAR|EXAMPLE):([^\]]+)\]/g, ' $1 ')
+    
+    // Remove any remaining custom markers just in case
+    .replace(/\[[A-Z_]+:[^\]]+\]/g, ' ');
 }
 
 /**
@@ -528,27 +550,37 @@ export function cleanSpecialCharacters(text: string): string {
  * Master text cleaning function for TTS
  */
 export function cleanTextForSpeech(text: string, language: string = 'english'): string {
-  let cleanedText = text;
+  if (!text) return '';
   
-  // Step 1: Convert emojis to text
-  cleanedText = emojiToText(cleanedText);
+  // Enforce Unicode NFC normalization to prevent malformed rendering of complex graphemes
+  let cleanedText = text.normalize('NFC');
   
-  // Step 2: Clean markdown
+  const isNonLatin = [
+    'hindi', 'bengali', 'marathi', 'telugu', 'tamil', 'gujarati', 'urdu', 
+    'kannada', 'odia', 'malayalam', 'punjabi', 'assamese', 'maithili', 
+    'santali', 'kashmiri', 'nepali', 'sindhi', 'dogri', 'konkani', 'bodo', 
+    'bhojpuri', 'chinese', 'japanese', 'korean', 'arabic', 'russian', 
+    'thai', 'vietnamese'
+  ].includes(language.toLowerCase());
+  
+  // Step 1: Clean markdown (CRITICAL: strips AI tags safely for ALL languages)
   cleanedText = cleanMarkdown(cleanedText);
   
-  // Step 3: Clean redundant symbols
+  // Step 2: Clean redundant symbols
   cleanedText = cleanRedundantSymbols(cleanedText);
   
-  // Step 4: Clean special characters
-  cleanedText = cleanSpecialCharacters(cleanedText);
+  if (!isNonLatin) {
+    // Step 3: Convert emojis to text (English only)
+    cleanedText = emojiToText(cleanedText);
+    
+    // Step 4: Clean special characters (Converts symbols to English words)
+    cleanedText = cleanSpecialCharacters(cleanedText);
+  }
   
-  // Step 5: Convert numbers to words (optional, for better pronunciation)
-  // cleanedText = numbersToWords(cleanedText);
-  
-  // Step 6: Add speech pauses
+  // Step 5: Add speech pauses
   cleanedText = addSpeechPauses(cleanedText);
   
-  // Step 7: Normalize whitespace
+  // Step 6: Normalize whitespace
   cleanedText = normalizeWhitespace(cleanedText);
   
   return cleanedText;

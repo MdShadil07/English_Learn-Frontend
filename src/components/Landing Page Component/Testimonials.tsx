@@ -68,7 +68,7 @@ const testimonials = [
 const TestimonialCard = ({ item }) => {
   return (
     <div className="w-[320px] md:w-[400px] flex-shrink-0 p-4 select-none">
-      <div className="relative h-full group bg-white/60 dark:bg-slate-900/60 backdrop-blur-md rounded-3xl p-8 border border-slate-200/60 dark:border-slate-800/60 shadow-lg shadow-slate-200/20 dark:shadow-none hover:border-teal-300 dark:hover:border-teal-700/50 hover:bg-white dark:hover:bg-slate-800/80 transition-all duration-300">
+      <div className="relative h-full group bg-white/60 dark:bg-[#050C14]/60 backdrop-blur-md rounded-3xl p-8 border border-slate-200/60 dark:border-emerald-500/10 shadow-lg shadow-slate-200/20 dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] hover:border-teal-300 dark:hover:border-emerald-500/30 hover:bg-white dark:hover:bg-[#050C14]/80 transition-all duration-300">
         
         {/* Subtle Inner Glow on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-300 pointer-events-none"></div>
@@ -82,7 +82,7 @@ const TestimonialCard = ({ item }) => {
         <div className="flex items-center gap-4 mb-6 relative z-10">
           <div className="relative">
             <div className="absolute inset-0 bg-teal-400 blur-md opacity-20 group-hover:opacity-40 transition-opacity"></div>
-            <div className="w-14 h-14 rounded-full border-2 border-white dark:border-slate-800 bg-gradient-to-br from-teal-400 to-emerald-400 p-[2px] shadow-md relative z-10 transform transition-transform group-hover:scale-105 group-hover:rotate-3">
+            <div className="w-14 h-14 rounded-full border-2 border-white dark:border-[#050C14] bg-gradient-to-br from-teal-400 to-emerald-400 p-[2px] shadow-md relative z-10 transform transition-transform group-hover:scale-105 group-hover:rotate-3">
               <img 
                 src={item.avatarUrl} 
                 alt={item.name} 
@@ -113,7 +113,7 @@ const TestimonialCard = ({ item }) => {
         </p>
 
         {/* Footer Location Pill */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-500 dark:text-slate-400 relative z-10 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 group-hover:text-teal-700 dark:group-hover:text-teal-300 transition-colors">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-[#050C14] border border-slate-200 dark:border-emerald-500/20 text-xs font-bold text-slate-500 dark:text-slate-400 relative z-10 group-hover:bg-teal-50 dark:group-hover:bg-emerald-900/30 group-hover:text-teal-700 dark:group-hover:text-emerald-300 transition-colors">
           <MapPin className="w-3.5 h-3.5" />
           {item.location}
         </div>
@@ -135,7 +135,7 @@ const Testimonials = () => {
   if (!isMounted) return null;
 
   return (
-    <section id="testimonials" className="py-24 lg:py-32 bg-[#f8fbff] dark:bg-slate-950 relative overflow-hidden transition-colors duration-500 font-sans scroll-mt-24 lg:scroll-mt-32">
+    <section id="testimonials" className="py-24 lg:py-32 bg-transparent relative overflow-hidden transition-colors duration-500 font-sans scroll-mt-24 lg:scroll-mt-32">
       
       {/* --- Optimized Background Elements (No CSS Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -173,8 +173,8 @@ const Testimonials = () => {
         <div className="relative w-full overflow-hidden flex py-4">
           
           {/* Gradient Fade Masks for seamless entering/exiting (Optimized) */}
-          <div className="absolute left-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-r from-[#f8fbff] dark:from-slate-950 to-transparent z-20 pointer-events-none transition-colors duration-500"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-l from-[#f8fbff] dark:from-slate-950 to-transparent z-20 pointer-events-none transition-colors duration-500"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-r from-white dark:from-[#050C14] to-transparent z-20 pointer-events-none transition-colors duration-500"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-24 md:w-48 bg-gradient-to-l from-white dark:from-[#050C14] to-transparent z-20 pointer-events-none transition-colors duration-500"></div>
 
           {/* Marquee Track */}
           <div className="flex animate-marquee hover:[animation-play-state:paused]">

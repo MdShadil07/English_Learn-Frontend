@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Flame, Trophy, BadgeCheck } from 'lucide-react';
@@ -17,6 +18,7 @@ interface ProfileSideBarUserCardProps {
       totalXP: number;
     };
     isVerified?: boolean;
+    tier?: 'free' | 'pro' | 'premium';
     subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro';
   };
 }
@@ -24,10 +26,50 @@ interface ProfileSideBarUserCardProps {
 export const ProfileSideBarUserCard: React.FC<ProfileSideBarUserCardProps> = ({
   profile,
 }) => {
+  // Stat tiles using the exact AI Chat holographic design
+  const statTiles = [
+    {
+      id: 'streak',
+      label: 'Streak',
+      value: profile.stats.currentStreak,
+      icon: Flame,
+      gradient: 'from-orange-400 to-orange-500 shadow-orange-500/20',
+      labelColor: 'text-orange-600 dark:text-orange-400',
+      bgClass: 'hover:bg-orange-50 dark:hover:bg-orange-500/10',
+      borderClass: 'hover:border-orange-200 dark:hover:border-orange-500/30'
+    },
+    {
+      id: 'xp',
+      label: 'Total XP',
+      value: profile.stats.totalXP.toLocaleString(),
+      icon: Trophy,
+      gradient: 'from-blue-400 to-blue-500 shadow-blue-500/20',
+      labelColor: 'text-blue-600 dark:text-blue-400',
+      bgClass: 'hover:bg-blue-50 dark:hover:bg-blue-500/10',
+      borderClass: 'hover:border-blue-200 dark:hover:border-blue-500/30'
+    }
+  ];
+
   return (
-    <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
-      <Card className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300">
-        <CardContent className="p-4">
+    <div className="p-4 flex-none">
+      <div className="relative overflow-hidden rounded-[2rem] border border-slate-100 dark:border-emerald-500/20 bg-white dark:bg-[#050C14] shadow-[0_20px_50px_-15px_rgba(16,185,129,0.15)] dark:shadow-[0_20px_50px_-15px_rgba(16,185,129,0.2)] flex-none transition-all duration-1000 group w-full">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
+        
+        {/* Static Glowing Orbs for performance on low-end devices */}
+        <div 
+          className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-400/10 dark:bg-emerald-500/20 rounded-full blur-[80px] pointer-events-none z-0"
+        />
+        <div 
+          className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-teal-400/10 dark:bg-teal-600/20 rounded-full blur-[60px] pointer-events-none z-0"
+        />
+
+        {/* Sparkles */}
+        <div className="absolute top-[10%] right-[15%] w-1 h-1 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,1)] animate-ping opacity-50 z-0"></div>
+        <div className="absolute bottom-[20%] left-[10%] w-1.5 h-1.5 bg-emerald-300 rounded-full shadow-[0_0_10px_rgba(52,211,153,1)] animate-pulse opacity-60 z-0"></div>
+
+        <div className="relative z-10 p-5 space-y-4">
+
           <div className="flex items-center gap-3 mb-3">
             <div className="relative">
               <Avatar className="w-16 h-16 ring-4 ring-white/50 dark:ring-slate-700/50 shadow-lg">
@@ -43,16 +85,13 @@ export const ProfileSideBarUserCard: React.FC<ProfileSideBarUserCardProps> = ({
                   {profile.fullName?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              {profile.subscriptionStatus === 'premium' && (
+              {profile.tier === 'premium' && (
                 <PremiumPlanIcon size="sm" className="absolute -top-1 -right-1" />
               )}
-              {profile.subscriptionStatus === 'basic' && (
-                <BasicPlanIcon size="sm" className="absolute -top-1 -right-1" />
-              )}
-              {profile.subscriptionStatus === 'pro' && (
+              {profile.tier === 'pro' && (
                 <ProPlanIcon size="sm" className="absolute -top-1 -right-1" />
               )}
-              {profile.subscriptionStatus === 'free' && (
+              {(!profile.tier || profile.tier === 'free') && (
                 <FreePlanIcon size="sm" className="absolute -top-1 -right-1" />
               )}
             </div>
@@ -73,77 +112,41 @@ export const ProfileSideBarUserCard: React.FC<ProfileSideBarUserCardProps> = ({
             </div>
           </div>
 
-          {/* Quick Stats with Modern Design */}
+          {/* Holographic Stats Grid */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="relative overflow-hidden bg-gradient-to-br from-orange-50/90 via-red-50/90 to-amber-50/90 dark:from-orange-900/30 dark:via-red-900/30 dark:to-amber-900/30 backdrop-blur-xl p-3 rounded-2xl border border-orange-200/40 dark:border-orange-800/40 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
-              {/* Background decorative elements */}
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-100/20 to-red-100/20 dark:from-orange-900/10 dark:to-red-900/10 rounded-2xl"></div>
-              <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-gradient-to-br from-orange-400/60 to-red-400/60 animate-pulse"></div>
-              <div className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-gradient-to-br from-red-400/40 to-orange-400/40 animate-pulse delay-500"></div>
-
-              {/* Floating geometric shapes */}
-              <div className="absolute top-2 right-8 w-4 h-4 rounded-lg bg-gradient-to-br from-orange-300/30 to-red-300/30 dark:from-orange-700/30 dark:to-red-700/30 rotate-45 animate-float opacity-60"></div>
-
-              <div className="relative flex items-center gap-3">
-                <motion.div
-                  animate={{
-                    rotate: [0, 10, -10, 0],
-                    scale: [1, 1.05, 1]
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg"
+            {statTiles.map((tile) => {
+              const Icon = tile.icon;
+              return (
+                <div
+                  key={tile.id}
+                  className={cn(
+                    "relative flex items-center gap-2 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-2 transition-all duration-300 shadow-sm cursor-default group/tile",
+                    tile.bgClass,
+                    tile.borderClass
+                  )}
                 >
-                  <Flame className="h-5 w-5" />
-                </motion.div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-1">Current Streak</p>
-                  <p className="font-extrabold text-2xl text-orange-900 dark:text-orange-100">{profile.stats.currentStreak}</p>
-                  <p className="text-xs text-orange-600 dark:text-orange-400">days 🔥</p>
+                  <div
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${tile.gradient} text-white shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
+                  >
+                    <Icon className="h-4 w-4 drop-shadow-sm" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                      {tile.label}
+                    </p>
+                    <p className={cn("truncate text-[13px] font-black leading-none mt-0.5 tracking-tight", tile.labelColor)}>
+                      {tile.value}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="relative overflow-hidden bg-gradient-to-br from-blue-50/90 via-indigo-50/90 to-purple-50/90 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 backdrop-blur-xl p-3 rounded-2xl border border-blue-200/40 dark:border-blue-800/40 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-105">
-              {/* Background decorative elements */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-indigo-100/20 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl"></div>
-              <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-gradient-to-br from-blue-400/60 to-indigo-400/60 animate-pulse"></div>
-              <div className="absolute bottom-1 left-1 w-2 h-2 rounded-full bg-gradient-to-br from-indigo-400/40 to-blue-400/40 animate-pulse delay-500"></div>
-
-              {/* Floating geometric shapes */}
-              <div className="absolute top-2 right-8 w-4 h-4 rounded-lg bg-gradient-to-br from-blue-300/30 to-indigo-300/30 dark:from-blue-700/30 dark:to-indigo-700/30 rotate-45 animate-float opacity-60"></div>
-
-              <div className="relative flex items-center gap-3">
-                <motion.div
-                  animate={{
-                    rotate: [0, 10, -10, 0],
-                    scale: [1, 1.05, 1]
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 0.5
-                  }}
-                  className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-lg"
-                >
-                  <Trophy className="h-5 w-5" />
-                </motion.div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">Total XP</p>
-                  <p className="font-extrabold text-2xl text-blue-900 dark:text-blue-100">{profile.stats.totalXP.toLocaleString()}</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400">points earned 🏆</p>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* Subscription Status Card */}
-          <SubscriptionCard subscriptionStatus={profile.subscriptionStatus} />
-        </CardContent>
-      </Card>
+          <SubscriptionCard tier={profile.tier} />
+        </div>
+      </div>
     </div>
   );
 };

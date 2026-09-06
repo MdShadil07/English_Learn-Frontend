@@ -1,487 +1,195 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { useTheme } from 'next-themes';
 import BasicHeader from '@/components/layout/BasicHeader';
 import Footer from '@/components/layout/Footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
 import {
-  Settings,
-  Bell,
-  Moon,
-  Sun,
-  Volume2,
-  Eye,
-  Shield,
-  Database,
-  Mail,
-  Globe,
-  Headphones,
-  Smartphone,
-  Save,
   User,
-  Lock,
-  Key
+  Settings as SettingsIcon,
+  Bell,
+  Shield,
+  Briefcase,
+  Target,
+  Palette,
+  Volume2,
+  CreditCard
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/utils/api';
+import { queryKeys } from '@/utils/queryKeys';
+import { resolveUserTier, mapTierToStatus } from '@/utils/tierUtils';
 
-interface UserPreferences {
-  theme: 'light' | 'dark' | 'auto';
-  language: string;
-  notifications: {
-    email: boolean;
-    push: boolean;
-    sms: boolean;
-    inApp: boolean;
-  };
-  soundEffects: boolean;
-  voiceOutput: boolean;
-  autoplay: boolean;
-  studyReminders: boolean;
-  weeklyReports: boolean;
-  privacyMode: boolean;
-  dataCollection: boolean;
-  marketingEmails: boolean;
-  profileVisibility: 'public' | 'friends' | 'private';
-  showOnlineStatus: boolean;
-  allowMessages: boolean;
-}
+// Lazy load tab components
+import ProfileTab from './tabs/ProfileTab';
+import AccountTab from './tabs/AccountTab';
+import ProfessionalTab from './tabs/ProfessionalTab';
+import PrivacySecurityTab from './tabs/PrivacySecurityTab';
+import PreferencesTab from './tabs/PreferencesTab';
+import AppearanceTab from './tabs/AppearanceTab';
+import NotificationsTab from './tabs/NotificationsTab';
+import AudioMediaTab from './tabs/AudioMediaTab';
+import SubscriptionTab from './tabs/SubscriptionTab';
 
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const location = useLocation();
 
-  const [preferences, setPreferences] = useState<Omit<UserPreferences, 'theme'>>({
-    language: 'en',
-    notifications: {
-      email: true,
-      push: true,
-      sms: false,
-      inApp: true,
+  // Pre-fetch profile data at the layout level
+  const {
+    data: profileData,
+    isLoading: isProfileLoading,
+    error: profileError
+  } = useQuery({
+    queryKey: queryKeys.profile.get(),
+    queryFn: async () => {
+      const response = await api.profile.get();
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch profile');
+      }
+      return response.data;
     },
-    soundEffects: true,
-    voiceOutput: true,
-    autoplay: false,
-    studyReminders: true,
-    weeklyReports: true,
-    privacyMode: false,
-    dataCollection: true,
-    marketingEmails: false,
-    profileVisibility: 'public',
-    showOnlineStatus: true,
-    allowMessages: true,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 3,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSaveSettings = async () => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-
-      toast({
-        title: 'Settings saved!',
-        description: 'Your preferences have been updated successfully.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to save settings. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+  const sidebarLinks = [
+    {
+      id: 'profile',
+      path: '/settings/profile',
+      label: 'Public Profile',
+      icon: User
+    },
+    {
+      id: 'account',
+      path: '/settings/account',
+      label: 'Account Details',
+      icon: SettingsIcon
+    },
+    {
+      id: 'professional',
+      path: '/settings/professional',
+      label: 'Professional & Education',
+      icon: Briefcase
+    },
+    {
+      id: 'preferences',
+      path: '/settings/preferences',
+      label: 'Learning Preferences',
+      icon: Target
+    },
+    {
+      id: 'security',
+      path: '/settings/security',
+      label: 'Privacy & Security',
+      icon: Shield
+    },
+    {
+      id: 'appearance',
+      path: '/settings/appearance',
+      label: 'Appearance',
+      icon: Palette
+    },
+    {
+      id: 'audio',
+      path: '/settings/audio',
+      label: 'Audio & Media',
+      icon: Volume2
+    },
+    {
+      id: 'notifications',
+      path: '/settings/notifications',
+      label: 'Notifications',
+      icon: Bell
+    },
+    {
+      id: 'subscription',
+      path: '/settings/subscription',
+      label: 'Pricing & Plans',
+      icon: CreditCard
     }
-  };
-
-  const updatePreference = (key: keyof UserPreferences, value: any) => {
-    setPreferences(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const updateNotificationPreference = (key: keyof UserPreferences['notifications'], value: boolean) => {
-    setPreferences(prev => ({
-      ...prev,
-      notifications: {
-        ...prev.notifications,
-        [key]: value,
-      },
-    }));
-  };
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50/30 via-white to-teal-50/30 dark:from-slate-900/30 dark:via-emerald-900/20 dark:to-teal-900/30">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#050C14] transition-colors duration-200">
       <BasicHeader
         user={{
           id: user?.id || '1',
           email: user?.email || 'admin@example.com',
-          fullName: user?.fullName || 'Administrator',
-          role: (user?.role as 'student' | 'teacher' | 'admin') || 'admin',
-          isPremium: false,
-          subscriptionStatus: 'none',
+          fullName: user?.fullName || 'User',
+          role: (user?.role as 'student' | 'teacher' | 'admin') || 'student',
+          isPremium: resolveUserTier(user) === 'premium',
+          subscriptionStatus: mapTierToStatus(resolveUserTier(user)) as any,
+          tier: resolveUserTier(user),
+          avatar: user?.avatar
         }}
       />
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-8"
-        >
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl"
-            >
-              <Settings className="h-10 w-10 text-white" />
-            </motion.div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 via-teal-700 to-cyan-700 dark:from-emerald-100 dark:via-teal-200 dark:to-cyan-200 bg-clip-text text-transparent">
-                Settings
-              </h1>
-              <p className="text-lg text-emerald-600 dark:text-emerald-400 mt-2">
-                Manage your AI learning preferences
-              </p>
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Sidebar Navigation */}
+          <aside className="w-full md:w-64 shrink-0">
+            <div className="sticky top-24">
+              <h2 className="text-2xl font-black uppercase tracking-widest mb-6 text-slate-900 dark:text-white px-2">Settings</h2>
+              <nav className="flex flex-col space-y-1">
+                {sidebarLinks.map((link) => {
+                  const isActive = location.pathname.startsWith(link.path);
+                  return (
+                    <Link
+                      key={link.id}
+                      to={link.path}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors font-medium text-sm
+                        ${isActive 
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-emerald-500/5 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                    >
+                      <link.icon className={`w-4 h-4 ${isActive ? 'text-emerald-600 dark:text-emerald-400 dark:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'text-slate-400 dark:text-slate-500'}`} />
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
+          </aside>
+
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
+            {isProfileLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 dark:border-emerald-500"></div>
+              </div>
+            ) : profileError ? (
+              <Card className="p-8 text-center text-red-400 bg-red-500/10 border-red-500/20 backdrop-blur-md">
+                Failed to load profile data. Please refresh.
+              </Card>
+            ) : (
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="pb-24"
+              >
+                <Routes>
+                  <Route path="/" element={<Navigate to="/settings/profile" replace />} />
+                  <Route path="/profile" element={<ProfileTab profileData={profileData} />} />
+                  <Route path="/account" element={<AccountTab profileData={profileData} />} />
+                  <Route path="/professional" element={<ProfessionalTab profileData={profileData} />} />
+                  <Route path="/preferences" element={<PreferencesTab profileData={profileData} />} />
+                  <Route path="/security" element={<PrivacySecurityTab profileData={profileData} />} />
+                  <Route path="/appearance" element={<AppearanceTab />} />
+                  <Route path="/audio" element={<AudioMediaTab />} />
+                  <Route path="/notifications" element={<NotificationsTab profileData={profileData} />} />
+                  <Route path="/subscription" element={<SubscriptionTab />} />
+                </Routes>
+              </motion.div>
+            )}
           </div>
-
-          <div className="grid gap-8 md:grid-cols-2">
-            {/* Appearance Settings */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-emerald-200/30 dark:border-emerald-700/30 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <Sun className="h-5 w-5 text-white" />
-                  </div>
-                  Appearance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="theme" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Theme
-                  </Label>
-                  <Select value={theme || 'light'} onValueChange={(value: 'light' | 'dark') => setTheme(value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Language
-                  </Label>
-                  <Select value={preferences.language} onValueChange={(value: any) => updatePreference('language', value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                      <SelectItem value="fr">Français</SelectItem>
-                      <SelectItem value="de">Deutsch</SelectItem>
-                      <SelectItem value="pt">Português</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Audio & Media Settings */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-emerald-200/30 dark:border-emerald-700/30 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                    <Volume2 className="h-5 w-5 text-white" />
-                  </div>
-                  Audio & Media
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Sound Effects
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Play sounds for interactions
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.soundEffects}
-                    onCheckedChange={(checked) => updatePreference('soundEffects', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Voice Output
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Enable text-to-speech features
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.voiceOutput}
-                    onCheckedChange={(checked) => updatePreference('voiceOutput', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Autoplay Media
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Automatically play audio/video content
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.autoplay}
-                    onCheckedChange={(checked) => updatePreference('autoplay', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notifications */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-emerald-200/30 dark:border-emerald-700/30 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center">
-                    <Bell className="h-5 w-5 text-white" />
-                  </div>
-                  Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Email Notifications
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Receive updates via email
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.notifications.email}
-                    onCheckedChange={(checked) => updateNotificationPreference('email', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Push Notifications
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Browser push notifications
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.notifications.push}
-                    onCheckedChange={(checked) => updateNotificationPreference('push', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Study Reminders
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Daily practice reminders
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.studyReminders}
-                    onCheckedChange={(checked) => updatePreference('studyReminders', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Weekly Reports
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Progress summary emails
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.weeklyReports}
-                    onCheckedChange={(checked) => updatePreference('weeklyReports', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Privacy & Security */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-emerald-200/30 dark:border-emerald-700/30 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-                    <Shield className="h-5 w-5 text-white" />
-                  </div>
-                  Privacy & Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Profile Visibility
-                  </Label>
-                  <Select value={preferences.profileVisibility} onValueChange={(value: any) => updatePreference('profileVisibility', value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="friends">Friends Only</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Show Online Status
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Let others see when you're online
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.showOnlineStatus}
-                    onCheckedChange={(checked) => updatePreference('showOnlineStatus', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Allow Messages
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Receive messages from other users
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.allowMessages}
-                    onCheckedChange={(checked) => updatePreference('allowMessages', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Privacy Mode
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Hide activity from other users
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.privacyMode}
-                    onCheckedChange={(checked) => updatePreference('privacyMode', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Data & Marketing */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-lg border border-emerald-200/30 dark:border-emerald-700/30 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
-                  <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-slate-600 rounded-xl flex items-center justify-center">
-                    <Database className="h-5 w-5 text-white" />
-                  </div>
-                  Data & Marketing
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Data Collection
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Help improve our service
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.dataCollection}
-                    onCheckedChange={(checked) => updatePreference('dataCollection', checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Marketing Emails
-                    </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Receive promotional content
-                    </p>
-                  </div>
-                  <Switch
-                    checked={preferences.marketingEmails}
-                    onCheckedChange={(checked) => updatePreference('marketingEmails', checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Save Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex justify-center pt-8"
-          >
-            <Button
-              onClick={handleSaveSettings}
-              disabled={isLoading}
-              className="px-12 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-lg rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Saving...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Save className="h-5 w-5" />
-                  Save All Settings
-                </div>
-              )}
-            </Button>
-          </motion.div>
-        </motion.div>
+        </div>
       </main>
-
       <Footer variant="landing" showNewsletter={false} />
     </div>
   );

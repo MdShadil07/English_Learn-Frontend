@@ -295,7 +295,7 @@ const NewDashboardHome = () => {
 
           <motion.button
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-emerald-200 text-emerald-700"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 dark:bg-[#050C14] border border-emerald-200 dark:border-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:dark:bg-emerald-500/10 transition-colors"
           >
             View All
             <ArrowRight className="h-4 w-4" />
@@ -334,7 +334,7 @@ const NewDashboardHome = () => {
 
             <motion.button
               whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-emerald-200 text-emerald-700"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 dark:bg-[#050C14] border border-emerald-200 dark:border-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:dark:bg-emerald-500/10 transition-colors"
             >
               View All
               <ArrowRight className="h-4 w-4" />
@@ -347,7 +347,7 @@ const NewDashboardHome = () => {
 
               return (
                 <motion.div key={activity.id} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.0 + index * 0.1 }}>
-                  <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-emerald-200">
+                  <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/60 dark:bg-[#050C14] backdrop-blur-sm border border-emerald-200 dark:border-emerald-500/10">
                     <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg", style.iconBg)}>
                       <activity.icon className="h-5 w-5 text-white" />
                     </div>
@@ -361,7 +361,7 @@ const NewDashboardHome = () => {
                         <span className={cn("text-xs px-3 py-1 rounded-full border", style.bgColor, style.textColor)}>
                           {activity.type}
                         </span>
-                        <span className="text-xs px-3 py-1 rounded-full bg-emerald-100/60 text-emerald-700 flex items-center gap-1">
+                        <span className="text-xs px-3 py-1 rounded-full bg-emerald-100/60 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center gap-1 border border-transparent dark:border-emerald-500/20">
                           <Clock className="h-3 w-3" /> {activity.time}
                         </span>
                       </div>
@@ -391,7 +391,7 @@ const NewDashboardHome = () => {
             <Link to="/dashboard?view=rooms">
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-purple-200 text-purple-700"
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 dark:bg-[#050C14] border border-purple-200 dark:border-purple-500/10 text-purple-700 dark:text-purple-400 hover:dark:bg-purple-500/10 transition-colors"
               >
                 Browse All
                 <ArrowRight className="h-4 w-4" />

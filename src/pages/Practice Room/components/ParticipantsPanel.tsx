@@ -38,7 +38,7 @@ const ParticipantsPanel = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[60] lg:hidden"
+            className="fixed inset-0 bg-[#050C14]/60 backdrop-blur-sm z-[60] lg:hidden"
             onClick={onClose}
           />
 
@@ -48,9 +48,9 @@ const ParticipantsPanel = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="absolute inset-y-2 right-2 w-[340px] sm:w-[380px] z-[70] flex flex-col bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="absolute inset-y-2 right-2 w-[340px] sm:w-[380px] z-[70] flex flex-col bg-[#050C14]/90 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-emerald-500/10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <Users className="w-4 h-4 text-emerald-400" />
@@ -84,7 +84,7 @@ const ParticipantsPanel = ({
                     className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all duration-150"
                   >
                     <div className="relative flex-shrink-0">
-                      <Avatar className="w-10 h-10 border border-white/5 shadow-inner">
+                      <Avatar className="w-10 h-10 border border-emerald-500/10 shadow-inner">
                         <AvatarImage src={p.avatar} />
                         <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-bold">
                           {initials}
@@ -134,7 +134,7 @@ const ParticipantsPanel = ({
               })}
             </div>
 
-            <div className="border-t border-white/5 px-5 py-4 bg-slate-950/30">
+            <div className="border-t border-emerald-500/10 px-5 py-4 bg-[#050C14]/30">
               <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.1em] text-center">
                 {inCallIds.size} in call · {participants.length} total
               </p>

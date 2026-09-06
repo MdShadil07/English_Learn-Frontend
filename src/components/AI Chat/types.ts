@@ -79,3 +79,32 @@ export interface UserSettings {
 }
 
 export type SetSettings = Dispatch<SetStateAction<UserSettings>>;
+
+export interface AccuracyResult {
+  overall: number;
+  adjustedOverall?: number;
+  grammar: number;
+  vocabulary: number;
+  spelling: number;
+  fluency: number;
+  punctuation?: number;
+  capitalization?: number;
+  aiResponseAnalysis?: {
+    appreciationLevel?: string;
+    severityOfCorrections?: string;
+    hasCorrectionFeedback?: boolean;
+    correctedErrors?: string[];
+  };
+  insights?: {
+    improvement?: number;
+    netXP?: number;
+    strengths?: string[];
+    weaknesses?: string[];
+    level?: string;
+  };
+  netXP?: number;
+  readability?: any;
+  tone?: any;
+  style?: any;
+  premiumFeatures?: any;
+}

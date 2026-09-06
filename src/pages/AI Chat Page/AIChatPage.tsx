@@ -36,6 +36,7 @@ import AIChatSidebar from '../../components/AI Chat/AIChatSidebar';
 import ChatInputArea from '../../components/AI Chat/ChatInputArea';
 import VoiceRecordingBubble from '../../components/AI Chat/VoiceRecordingBubble';
 import ChatMessageItem from '../../components/AI Chat/ChatMessageItem';
+import { TextSelectionToolbar } from '../../components/AI Chat/TextSelectionToolbar';
 
 // Lazy load heavy components that aren't immediately necessary on first render
 const MobileAccuracyDrawer = lazy(() => import('../../components/AI Chat/MobileAccuracyDrawer'));
@@ -74,8 +75,8 @@ declare global {
     onend: (() => void) | null;
   }
   interface Window {
-    SpeechRecognition?: { new (): SpeechRecognition };
-    webkitSpeechRecognition?: { new (): SpeechRecognition };
+    SpeechRecognition?: { new(): SpeechRecognition };
+    webkitSpeechRecognition?: { new(): SpeechRecognition };
   }
 }
 
@@ -191,31 +192,35 @@ const AIChatPage: React.FC = () => {
   const [speechVolume, setSpeechVolume] = useState(1.0);
 
   // Speech Synthesis State and Controls
-  const [speechEnabled, setSpeechEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 
-  // Load voices on mount
+  // Load voices on mount for the UI settings sidebar
   useEffect(() => {
     speechSynthesis.getVoices().then(setVoices);
   }, []);
 
-  // Update selected voice when language or voices change
+  // Update selected voice when language or voices change for UI
   useEffect(() => {
     if (settings.language && voices.length > 0) {
       speechSynthesis.getBestVoiceForLanguage(settings.language).then(setSelectedVoice);
     }
   }, [settings.language, voices]);
 
+  // Synchronize TTS settings in realtime during active playback
+  useEffect(() => {
+    speechSynthesis.setRealtimeSettings(speechRate, speechPitch, speechVolume);
+  }, [speechRate, speechPitch, speechVolume]);
+
   const speakAIResponse = useCallback(async (text: string, _personalityId: string, language: string) => {
     setIsSpeaking(true);
     try {
       await speechSynthesis.speakAIResponse(text, {
-        voice: selectedVoice || undefined,
         rate: speechRate,
         pitch: speechPitch,
         volume: speechVolume,
+        voice: selectedVoice || undefined,
         language,
         onEnd: () => setIsSpeaking(false),
         onError: () => setIsSpeaking(false),
@@ -223,7 +228,7 @@ const AIChatPage: React.FC = () => {
     } catch {
       setIsSpeaking(false);
     }
-  }, [selectedVoice, speechRate, speechPitch, speechVolume]);
+  }, [speechRate, speechPitch, speechVolume, selectedVoice]);
 
   const cancelSpeech = useCallback(() => {
     speechSynthesis.cancel();
@@ -231,12 +236,12 @@ const AIChatPage: React.FC = () => {
   }, []);
 
   const toggleSpeech = useCallback(() => {
-    setSpeechEnabled((prev) => {
-      const next = !prev;
+    setSettings((prev) => {
+      const next = !prev.voiceEnabled;
       if (!next) {
         cancelSpeech();
       }
-      return next;
+      return { ...prev, voiceEnabled: next };
     });
   }, [cancelSpeech]);
 
@@ -276,18 +281,19 @@ const AIChatPage: React.FC = () => {
   // UI state
   const [showSettings, setShowSettings] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<'stats' | 'accuracy'>('stats');
   const [mobileAccuracyOpen, setMobileAccuracyOpen] = useState(false);
   // Removed: latestAccuracy state, now handled by backend real-time progress only
-  
+
   // Real-time progress state
   const [isPollingProgress, setIsPollingProgress] = useState(false);
   const [showLevelUpNotification, setShowLevelUpNotification] = useState(false);
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number; oldLevel: number; xpGained: number } | null>(null);
-  
+
   // State for streaming control
   const [abortController, setAbortController] = useState<AbortController | null>(null);
 
@@ -296,8 +302,8 @@ const AIChatPage: React.FC = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // Use a robust type for SpeechRecognition (cross-browser, no 'any')
   const recognitionRef = useRef<
-    (typeof window.SpeechRecognition extends { new (): infer R } ? R : never) |
-    (typeof window.webkitSpeechRecognition extends { new (): infer W } ? W : never) |
+    (typeof window.SpeechRecognition extends { new(): infer R } ? R : never) |
+    (typeof window.webkitSpeechRecognition extends { new(): infer W } ? W : never) |
     null
   >(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -349,15 +355,15 @@ const AIChatPage: React.FC = () => {
     const filtered = AI_PERSONALITIES.filter(personality => {
       const personalityTierLevel = tierOrder[personality.tier as keyof typeof tierOrder];
       const hasAccess = personalityTierLevel <= userTierLevel;
-      
+
       if (!hasAccess) {
         console.log(`🔒 Personality "${personality.name}" (${personality.tier}) is LOCKED for user tier: ${subscriptionTier}`);
       }
-      
+
       return hasAccess;
     });
 
-    console.log(`🎭 Available Personalities (${filtered.length}/${AI_PERSONALITIES.length}):`, 
+    console.log(`🎭 Available Personalities (${filtered.length}/${AI_PERSONALITIES.length}):`,
       filtered.map(p => `${p.name} (${p.tier})`).join(', ')
     );
 
@@ -366,7 +372,7 @@ const AIChatPage: React.FC = () => {
 
   // Speech synthesis functions
   const handleSpeakMessage = useCallback(async (messageId: string, text: string) => {
-    if (!speechEnabled) return;
+    if (!settings.voiceEnabled) return;
     cancelSpeech();
     setSpeakingMessageId(messageId);
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -381,7 +387,7 @@ const AIChatPage: React.FC = () => {
         variant: 'destructive'
       });
     }
-  }, [speechEnabled, selectedPersonality.id, speakAIResponse, cancelSpeech, toast, settings.language]);
+  }, [settings.voiceEnabled, selectedPersonality.id, speakAIResponse, cancelSpeech, toast, settings.language]);
 
   const handleStopSpeaking = useCallback(() => {
     cancelSpeech();
@@ -546,10 +552,10 @@ const AIChatPage: React.FC = () => {
       try {
         setProgressLoading(true);
         console.log('📊 Fetching initial progress data on mount...');
-        
+
         const data = await OptimizedProgressService.getRealtimeProgress(false);
         setInitialProgressData(data);
-        
+
         console.log('✅ Initial progress loaded:', {
           source: data.source,
           streak: data.streak?.current || 0,
@@ -609,32 +615,32 @@ const AIChatPage: React.FC = () => {
     const streakInterval = setInterval(() => {
       const minutesElapsed = Math.floor((Date.now() - sessionStartTime) / 60000);
       setActiveMinutes(minutesElapsed);
-      
+
       // Update streak when reaching 5 minutes (only once)
       if (minutesElapsed >= 5 && !streakData.isActive) {
         console.log('⏱️ 5 minutes reached! Updating streak...');
-        
+
         const result: StreakUpdateResult = StreakService.updateStreak(
           streakData,
           minutesElapsed,
           userTier
         );
-        
+
         setStreakData(result.streakData);
-        
+
         // Update chat stats with new streak (optimistically update streak only)
         setChatStats(prev => ({
           ...prev,
           streak: result.streakData.current,
         }));
-        
+
         // Show notification
         toast({
           title: result.message,
           description: result.xpBonus ? `+${result.xpBonus} XP bonus!` : undefined,
           duration: 5000,
         });
-        
+
         // Sync with backend for XP and streak
         if (result.xpBonus && user?.id) {
           // Call progress update and then refresh user stats; fall back to local increment on error
@@ -660,7 +666,7 @@ const AIChatPage: React.FC = () => {
           // No user id or offline - apply optimistic increment
           setChatStats(prev => ({ ...prev, totalXP: prev.totalXP + (result.xpBonus || 0) }));
         }
-        
+
         // Sync streak separately (non-blocking)
         if (user?.id) {
           StreakService.syncWithBackend(user.id, result.streakData).catch(err => {
@@ -669,7 +675,7 @@ const AIChatPage: React.FC = () => {
         }
       }
     }, 60000); // Check every minute
-    
+
     return () => clearInterval(streakInterval);
   }, [sessionStartTime, streakData, userTier, user, toast]);
 
@@ -677,7 +683,7 @@ const AIChatPage: React.FC = () => {
   useEffect(() => {
     const checkStreakRisk = () => {
       const riskStatus = StreakService.checkStreakRisk(streakData, userTier);
-      
+
       if (riskStatus.atRisk && riskStatus.hoursRemaining > 0) {
         toast({
           title: '⚠️ Streak at Risk!',
@@ -686,14 +692,14 @@ const AIChatPage: React.FC = () => {
           duration: 8000,
         });
       }
-      
+
       // Update chat stats with current streak
       setChatStats(prev => ({
         ...prev,
         streak: streakData.current
       }));
     };
-    
+
     checkStreakRisk();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
@@ -727,7 +733,10 @@ const AIChatPage: React.FC = () => {
           message: userMessage,
           personalityId: personality.id,
           conversationHistory: conversationHistory,
-          language: settings.language,
+          language: 'english', // The base UI language
+          responseLanguage: settings.language, // The user's preferred AI response language
+          userNativeLanguage: user?.nativeLanguage || undefined, // Used for auto-translation
+          autoTranslate: settings.autoTranslate,
           userProfile: user ? {
             userName: user.fullName || user.username,
             userLevel: (user as User & { level?: number }).level || 1,
@@ -879,7 +888,7 @@ const AIChatPage: React.FC = () => {
           setLoading(false); // Ensure loading is false when streaming completes
 
           // Auto-speak the AI response if speech is enabled
-          if (speechEnabled && fullResponse) {
+          if (settings.voiceEnabled && fullResponse) {
             setTimeout(() => {
               speakAIResponse(fullResponse, selectedPersonality.id, settings.language).catch(err => {
                 console.error('Auto-speak error:', err);
@@ -930,7 +939,7 @@ const AIChatPage: React.FC = () => {
         // Open the mobile drawer on small screens, sidebar on wide screens
         const isSmall = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
         if (isSmall) {
-          if (settings.showPerMessageSnapshot !== false) {
+          if (settings.showAccuracy !== false && settings.showPerMessageSnapshot !== false) {
             setSidebarMode('accuracy');
             setMobileAccuracyOpen(true);
           }
@@ -948,18 +957,18 @@ const AIChatPage: React.FC = () => {
       setConversations(prev => prev.map(conv =>
         conv.id === activeConversation.id
           ? {
-              ...conv,
-              messages: messagesWithAssistant.map(msg =>
-                msg.id === assistantMessage.id
-                  ? { ...msg, content: fullResponse, isStreaming: false }
-                  : msg
-              ),
-              lastUpdated: new Date(),
-              totalAccuracy: messagesWithAssistant.reduce((sum, msg) =>
-                sum + (msg.accuracy?.overall || 0), 0) / messagesWithAssistant.filter(msg => msg.accuracy).length || 0,
-              totalXP: messagesWithAssistant.reduce((sum, msg) => sum + (msg.xpGained || 0), 0),
-              messageCount: messagesWithAssistant.length
-            }
+            ...conv,
+            messages: messagesWithAssistant.map(msg =>
+              msg.id === assistantMessage.id
+                ? { ...msg, content: fullResponse, isStreaming: false }
+                : msg
+            ),
+            lastUpdated: new Date(),
+            totalAccuracy: messagesWithAssistant.reduce((sum, msg) =>
+              sum + (msg.accuracy?.overall || 0), 0) / messagesWithAssistant.filter(msg => msg.accuracy).length || 0,
+            totalXP: messagesWithAssistant.reduce((sum, msg) => sum + (msg.xpGained || 0), 0),
+            messageCount: messagesWithAssistant.length
+          }
           : conv
       ));
 
@@ -1017,7 +1026,7 @@ const AIChatPage: React.FC = () => {
               setChatStats(mapped);
               // Merge newly gained XP into the per-message drawer display
               if (update.xp.gained && update.xp.gained > 0) {
-                setLatestAccuracy(prev => 
+                setLatestAccuracy(prev =>
                   prev ? { ...prev, xpGained: update.xp.gained } : prev
                 );
               }
@@ -1078,7 +1087,7 @@ const AIChatPage: React.FC = () => {
       setLoading(false);
       setAbortController(null);
     }
-  }, [getAIResponse, messages, activeConversation, toast, selectedPersonality, input, speakAIResponse, speechEnabled, settings.language, chatStats, latestAccuracy, user?.id]);
+  }, [getAIResponse, messages, activeConversation, toast, selectedPersonality, input, speakAIResponse, settings.voiceEnabled, settings.language, chatStats, latestAccuracy, user?.id]);
 
   // Handle key press in input
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
@@ -1088,87 +1097,14 @@ const AIChatPage: React.FC = () => {
     }
   }, [sendMessage]);
 
-  // Voice recording functionality
-  const startVoiceRecording = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      toast({
-        title: 'Voice Recognition Not Supported',
-        description: 'Your browser does not support voice recognition.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      const rec = recognitionRef.current as
-        | InstanceType<typeof window.SpeechRecognition>
-        | InstanceType<typeof window.webkitSpeechRecognition>;
-      rec.continuous = false;
-      rec.interimResults = false;
-      rec.lang = settings.language;
-
-      rec.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-      };
-
-      rec.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error);
-        toast({
-          title: 'Voice Recognition Error',
-          description: 'Failed to recognize speech. Please try again.',
-          variant: 'destructive'
-        });
-        setIsRecording(false);
-      };
-
-      rec.onend = () => {
-        setIsRecording(false);
-      };
-
-      rec.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error('Error starting voice recognition:', error);
-      toast({
-        title: 'Voice Recognition Error',
-        description: 'Failed to start voice recognition. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  }, [settings.language, toast]);
-
-  const stopVoiceRecording = useCallback(() => {
-    if (recognitionRef.current) {
-      (
-        recognitionRef.current as
-          | InstanceType<typeof window.SpeechRecognition>
-          | InstanceType<typeof window.webkitSpeechRecognition>
-      ).stop();
-    }
-    setIsRecording(false);
+  // Voice mode functionality (Handled internally by AIChatVoiceRecorder now)
+  const handleRecordingToggle = useCallback((checked: boolean) => {
+    setIsRecording(checked);
   }, []);
 
-  const handleRecordingToggle = useCallback(
-    (checked: boolean) => {
-      if (checked) {
-        startVoiceRecording();
-      } else {
-        stopVoiceRecording();
-      }
-    },
-    [startVoiceRecording, stopVoiceRecording]
-  );
-
   const handleRecordingClick = useCallback(() => {
-    if (isRecording) {
-      stopVoiceRecording();
-    } else {
-      startVoiceRecording();
-    }
-  }, [isRecording, startVoiceRecording, stopVoiceRecording]);
+    setIsRecording(prev => !prev);
+  }, []);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
@@ -1180,14 +1116,36 @@ const AIChatPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(true);
-      }
+    if (typeof window === 'undefined') return;
+
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const syncDesktopSidebar = (matches: boolean) => {
+      setIsDesktop(matches);
+      setSidebarOpen(matches);
+    };
+    const handleChange = (event: MediaQueryListEvent) => syncDesktopSidebar(event.matches);
+
+    syncDesktopSidebar(mq.matches);
+
+    type MQWithLegacy = MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const mqLegacy = mq as MQWithLegacy;
+    if (typeof mqLegacy.addEventListener === 'function') {
+      mqLegacy.addEventListener('change', handleChange as EventListener);
+    } else if (typeof mqLegacy.addListener === 'function') {
+      mqLegacy.addListener(handleChange);
+    }
+
+    return () => {
+      if (typeof mqLegacy.removeEventListener === 'function') {
+        mqLegacy.removeEventListener('change', handleChange as EventListener);
+      } else if (typeof mqLegacy.removeListener === 'function') {
+        mqLegacy.removeListener(handleChange);
+      }
+    };
   }, []);
 
   // Cleanup effect for abort controller
@@ -1333,7 +1291,14 @@ const AIChatPage: React.FC = () => {
   const [showBadgePreview, setShowBadgePreview] = useState(false);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-50 dark:bg-[#050C14]">
+      {/* === GLOBAL ANIMATED BACKGROUND ORBS === */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-[20%] -left-[10%] w-[55%] h-[55%] bg-emerald-300/10 dark:bg-emerald-600/8 rounded-full blur-[120px] animate-[pulse_8s_ease-in-out_infinite]" />
+        <div className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-teal-300/10 dark:bg-teal-600/8 rounded-full blur-[100px] animate-[pulse_10s_ease-in-out_infinite_1s]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] bg-cyan-300/5 dark:bg-cyan-700/5 rounded-full blur-[80px] animate-[pulse_12s_ease-in-out_infinite_2s]" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.02] dark:opacity-[0.04] mix-blend-overlay" />
+      </div>
 
       {/* 🏅 Badge Preview Modal (for visual testing) */}
       <AccuracyMasterBadge open={showBadgePreview} onClose={() => setShowBadgePreview(false)} />
@@ -1387,26 +1352,26 @@ const AIChatPage: React.FC = () => {
         </motion.div>
       )}
 
-      <div className="flex h-full min-h-0 flex-1 flex-col justify-start px-2 py-0 sm:px-3 lg:px-4">
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col justify-start px-0 py-0">
         <Suspense fallback={null}>
           <MobileAccuracyDrawer open={mobileAccuracyOpen} latest={latestAccuracy ?? null} onClose={() => setMobileAccuracyOpen(false)} />
         </Suspense>
-        <div className="mx-auto flex h-full w-full max-w-7xl flex-1 min-h-0 flex-col">
+        <div className="flex h-full w-full flex-1 min-h-0 flex-col">
 
           {/* Unified Chat Card */}
-          <div className="relative flex h-full max-h-full flex-1 flex-col min-h-0 overflow-hidden bg-white shadow-none dark:bg-slate-950/95 sm:border sm:bg-white sm:dark:bg-slate-950 lg:flex-row">
+          <div className="relative flex h-full max-h-full w-full flex-1 flex-col min-h-0 overflow-hidden bg-white/80 dark:bg-[#050C14]/90 backdrop-blur-sm shadow-none sm:bg-white/80 sm:dark:bg-[#050C14]/90 lg:flex-row z-10">
 
             {/* Sidebar Section */}
-            <AnimatePresence>
-              {sidebarOpen && !(isWide && showSettings) && (
+            <AnimatePresence initial={false}>
+              {isDesktop && sidebarOpen && !(isWide && showSettings) && (
                 <motion.aside
-                  initial={{ x: -300, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -300, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex"
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 320, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="relative z-10 hidden h-full min-h-0 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 lg:flex"
                 >
-                  <div className="flex h-full min-h-0 w-full overflow-hidden">
+                  <div className="flex h-full min-h-0 w-80 flex-shrink-0 overflow-hidden">
                     <AIChatSidebar
                       conversations={conversations}
                       activeConversation={activeConversation}
@@ -1419,45 +1384,52 @@ const AIChatPage: React.FC = () => {
                       sidebarMode={sidebarMode}
                       onSidebarModeChange={handleSidebarModeChange}
                       latestAccuracy={latestAccuracy || undefined}
+                      showAccuracy={settings.showAccuracy}
                       isSidebarLoading={isSidebarLoading}
                     />
                   </div>
                 </motion.aside>
               )}
 
-              {isWide && showSettings && (
+              {isDesktop && isWide && showSettings && (
                 <motion.aside
-                  initial={{ x: -300, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -300, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative z-10 h-full min-h-0 w-80 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 flex flex-col"
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 320, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="relative z-10 hidden h-full min-h-0 flex-shrink-0 self-stretch overflow-hidden border-r border-emerald-200/40 dark:border-emerald-900/30 lg:flex lg:flex-col"
                 >
-                  <Suspense fallback={null}>
-                    <AIChatSettingsSidebar
-                      inline
-                      isOpen={showSettings}
-                      onClose={() => setShowSettings(false)}
-                      settings={settings}
-                      setSettings={setSettings}
-                      isRecording={isRecording}
-                      onToggleRecording={handleRecordingToggle}
-                      voices={voices}
-                      selectedVoice={selectedVoice}
-                      onVoiceSelect={setSelectedVoice}
-                      onTestVoice={handleTestVoice}
-                      speechRate={speechRate}
-                      onSpeechRateChange={setSpeechRate}
-                      userTier={userTier}
-                      currentPersonalityId={selectedPersonality.id}
-                    />
-                  </Suspense>
+                  <div className="flex h-full min-h-0 w-80 flex-shrink-0 overflow-hidden">
+                    <Suspense fallback={null}>
+                      <AIChatSettingsSidebar
+                        inline
+                        isOpen={showSettings}
+                        onClose={() => setShowSettings(false)}
+                        settings={settings}
+                        setSettings={setSettings}
+                        isRecording={isRecording}
+                        onToggleRecording={handleRecordingToggle}
+                        voices={voices}
+                        selectedVoice={selectedVoice}
+                        onVoiceSelect={setSelectedVoice}
+                        onTestVoice={handleTestVoice}
+                        speechRate={speechRate}
+                        onSpeechRateChange={setSpeechRate}
+                        speechPitch={speechPitch}
+                        onSpeechPitchChange={setSpeechPitch}
+                        speechVolume={speechVolume}
+                        onSpeechVolumeChange={setSpeechVolume}
+                        userTier={userTier}
+                        currentPersonalityId={selectedPersonality.id}
+                      />
+                    </Suspense>
+                  </div>
                 </motion.aside>
               )}
             </AnimatePresence>
 
             {/* Settings Sidebar (overlay for small screens) */}
-            {!(isWide && showSettings) && (
+            {!(isDesktop && isWide && showSettings) && (
               <Suspense fallback={null}>
                 <AIChatSettingsSidebar
                   inline={false}
@@ -1473,6 +1445,10 @@ const AIChatPage: React.FC = () => {
                   onTestVoice={handleTestVoice}
                   speechRate={speechRate}
                   onSpeechRateChange={setSpeechRate}
+                  speechPitch={speechPitch}
+                  onSpeechPitchChange={setSpeechPitch}
+                  speechVolume={speechVolume}
+                  onSpeechVolumeChange={setSpeechVolume}
                   userTier={userTier}
                   currentPersonalityId={selectedPersonality.id}
                 />
@@ -1481,120 +1457,91 @@ const AIChatPage: React.FC = () => {
 
             {/* Main Chat Section */}
             <main className="relative z-10 flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden">
-              <header className="relative z-10 flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 border-b border-emerald-500/35 bg-[#059669] text-white shadow-[0_8px_24px_-18px_rgba(5,150,105,0.85)] sm:gap-3 sm:px-4 sm:py-3">
-                <div className="flex items-center gap-3 sm:gap-4 text-white">
-                  {(() => {
-                    const Icon = getPersonalityLogo(selectedPersonality.iconId);
-                    return <Icon size={24} className="opacity-95 transition-transform duration-200 hover:scale-105" />;
-                  })()}
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]"></span>
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]"></span>
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]"></span>
+              <TextSelectionToolbar />
+              {/* ====== PREMIUM HUD HEADER ====== */}
+              <header className="relative z-10 flex flex-wrap items-center justify-between gap-2.5 px-4 py-3.5 border-b border-white/60 dark:border-emerald-500/15 bg-white/70 dark:bg-[#050C14]/80 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(16,185,129,0.05)] sm:gap-3 sm:px-5 sm:py-4 transition-all overflow-hidden">
+                {/* Header shimmer background */}
+                <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/30 dark:via-emerald-500/3 to-transparent -translate-x-full pointer-events-none" />
+
+                <div className="flex items-center gap-3 sm:gap-4 text-slate-800 dark:text-slate-100 relative z-10">
+                  {/* Personality icon pill — logo only */}
+                  <div className="flex items-center px-2 py-1.5 rounded-xl bg-white/60 dark:bg-emerald-500/10 border border-white/80 dark:border-emerald-500/20 backdrop-blur-md shadow-sm">
+                    {(() => {
+                      const Icon = getPersonalityLogo(selectedPersonality.iconId);
+                      return <Icon size={18} className="text-emerald-600 dark:text-emerald-400" />;
+                    })()}
                   </div>
-                  
-                  {/* 🔥 STREAK INDICATOR (Local state, updated during session) */}
+
+                  {/* 🔥 STREAK INDICATOR */}
                   {streakData.current > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-sm",
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-sm text-[11px] font-black",
                         streakData.todayMinutes >= 10
-                          ? "bg-green-500/20 border-green-400/30" 
-                          : "bg-orange-500/20 border-orange-400/30"
+                          ? "bg-emerald-500/10 border-emerald-400/30 text-emerald-700 dark:text-emerald-300"
+                          : "bg-orange-500/10 border-orange-400/30 text-orange-700 dark:text-orange-300"
                       )}
                       title={`Current streak: ${streakData.current} days | ${streakData.todayMinutes >= 10 ? 'Goal met! ✅' : `${10 - streakData.todayMinutes}m remaining`}`}
                     >
-                      <span className="text-lg">{streakData.todayMinutes >= 10 ? '✅' : '🔥'}</span>
-                      <span className="text-sm font-bold">{streakData.current}</span>
+                      <span className="text-sm">{streakData.todayMinutes >= 10 ? '✅' : '🔥'}</span>
+                      <span>{streakData.current}</span>
                       {streakData.todayMinutes < 10 && (
-                        <span className="text-xs opacity-75">
-                          ({10 - streakData.todayMinutes}m)
-                        </span>
+                        <span className="opacity-75">({10 - streakData.todayMinutes}m)</span>
                       )}
                     </motion.div>
                   )}
-                  
-                  {/* ⏱️ SESSION TIME (Local tracking) */}
+
+                  {/* ⏱️ SESSION TIME */}
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 backdrop-blur-sm"
+                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-400/30 backdrop-blur-sm text-[11px] font-black text-blue-700 dark:text-blue-300"
                     title={`Session time: ${activeMinutes} minutes`}
                   >
                     <span className="text-sm">⏱️</span>
-                    <span className="text-xs font-medium">{activeMinutes}m</span>
+                    <span>{activeMinutes}m</span>
                   </motion.div>
                 </div>
 
-                <div className="hidden items-center gap-3 text-white sm:flex">
-                  <button
-                    type="button"
-                    onClick={toggleSidebar}
-                    className="p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30"
-                    aria-label={sidebarOpen ? 'Hide conversation list' : 'Show conversation list'}
-                  >
-                    {sidebarOpen ? (
-                      <PanelLeftClose className="h-3.5 w-3.5" />
-                    ) : (
-                      <PanelLeftOpen className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={toggleSpeech}
-                    className={cn(
-                      "relative p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30",
-                      isSpeaking && "animate-pulse"
-                    )}
-                    aria-label={speechEnabled ? "Mute speaker" : "Enable speaker"}
-                  >
-                    {speechEnabled ? (
-                      <Volume2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <VolumeX className="h-3.5 w-3.5" />
-                    )}
-                    {isSpeaking && speechEnabled && (
-                      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-400 animate-ping" />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowSettings(true)}
-                    className="p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30"
-                    aria-label="View progress"
-                  >
-                    <Activity className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toast({
-                        title: 'Lesson saved',
-                        description: 'This conversation has been marked for review.',
-                      })
-                    }
-                    className="p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30"
-                    aria-label="Save lesson"
-                  >
-                    <CheckCircle className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={toggleSettingsPanel}
-                    className="p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30"
-                    aria-label="Toggle settings"
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </button>
+                <div className="hidden items-center gap-1.5 sm:flex relative z-10">
+                  {[
+                    { onClick: toggleSidebar, icon: sidebarOpen ? 'PanelLeftClose' : 'PanelLeftOpen', label: sidebarOpen ? 'Hide conversation list' : 'Show conversation list', renderIcon: () => sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" /> },
+                    { onClick: toggleSpeech, icon: 'speech', label: settings.voiceEnabled ? 'Mute speaker' : 'Enable speaker', renderIcon: () => settings.voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />, pulse: isSpeaking },
+                    { onClick: () => setShowSettings(true), icon: 'activity', label: 'View progress', renderIcon: () => <Activity className="h-4 w-4" /> },
+                    { onClick: () => toast({ title: 'Lesson saved', description: 'This conversation has been marked for review.' }), icon: 'check', label: 'Save lesson', renderIcon: () => <CheckCircle className="h-4 w-4" /> },
+                    { onClick: toggleSettingsPanel, icon: 'settings', label: 'Toggle settings', renderIcon: () => <Settings className="h-4 w-4" /> },
+                  ].map((btn, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={btn.onClick}
+                      className={cn(
+                        'relative p-2 rounded-xl transition-all duration-200 border',
+                        'text-slate-600 dark:text-slate-400',
+                        'bg-slate-50/80 dark:bg-white/5 border-slate-200/60 dark:border-white/10',
+                        'hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:text-emerald-600 dark:hover:text-emerald-400',
+                        'focus:outline-none focus:ring-2 focus:ring-emerald-500/40',
+                        (btn as any).pulse && 'animate-pulse text-emerald-600 dark:text-emerald-400'
+                      )}
+                      aria-label={btn.label}
+                    >
+                      {btn.renderIcon()}
+                      {(btn as any).pulse && isSpeaking && settings.voiceEnabled && (
+                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                      )}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="flex items-center gap-2 text-white sm:hidden">
+
+                {/* Mobile buttons */}
+                <div className="flex items-center gap-1.5 sm:hidden relative z-10">
                   <button
                     type="button"
                     onClick={toggleSidebar}
-                    className="p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30"
+                    className="p-2 rounded-xl border bg-slate-50/80 dark:bg-white/5 border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all focus:outline-none"
                     aria-label={sidebarOpen ? 'Hide conversation list' : 'Show conversation list'}
                   >
                     {sidebarOpen ? (
@@ -1607,44 +1554,44 @@ const AIChatPage: React.FC = () => {
                     type="button"
                     onClick={toggleSpeech}
                     className={cn(
-                      "relative p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30",
-                      isSpeaking && "animate-pulse"
+                      'relative p-2 rounded-xl border bg-slate-50/80 dark:bg-white/5 border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all focus:outline-none',
+                      isSpeaking && 'animate-pulse text-emerald-600 dark:text-emerald-400'
                     )}
-                    aria-label={speechEnabled ? "Mute speaker" : "Enable speaker"}
+                    aria-label={settings.voiceEnabled ? 'Mute speaker' : 'Enable speaker'}
                   >
-                    {speechEnabled ? (
-                      <Volume2 className="h-3.5 w-3.5" />
+                    {settings.voiceEnabled ? (
+                      <Volume2 className="h-4 w-4" />
                     ) : (
-                      <VolumeX className="h-3.5 w-3.5" />
+                      <VolumeX className="h-4 w-4" />
                     )}
-                    {isSpeaking && speechEnabled && (
-                      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-400 animate-ping" />
+                    {isSpeaking && settings.voiceEnabled && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                     )}
                   </button>
                   <button
                     type="button"
                     onClick={toggleSettingsPanel}
-                    className="p-1 text-white transition hover:text-emerald-100 focus:outline-none focus:ring-2 focus:ring-white/30"
+                    className="p-2 rounded-xl border bg-slate-50/80 dark:bg-white/5 border-slate-200/60 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:border-emerald-200 dark:hover:border-emerald-500/30 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all focus:outline-none"
                     aria-label="Toggle settings"
                   >
-                    <Settings className="h-3.5 w-3.5" />
+                    <Settings className="h-4 w-4" />
                   </button>
                 </div>
               </header>
 
               {/* Chat Content Area */}
               <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden">
-                <ScrollArea 
+                <ScrollArea
                   ref={scrollAreaRef}
-                  className="h-full flex-1 p-4 sm:p-6" 
-                  role="log" 
+                  className="h-full flex-1 p-4 sm:p-6 bg-transparent"
+                  role="log"
                   aria-live="polite"
                   onScroll={handleScroll}
                 >
                   <div className="space-y-4">
                     {isConversationHistoryLoading && !activeConversation ? (
                       <div className="flex min-h-[320px] items-center justify-center">
-                        <div className="flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-slate-900/80 dark:text-emerald-300">
+                        <div className="flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-[#050C14]/80 dark:text-emerald-300">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Loading conversations...
                         </div>
@@ -1653,7 +1600,7 @@ const AIChatPage: React.FC = () => {
                       <>
                         {hydratingConversationId === activeConversation?.id && messages.length === 0 && (
                           <div className="flex min-h-[260px] items-center justify-center">
-                            <div className="flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-800/60 dark:bg-slate-900/80 dark:text-emerald-300">
+                            <div className="flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/85 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm dark:border-emerald-500/20 dark:bg-[#050C14]/80 dark:text-emerald-300">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Loading messages...
                             </div>
@@ -1721,21 +1668,21 @@ const AIChatPage: React.FC = () => {
 
           {/* Mobile Sidebar Overlay */}
           <AnimatePresence>
-            {sidebarOpen && (
+            {!isDesktop && sidebarOpen && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.18 }}
                 className="fixed inset-0 z-50 bg-black/50 lg:hidden"
                 onClick={toggleSidebar}
               >
                 <motion.aside
-                  initial={{ x: -300, opacity: 0 }}
+                  initial={{ x: '-100%', opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: -300, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute left-0 top-0 h-full w-full max-w-xs bg-white/88 dark:bg-slate-950/70 backdrop-blur-2xl border-r border-emerald-200/40 dark:border-emerald-900/30 sm:max-w-sm"
+                  exit={{ x: '-100%', opacity: 0 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="absolute left-0 top-0 h-full w-full bg-white/95 dark:bg-[#050C14]/90 backdrop-blur-2xl border-r border-emerald-200/40 dark:border-emerald-500/10 sm:max-w-sm"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <AIChatSidebar
@@ -1749,8 +1696,10 @@ const AIChatPage: React.FC = () => {
                     onSelectPersonality={handlePersonalityChange}
                     sidebarMode={sidebarMode}
                     onSidebarModeChange={handleSidebarModeChange}
-                      latestAccuracy={latestAccuracy || undefined}
-                      isSidebarLoading={isSidebarLoading}
+                    latestAccuracy={latestAccuracy || undefined}
+                    showAccuracy={settings.showAccuracy}
+                    isSidebarLoading={isSidebarLoading}
+                    onClose={toggleSidebar}
                   />
                 </motion.aside>
               </motion.div>

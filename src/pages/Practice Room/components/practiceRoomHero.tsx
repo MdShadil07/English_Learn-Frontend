@@ -39,8 +39,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 // --- UI Components ---
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant = 'default', size = 'default', ...props }, ref) => {
   const variants = {
-    default: 'bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg',
-    outline: 'border-2 border-slate-200 bg-white/50 backdrop-blur-sm text-slate-900 hover:bg-white dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-100 dark:hover:bg-slate-900',
+    default: 'bg-[#050C14] text-white hover:bg-[#050C14]/80 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg',
+    outline: 'border-2 border-slate-200 bg-white/50 backdrop-blur-sm text-slate-900 hover:bg-white dark:border-emerald-500/20 dark:bg-[#050C14]/50 dark:text-slate-100 dark:hover:bg-[#050C14]',
     emerald: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/25 shadow-lg',
   } as const;
   const sizes = {
@@ -139,7 +139,7 @@ export default function PracticeRoomHero({
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-14 relative">
         
         {/* Main Container with Glassmorphic Border */}
-        <div className="relative rounded-[3rem] p-6 sm:p-8 lg:p-12 border border-slate-200/80 dark:border-slate-800/60 bg-white/60 dark:bg-[#0a0f1c]/80 backdrop-blur-3xl shadow-xl dark:shadow-2xl overflow-visible transition-colors duration-300 transform-gpu">
+        <div className="relative rounded-[3rem] p-6 sm:p-8 lg:p-12 border border-slate-200/80 dark:border-emerald-500/20/60 bg-white/60 dark:bg-[#0a0f1c]/80 backdrop-blur-3xl shadow-xl dark:shadow-2xl overflow-visible transition-colors duration-300 transform-gpu">
           
           <AmbientLighting />
           <FloatingParticles particles={floatingParticles} />
@@ -181,7 +181,7 @@ export default function PracticeRoomHero({
                   Create a Room
                 </Button>
 
-                <Button variant="outline" size="lg" className="group border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors w-full sm:w-auto" onClick={onBrowseClick}>
+                <Button variant="outline" size="lg" className="group border-slate-300 dark:border-emerald-500/20 bg-white dark:bg-[#050C14]/80 text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-[#050C14] transition-colors w-full sm:w-auto" onClick={onBrowseClick}>
                   <Globe className="w-5 h-5 mr-2 text-indigo-400 group-hover:animate-pulse" />
                   Browse Active Rooms
                 </Button>

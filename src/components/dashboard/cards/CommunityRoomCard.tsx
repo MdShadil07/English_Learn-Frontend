@@ -46,7 +46,7 @@ const CommunityRoomCard = ({ rooms = [] }: { rooms: RoomItem[] }) => {
             animate={{ opacity: 1, x: 0 }} 
             transition={{ delay: index * 0.1 }}
           >
-            <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm border border-emerald-200">
+            <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/60 dark:bg-[#050C14]/60 backdrop-blur-sm border border-slate-200 dark:border-emerald-500/20">
               <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden", iconBg)}>
                 {room.banner ? (
                   <img 

@@ -27,10 +27,10 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="w-full max-w-6xl h-[85vh] bg-white dark:bg-[#0b0e14] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
+        className="w-full max-w-6xl h-[85vh] bg-white dark:bg-[#050C14] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-emerald-500/20"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-[#131722]/50">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-emerald-500/20 bg-slate-50/50 dark:bg-[#050C14]/50">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
               <Sparkles className="w-6 h-6" />
@@ -47,14 +47,14 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-64 border-r border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10 p-4 flex flex-col gap-2 overflow-y-auto">
+          <div className="w-64 border-r border-slate-100 dark:border-emerald-500/20 bg-slate-50/30 dark:bg-[#050C14]/30 p-4 flex flex-col gap-2 overflow-y-auto">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
-                    ? 'bg-white dark:bg-[#1A1F2B] text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 border border-transparent'
+                    ? 'bg-white dark:bg-[#050C14] text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-emerald-500/20'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#050C14]/50 border border-transparent'
                   }`}
               >
                 <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-indigo-500' : 'opacity-70'}`} />
@@ -64,7 +64,7 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-8 bg-white dark:bg-[#0b0e14]">
+          <div className="flex-1 overflow-y-auto p-8 bg-white dark:bg-[#050C14]">
             
             {/* PHONEMES TAB */}
             {activeTab === 'phonemes' && (
@@ -79,10 +79,10 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
                   </div>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm">
+                <div className="overflow-x-auto border border-slate-200 dark:border-emerald-500/20 rounded-2xl shadow-sm">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 dark:bg-[#131722] border-b border-slate-200 dark:border-slate-800">
+                      <tr className="bg-slate-50 dark:bg-[#050C14] border-b border-slate-200 dark:border-emerald-500/20">
                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Word</th>
                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Expected</th>
                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actual</th>
@@ -90,9 +90,9 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
                         <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Severity</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-slate-100 dark:divide-emerald-500/20">
                       {attemptResult?.phonemeAnalysis?.map((pa: any, i: number) => (
-                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-[#131722]/50 transition-colors">
+                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-[#050C14]/50 transition-colors">
                           <td className="p-4 text-sm font-semibold text-slate-800 dark:text-slate-200">{pa.word || '—'}</td>
                           <td className="p-4 text-sm font-mono text-slate-600 dark:text-slate-400">/{pa.expected || '—'}/</td>
                           <td className="p-4 text-sm font-mono text-slate-600 dark:text-slate-400">
@@ -135,7 +135,7 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
                   {Object.entries(attemptResult?.prosodyAnalysis || {}).map(([key, value]: [string, any]) => {
                     if (typeof value !== 'number') return null;
                     return (
-                      <div key={key} className="bg-slate-50 dark:bg-[#131722] p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                      <div key={key} className="bg-slate-50 dark:bg-[#050C14] p-5 rounded-2xl border border-slate-200 dark:border-emerald-500/20">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
                         <p className="text-3xl font-bold text-slate-800 dark:text-white">
                           {Number.isInteger(value) ? value : value.toFixed(2)}
@@ -166,7 +166,7 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
                       </div>
                     ))
                   ) : (
-                    <div className="text-center p-12 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="text-center p-12 bg-slate-50 dark:bg-[#050C14]/30 rounded-2xl border border-slate-200 dark:border-emerald-500/20">
                       <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Specific Drills Required</h4>
                       <p className="text-slate-500">Your pronunciation was excellent! Keep practicing regular passages.</p>
@@ -180,7 +180,7 @@ export default function DetailedPronunciationAnalysis({ attemptResult, onClose }
             {activeTab === 'diagnostics' && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Engine Diagnostics & Metadata</h3>
-                <div className="bg-slate-50 dark:bg-[#131722] rounded-2xl p-6 border border-slate-200 dark:border-slate-800">
+                <div className="bg-slate-50 dark:bg-[#050C14] rounded-2xl p-6 border border-slate-200 dark:border-emerald-500/20">
                   <pre className="text-xs font-mono text-slate-600 dark:text-slate-400 whitespace-pre-wrap overflow-x-auto">
                     {JSON.stringify(attemptResult?.metadata || {}, null, 2)}
                   </pre>

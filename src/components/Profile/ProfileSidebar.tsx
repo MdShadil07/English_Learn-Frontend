@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,8 @@ import {
   Edit3,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   CheckCircle2
 } from 'lucide-react';
@@ -34,7 +36,7 @@ import { BasicPlanCard } from './BasicPlanCard';
 import { PremiumPlanCard } from './PremiumPlanCard';
 import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon } from '@/components/Icons/SubscriptionIcons';
 import { ProfileSideBarUserCard } from './ProfileSideBarUserCard';
-import { VerificationStatusButton } from './VerificationStatusButton';
+import { VerificationStatusCard } from './VerificationStatusCard';
 
 interface ProfileSidebarProps {
   showSidebar: boolean;
@@ -49,6 +51,7 @@ interface ProfileSidebarProps {
       totalXP: number;
     };
     isPremium: boolean;
+    tier?: 'free' | 'pro' | 'premium';
     subscriptionStatus: 'none' | 'free' | 'basic' | 'premium' | 'pro';
     preferences: {
       theme: 'light' | 'dark' | 'auto';
@@ -96,65 +99,22 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
     return colors[color as keyof typeof colors] || colors.blue;
   };
 
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsRef.current) {
+      const scrollAmount = 150;
+      tabsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{
         __html: `
-          .custom-scrollbar-thin {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
-            scroll-behavior: smooth;
-            position: relative;
-          }
-
-          .custom-scrollbar-thin::-webkit-scrollbar {
-            height: 0.5px;
-            background: transparent;
-          }
-
-          .custom-scrollbar-thin::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          .custom-scrollbar-thin::-webkit-scrollbar-thumb {
-            background: linear-gradient(90deg, rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0.2));
-            border-radius: 0.25px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            min-height: 0.5px;
-          }
-
-          .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(90deg, rgba(99, 102, 241, 0.6), rgba(139, 92, 246, 0.6));
-            height: 1px;
-          }
-
-          .custom-scrollbar-thin:hover::-webkit-scrollbar-thumb {
-            background: linear-gradient(90deg, rgba(79, 70, 229, 0.7), rgba(124, 58, 237, 0.7));
-          }
-
-          /* Minimal scroll indicator */
-          .scroll-indicator-minimal {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 0.5px;
-            background: linear-gradient(90deg,
-              transparent 0%,
-              rgba(148, 163, 184, 0.15) 15%,
-              rgba(148, 163, 184, 0.3) 50%,
-              rgba(148, 163, 184, 0.15) 85%,
-              transparent 100%
-            );
-            opacity: 0;
-            transition: opacity 0.3s ease;
-          }
-
-          .custom-scrollbar-thin:hover .scroll-indicator-minimal {
-            opacity: 1;
-          }
-
           /* Floating animations */
           @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -171,8 +131,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           }
 
           .nav-button-active {
-            background: linear-gradient(to right, #059669, #10b981) !important;
-            transition: none !important;
+            background: linear-gradient(to right, rgba(16, 185, 129, 0.9), rgba(20, 184, 166, 0.8)) !important;
+            transition: all 0.3s ease !important;
           }
 
           .nav-button-inactive {
@@ -201,24 +161,40 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               ease: "easeOut"
             }
           }}
-          className="fixed top-16 left-0 z-40 w-80 sm:w-96 h-[calc(100vh-4rem)] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col shadow-2xl"
+          className="fixed top-16 left-0 z-40 w-80 h-[calc(100vh-4rem)] bg-white sm:backdrop-blur-2xl dark:bg-[#050C14] border-r border-emerald-200/40 dark:border-emerald-500/10 flex flex-col shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Background decorative elements - Static for performance */}
+          <div className="absolute inset-0 pointer-events-none -z-10">
+            <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-gradient-to-br from-emerald-200/20 to-teal-200/20 dark:from-emerald-800/10 dark:to-teal-800/10 blur-[80px]"></div>
+            <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-gradient-to-tr from-cyan-200/20 to-emerald-200/20 dark:from-cyan-800/10 dark:to-emerald-800/10 blur-[80px]"></div>
+          </div>
 
           {/* Header with Profile Card */}
-          <ProfileSideBarUserCard profile={profile} />
-
-          {/* Verification Status Button */}
-          <div className="px-4 mt-4 mb-2">
-            <VerificationStatusButton profile={profile} />
+          <div className="relative z-10">
+            <ProfileSideBarUserCard profile={profile} />
           </div>
+
+
 
           {/* Navigation Tabs - Horizontal Scrolling Pagination */}
           <div className="px-4 mt-2 mb-3">
-            <div className="relative">
-              {/* Horizontal Scrollable Container with Enhanced Scrollbar */}
-              <div className="overflow-x-auto custom-scrollbar-thin scrollbar-thin touch-pan-x">
-                <div className="flex gap-2 items-center min-w-max px-1 pb-2">
+            <div className="relative group">
+              {/* Left Scroll Button (hidden on mobile, shown on desktop hover) */}
+              <button 
+                onClick={() => scrollTabs('left')}
+                className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 hidden sm:flex items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-[#0A121A] shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 hover:bg-slate-50 dark:hover:bg-slate-800"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              </button>
+
+              {/* Horizontal Scrollable Container (Scrollbar Hidden) */}
+              <div 
+                ref={tabsRef}
+                className="overflow-x-auto scrollbar-hide touch-pan-x border border-white/40 bg-white/60 p-1 shadow-inner backdrop-blur-sm dark:border-emerald-500/20 dark:bg-[#050C14]/50 rounded-2xl scroll-smooth"
+              >
+                <div className="flex gap-1 items-center min-w-max px-1">
                   {sidebarViews.map((view, index) => {
                     const Icon = view.icon;
                     const isActive = activeView === view.id;
@@ -227,7 +203,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                       <motion.button
                         key={view.id}
                         onClick={() => onViewChange(view.id as any)}
-                        className={`relative flex-shrink-0 px-3 py-2.5 rounded-lg flex items-center gap-2 min-w-[95px] sm:min-w-[100px] ${isActive ? 'nav-button-active bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg border-0' : 'nav-button-inactive bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:shadow-md'}`}
+                        className={`relative flex-shrink-0 px-3 py-2.5 rounded-xl flex items-center gap-2 min-w-[95px] sm:min-w-[100px] transition-all duration-300 border border-transparent ${isActive ? 'nav-button-active text-white shadow-lg' : 'bg-transparent text-emerald-700 hover:border-emerald-300/60 hover:bg-emerald-50/60 hover:text-emerald-800 dark:text-emerald-200 dark:hover:border-emerald-700/60 dark:hover:bg-emerald-900/40'}`}
                         whileHover={isActive ? {} : { scale: 1.02, y: -1 }}
                         whileTap={isActive ? {} : { scale: 0.98 }}
                       >
@@ -236,24 +212,9 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                           {view.label}
                         </span>
 
-                        {/* Active State Pulse Effect - Behind content */}
+                        {/* Active State Element - Static for performance */}
                         {isActive && (
-                          <motion.div
-                            className="absolute inset-0 bg-emerald-100 dark:bg-emerald-800 rounded-lg shadow-lg -z-10"
-                            animate={{
-                              boxShadow: [
-                                "0 0 0 0 rgba(5, 150, 105, 0.7)",
-                                "0 0 0 4px rgba(5, 150, 105, 0)",
-                                "0 0 0 0 rgba(5, 150, 105, 0)"
-                              ]
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: "easeInOut",
-                              repeatDelay: 1
-                            }}
-                          />
+                          <div className="absolute inset-0 bg-emerald-100 dark:bg-emerald-800 rounded-lg shadow-md -z-10" />
                         )}
                       </motion.button>
                     );
@@ -261,8 +222,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                 </div>
               </div>
 
-              {/* Scroll Indicator */}
-              <div className="scroll-indicator-minimal"></div>
+              {/* Right Scroll Button */}
+              <button 
+                onClick={() => scrollTabs('right')}
+                className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 hidden sm:flex items-center justify-center w-7 h-7 rounded-full bg-white dark:bg-[#0A121A] shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 hover:bg-slate-50 dark:hover:bg-slate-800"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              </button>
             </div>
           </div>
 
@@ -276,11 +243,15 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="h-full overflow-y-auto p-4 space-y-5 bg-gradient-to-b from-indigo-50/20 via-white/40 to-purple-50/20 dark:from-slate-900/40 dark:via-slate-900/30 dark:to-slate-800/40 scrollbar-hide"
+                  className="h-full overflow-y-auto p-4 space-y-5 scrollbar-hide relative z-10"
                 >
                   <div className="space-y-6">
+                    {/* Verification Status Card */}
+                    <VerificationStatusCard profile={profile} />
+
                     {/* Daily Progress */}
-                    <div className="bg-gradient-to-br from-emerald-50/90 via-green-50/90 to-teal-50/90 dark:from-emerald-900/30 dark:via-green-900/30 dark:to-teal-900/30 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/40 dark:border-emerald-800/40 shadow-lg">
+                    <div className="relative overflow-hidden rounded-[1.5rem] border border-slate-100 dark:border-emerald-500/20 bg-white dark:bg-[#050C14] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(16,185,129,0.05)] p-4 transition-all duration-500 group/card">
+                      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
                           <Target className="h-4 w-4 text-white" />
@@ -338,7 +309,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                     </div>
 
                     {/* Current Level Progress */}
-                    <div className="bg-gradient-to-br from-blue-50/90 via-indigo-50/90 to-purple-50/90 dark:from-blue-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 backdrop-blur-sm rounded-xl p-4 border border-blue-200/40 dark:border-blue-800/40 shadow-lg">
+                    <div className="relative overflow-hidden rounded-[1.5rem] border border-slate-100 dark:border-emerald-500/20 bg-white dark:bg-[#050C14] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(16,185,129,0.05)] p-4 transition-all duration-500 group/card">
+                      <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
                           <Star className="h-4 w-4 text-white" />
@@ -370,21 +342,22 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                         <Crown className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Subscription</span>
                       </div>
-                      <div className="bg-gradient-to-br from-slate-50/90 to-indigo-50/90 dark:from-slate-800/90 dark:to-slate-900/90 rounded-xl p-4 border border-slate-200/60 dark:border-slate-700/60 backdrop-blur-sm">
+                      <div className="relative overflow-hidden rounded-[1.5rem] border border-slate-100 dark:border-emerald-500/20 bg-white dark:bg-[#050C14] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(16,185,129,0.05)] p-4 transition-all duration-500 group/card">
+                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Current Plan</span>
-                          <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${profile.subscriptionStatus === 'premium' ? 'bg-gradient-to-r from-amber-100 via-yellow-100 to-orange-100 text-amber-800 dark:from-amber-900/30 dark:via-yellow-900/30 dark:to-orange-900/30 dark:text-amber-300' : profile.subscriptionStatus === 'basic' ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300' : profile.subscriptionStatus === 'free' ? 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
-                            {profile.subscriptionStatus === 'premium' ? (
+                          <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${profile.tier === 'premium' ? 'bg-gradient-to-r from-amber-100 via-yellow-100 to-orange-100 text-amber-800 dark:from-amber-900/30 dark:via-yellow-900/30 dark:to-orange-900/30 dark:text-amber-300' : profile.tier === 'pro' ? 'bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-300' : profile.tier === 'free' ? 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                            {profile.tier === 'premium' ? (
                               <>
                                 <PremiumPlanIcon size="md" className="flex-shrink-0" />
                                 Premium
                               </>
-                            ) : profile.subscriptionStatus === 'basic' ? (
+                            ) : profile.tier === 'pro' ? (
                               <>
                                 <BasicPlanIcon size="md" className="flex-shrink-0" />
-                                Basic
+                                Pro
                               </>
-                            ) : profile.subscriptionStatus === 'free' ? (
+                            ) : profile.tier === 'free' ? (
                               <>
                                 <FreePlanIcon size="md" className="flex-shrink-0" />
                                 Free
@@ -396,25 +369,19 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                             )}
                           </div>
                         </div>
-                        {profile.subscriptionStatus === 'none' && (
+                        {(!profile.tier || profile.tier === 'free') && (
                           <Button size="sm" className="w-full text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0 shadow-lg">
                             <Crown className="h-3 w-3 mr-2" />
-                            Choose a Plan
+                            Upgrade to Pro
                           </Button>
                         )}
-                        {profile.subscriptionStatus === 'free' && (
-                          <Button size="sm" className="w-full text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0 shadow-lg">
-                            <Crown className="h-3 w-3 mr-2" />
-                            Upgrade to Basic
-                          </Button>
-                        )}
-                        {profile.subscriptionStatus === 'basic' && (
+                        {profile.tier === 'pro' && (
                           <Button size="sm" className="w-full text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0 shadow-lg">
                             <Crown className="h-3 w-3 mr-2" />
                             Upgrade to Premium
                           </Button>
                         )}
-                        {profile.subscriptionStatus === 'premium' && (
+                        {profile.tier === 'premium' && (
                           <div className="text-center">
                             <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">Premium Member</p>
                             <div className="flex items-center justify-center gap-1">
@@ -433,7 +400,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Achievements</span>
                       </div>
                       <div className="space-y-2">
-                        <div className="bg-gradient-to-r from-amber-50/80 to-orange-50/80 dark:from-amber-900/30 dark:to-orange-900/30 rounded-lg p-3 border border-amber-200/40 dark:border-amber-800/40">
+                        <div className="relative overflow-hidden rounded-xl border border-amber-100 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-900/10 p-3 transition-all duration-300 hover:dark:bg-amber-900/20">
+                          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
                           <div className="flex items-center gap-3">
                             <div className="text-xl">🏆</div>
                             <div className="flex-1">
@@ -442,7 +410,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                             </div>
                           </div>
                         </div>
-                        <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-3 border border-blue-200/40 dark:border-blue-800/40">
+                        <div className="relative overflow-hidden rounded-xl border border-blue-100 dark:border-blue-500/20 bg-blue-50/50 dark:bg-blue-900/10 p-3 transition-all duration-300 hover:dark:bg-blue-900/20">
+                          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
                           <div className="flex items-center gap-3">
                             <div className="text-xl">📚</div>
                             <div className="flex-1">
@@ -464,7 +433,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="h-full overflow-y-auto p-4 space-y-5 bg-gradient-to-b from-purple-50/20 via-white/40 to-indigo-50/20 dark:from-slate-900/40 dark:via-slate-900/30 dark:to-slate-800/40 scrollbar-hide"
+                  className="h-full overflow-y-auto p-4 space-y-5 scrollbar-hide relative z-10"
                 >
                   <div className="space-y-4">
                     <BasicPlanCard />
@@ -480,7 +449,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="h-full overflow-y-auto p-4 space-y-5 bg-gradient-to-b from-slate-50/20 via-white/40 to-indigo-50/20 dark:from-slate-900/40 dark:via-slate-900/30 dark:to-slate-800/40 scrollbar-hide"
+                  className="h-full overflow-y-auto p-4 space-y-5 scrollbar-hide relative z-10"
                 >
                   <ProfileSettings
                     preferences={profile.preferences}
@@ -499,7 +468,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="h-full overflow-y-auto p-4 space-y-5 bg-gradient-to-b from-yellow-50/20 via-white/40 to-orange-50/20 dark:from-slate-900/40 dark:via-slate-900/30 dark:to-slate-800/40 scrollbar-hide"
+                  className="h-full overflow-y-auto p-4 space-y-5 scrollbar-hide relative z-10"
                 >
                   <div className="text-center py-8">
                     <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${

@@ -68,115 +68,107 @@ const LearningPathCard = ({ path, index = 0, onContinue }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.5 }}
-      className="h-full w-full mb-6"
+      className={cn(
+        "group relative overflow-hidden rounded-3xl bg-white dark:bg-[#050C14] border border-slate-200 dark:border-emerald-500/10 cursor-pointer transition-all duration-500",
+        "hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-[0_12px_30px_rgba(16,185,129,0.15)] hover:-translate-y-1",
+        theme.border,
+        "h-full w-full mb-6"
+      )}
+      onClick={() => onContinue?.(path.id)}
     >
-      <div 
-        className={cn(
-          "group relative flex flex-col justify-between h-full overflow-hidden rounded-[2rem] border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm transition-all duration-500",
-          "hover:shadow-xl hover:shadow-slate-200/40 dark:hover:shadow-none hover:-translate-y-1",
-          theme.border
-        )}
-        onClick={() => onContinue?.(path.id)}
-      >
-        
-        {/* Subtle Top Glow */}
-        <div className={cn(
-          "absolute top-0 inset-x-0 h-32 bg-gradient-to-b to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none",
-          theme.glow
-        )} />
+      {/* Subtle Top Glow */}
+      <div className={cn(
+        "absolute top-0 inset-x-0 h-32 bg-gradient-to-b to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none",
+        theme.glow
+      )} />
 
-        <div className="relative z-10 p-5 sm:p-6 flex flex-col h-full">
+      <div className="relative z-10 p-5 sm:p-6 flex flex-col h-full">
+        {/* Header: Icon & Badge */}
+        <div className="flex justify-between items-start mb-5">
+          <div className={cn(
+            "p-3.5 rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg",
+            theme.iconBg,
+            theme.iconColor
+          )}>
+            <Icon className="w-6 h-6" strokeWidth={2} />
+          </div>
           
-          {/* Header: Icon & Badge */}
-          <div className="flex justify-between items-start mb-5">
-            <div className={cn(
-              "p-3.5 rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg",
-              theme.iconBg,
-              theme.iconColor
-            )}>
-              <Icon className="w-6 h-6" strokeWidth={2} />
-            </div>
-            
-            <div className="flex flex-col items-end gap-1">
-               <Badge variant="outline" className="bg-slate-50/50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-mono text-[10px] px-2 py-1">
-                  {path.completedLessons}/{path.totalLessons}
-               </Badge>
-               {isComplete && (
-                 <motion.span 
-                   initial={{ scale: 0 }} 
-                   animate={{ scale: 1 }}
-                   className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5"
-                 >
-                   <CheckCircle2 className="w-3 h-3" /> Done
-                 </motion.span>
-               )}
-            </div>
-          </div>
-
-          {/* Content: Title & Description */}
-          <div className="mb-6 flex-grow space-y-2">
-            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-slate-900 group-hover:to-slate-600 dark:group-hover:from-white dark:group-hover:to-slate-300 transition-all duration-300">
-               {path.title}
-            </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
-              {path.description}
-            </p>
-          </div>
-
-          {/* Footer: Progress & Action */}
-          <div className="mt-auto pt-5 border-t border-slate-100 dark:border-slate-800/50">
-            
-            {/* Progress Bar Section */}
-            <div className="space-y-3 mb-5">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">
-                  {isComplete ? 'Completed' : 'Progress'}
-                </span>
-                <span className="font-bold text-slate-900 dark:text-white">{progressPercent}%</span>
-              </div>
-              
-              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <motion.div 
-                  className={cn("h-full rounded-full relative", theme.progressColor)}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-                >
-                  {/* Shimmer overlay */}
-                  <div className="absolute inset-0 w-full h-full bg-white/30 -translate-x-full animate-[shimmer_1.5s_infinite]" />
-                </motion.div>
-              </div>
-            </div>
-
-            {/* Action Button */}
-            <Button 
-              className={cn(
-                "w-full h-11 sm:h-12 rounded-xl font-bold shadow-sm transition-all duration-300 border-0 group/btn relative overflow-hidden",
-                theme.button
-              )}
-              onClick={(e) => {
-                e.stopPropagation();
-                onContinue?.(path.id);
-              }}
-            >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                {isComplete ? (
-                  <>
-                    <Trophy className="w-4 h-4" />
-                    Review
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 fill-current" />
-                    Continue
-                  </>
-                )}
-                <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all duration-300" />
-              </span>
-            </Button>
-
+          <div className="flex flex-col items-end gap-1">
+             <Badge variant="outline" className="bg-slate-50/50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-mono text-[10px] px-2 py-1">
+                {path.completedLessons}/{path.totalLessons}
+             </Badge>
+             {isComplete && (
+               <motion.span 
+                 initial={{ scale: 0 }} 
+                 animate={{ scale: 1 }}
+                 className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5"
+               >
+                 <CheckCircle2 className="w-3 h-3" /> Done
+               </motion.span>
+             )}
           </div>
         </div>
+
+        {/* Content: Title & Description */}
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              {path.title}
+            </h3>
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+              {path.progress}%
+            </span>
+          </div>
+          
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            {path.description}
+          </p>
+
+          {/* Progress Section */}
+          <div className="space-y-3">
+            <div className="h-2.5 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${path.progress}%` }}
+                transition={{ duration: 1, delay: 0.2 + (index * 0.1), ease: "easeOut" }}
+                className={cn("h-full bg-gradient-to-r", path.gradient)}
+              />
+            </div>
+            <div className="flex justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span>{path.completedLessons} completed</span>
+              <span>{path.totalLessons} total</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Bottom Action Bar */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 bg-white/90 dark:bg-[#050C14]/90 backdrop-blur-md border-t border-slate-100 dark:border-emerald-500/10 z-20">
+        <Button 
+          className={cn(
+            "w-full h-11 sm:h-12 rounded-xl font-bold shadow-sm transition-all duration-300 border-0 group/btn relative overflow-hidden",
+            theme.button
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onContinue?.(path.id);
+          }}
+        >
+          <span className="relative z-10 flex items-center justify-center gap-2">
+            {isComplete ? (
+              <>
+                <Trophy className="w-4 h-4" />
+                Review
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-current" />
+                Continue
+              </>
+            )}
+            <ArrowRight className="w-4 h-4 opacity-0 -ml-4 group-hover/btn:opacity-100 group-hover/btn:ml-0 transition-all duration-300" />
+          </span>
+        </Button>
       </div>
     </motion.div>
   );

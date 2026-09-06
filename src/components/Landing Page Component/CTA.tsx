@@ -14,7 +14,7 @@ const CTA = () => {
   if (!isMounted) return null;
 
   return (
-    <section className="relative py-24 lg:py-32 overflow-hidden bg-[#f8fbff] dark:bg-[#070b14] flex items-center justify-center min-h-[auto] lg:min-h-[800px] transition-colors duration-500 ease-in-out font-sans">
+    <section className="relative py-24 lg:py-32 overflow-hidden bg-transparent flex items-center justify-center min-h-[auto] lg:min-h-[800px] transition-colors duration-500 ease-in-out font-sans">
       
       {/* --- Optimized Background Effects (No Heavy Blurs) --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -62,7 +62,7 @@ const CTA = () => {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: 0.2 + (idx * 0.1), duration: 0.5 }}
-                    className="flex items-center gap-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm hover:border-teal-200 dark:hover:border-teal-800 hover:bg-white dark:hover:bg-slate-800/80 transition-all text-left group"
+                    className="flex items-center gap-4 bg-white/60 dark:bg-[#050C14]/60 backdrop-blur-sm p-4 rounded-2xl border border-slate-200/60 dark:border-emerald-500/10 shadow-sm hover:border-teal-200 dark:hover:border-emerald-500/30 hover:bg-white dark:hover:bg-[#050C14]/80 transition-all text-left group"
                   >
                     <div className="p-3 bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-400 rounded-xl flex-shrink-0 group-hover:scale-110 transition-transform">
                       <item.icon className="w-5 h-5" />
@@ -92,7 +92,7 @@ const CTA = () => {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="w-full sm:w-auto h-14 px-8 rounded-full text-base font-bold border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[#0f172a] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-all hover:-translate-y-1"
+                  className="w-full sm:w-auto h-14 px-8 rounded-full text-base font-bold border-slate-200 dark:border-emerald-500/20 bg-white dark:bg-[#050C14] text-[#0f172a] dark:text-white hover:bg-slate-50 dark:hover:bg-[#050C14]/80 shadow-sm transition-all hover:-translate-y-1"
                   onClick={() => {
                     document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' });
                   }}
@@ -105,7 +105,7 @@ const CTA = () => {
               <div className="mt-8 text-sm text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
                 <div className="flex -space-x-3">
                    {[1, 2, 3].map((i) => (
-                     <div key={i} className="w-8 h-8 rounded-full border-2 border-[#f8fbff] dark:border-[#070b14] bg-slate-200 dark:bg-slate-800 overflow-hidden shadow-sm">
+                     <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-[#050C14] bg-slate-200 dark:bg-[#050C14] overflow-hidden shadow-sm">
                         <img src="/mine.png" alt="user" className="w-full h-full object-cover" />
                      </div>
                    ))}
@@ -127,7 +127,7 @@ const CTA = () => {
                
                {/* Main Floating 3D Card */}
                <motion.div 
-                 className="relative w-[340px] md:w-[380px] h-[560px] bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_30px_60px_-20px_rgba(20,184,166,0.15),0_20px_40px_-20px_rgba(0,0,0,0.1)] dark:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)] border border-white/60 dark:border-slate-700/50 z-20 flex flex-col p-3 transition-colors duration-500 overflow-hidden"
+                 className="relative w-[340px] md:w-[380px] h-[560px] bg-white/95 dark:bg-[#050C14]/95 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_30px_60px_-20px_rgba(20,184,166,0.15),0_20px_40px_-20px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_0_15px_rgba(16,185,129,0.05)] border border-white/60 dark:border-emerald-500/20 z-20 flex flex-col p-3 transition-colors duration-500 overflow-hidden"
                  initial={{ rotateY: -15, rotateX: 5, y: 30, opacity: 0 }}
                  whileInView={{ rotateY: -8, rotateX: 2, y: 0, opacity: 1 }}
                  transition={{ duration: 1.2, type: "spring", bounce: 0.4 }}
@@ -165,28 +165,28 @@ const CTA = () => {
                     
                     {/* Achievement Badges */}
                     <div className="flex justify-center gap-3 mb-6">
-                       <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-sm transition-colors">
+                       <span className="bg-slate-100 dark:bg-[#050C14] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-emerald-500/20 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-sm transition-colors">
                           <Trophy className="w-4 h-4 text-amber-500" /> Top 1% Earner
                        </span>
-                       <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-sm transition-colors">
+                       <span className="bg-slate-100 dark:bg-[#050C14] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-emerald-500/20 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-sm transition-colors">
                           <Target className="w-4 h-4 text-blue-500" /> C1 Advanced
                        </span>
                     </div>
 
                     {/* Styled Growth Graph */}
-                    <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-5 border border-slate-100 dark:border-slate-800/60 mt-auto shadow-inner transition-colors">
+                    <div className="bg-slate-50 dark:bg-[#050C14]/80 rounded-2xl p-5 border border-slate-100 dark:border-emerald-500/10 mt-auto shadow-[inset_0_0_10px_rgba(16,185,129,0.02)] transition-colors">
                        <div className="flex justify-between items-end h-[72px] gap-2.5">
                           {[30, 45, 40, 60, 55, 75, 95].map((h, i) => (
                             <motion.div 
                               key={i}
-                              className="w-full bg-slate-200 dark:bg-slate-800 rounded-full relative group overflow-hidden transition-colors"
+                              className="w-full bg-slate-200 dark:bg-[#050C14] border dark:border-emerald-500/10 rounded-full relative group overflow-hidden transition-colors"
                               initial={{ height: 0 }}
                               whileInView={{ height: `${h}%` }}
                               transition={{ duration: 1, delay: 0.5 + (i * 0.08), ease: "easeOut" }}
                             >
                                {i === 6 && (
                                   <div className="absolute inset-0 bg-gradient-to-t from-teal-500 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(52,211,153,0.5)]">
-                                     <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-900 rounded-full border-2 border-emerald-400"></div>
+                                     <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-[#050C14] rounded-full border-2 border-emerald-400"></div>
                                   </div>
                                )}
                                {i !== 6 && (

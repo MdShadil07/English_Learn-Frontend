@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,26 +16,29 @@ import {
 import {
   User as UserIcon,
   Settings,
-  Edit3,
   LogOut,
   ChevronDown,
   Menu,
   X,
   Search,
-  Bell,
   Calendar,
   BadgeCheck,
+  Moon,
+  Sun,
+  LayoutDashboard,
 } from 'lucide-react';
-import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon } from '../Icons';
+import { PremiumPlanIcon, BasicPlanIcon, FreePlanIcon, ProPlanIcon } from '../Icons';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface User {
   id: string;
   email: string;
   fullName?: string;
-  avatar?: string; // Updated to match auth controller response
+  avatar?: string;
   isPremium?: boolean;
   isVerified?: boolean;
+  tier?: 'free' | 'pro' | 'premium';
   subscriptionStatus?: 'none' | 'free' | 'basic' | 'premium' | 'pro';
   role?: 'student' | 'teacher' | 'admin';
 }
@@ -45,187 +49,214 @@ interface BasicHeaderProps {
   onSidebarToggle?: (open: boolean) => void;
   showSidebarToggle?: boolean;
   sidebarOpen?: boolean;
+  leftAccessory?: React.ReactNode; // Useful for passing generic dashboard sidebar triggers
   className?: string;
   title?: string;
   subtitle?: string;
+  hideLogo?: boolean;
 }
 
 const BasicHeader: React.FC<BasicHeaderProps> = ({
   user = null,
-  onLogout = () => {},
+  onLogout,
   onSidebarToggle,
   showSidebarToggle = false,
   sidebarOpen = false,
+  leftAccessory,
   className = '',
   title = 'CognitoSpeak',
-  subtitle = 'AI Learning Platform',
+  hideLogo = false,
 }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
-    onLogout();
-    toast({
-      title: 'Signed out',
-      description: 'You have been successfully signed out',
-    });
+  // Determine positioning classes. If the caller provides positioning like 'sticky', we omit the default 'fixed top-0 left-0 right-0'
+  const isCustomPositioning = className.includes('sticky') || className.includes('absolute') || className.includes('relative');
+  const positionClasses = isCustomPositioning ? '' : 'fixed top-0 left-0 right-0';
+
+  const handleLogout = async () => {
+    try {
+      onLogout?.();
+      await signOut();
+      navigate('/login');
+      toast({
+        title: 'Signed out',
+        description: 'You have been successfully signed out',
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast({
+        title: 'Logout Failed',
+        description: 'There was an error signing you out. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
-    <>
-      {/* Modern Dashboard-style Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-emerald-200/50 dark:border-emerald-800/30 shadow-sm ${className}`}>
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Left side - Sidebar toggle and logo */}
-            <div className="flex items-center gap-4">
-              {showSidebarToggle && (
-                <motion.div
-                  whileHover={{ scale: 1.05, width: 'auto' }}
-                  whileTap={{ scale: 0.95 }}
-                  className="transition-all duration-300 hover:rounded-2xl"
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-12 h-12 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-200 hover:shadow-lg hover:rounded-2xl border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm"
-                    onClick={() => {
-                      onSidebarToggle?.(!sidebarOpen);
-                    }}
-                  >
-                    {sidebarOpen ? (
-                      <X className="h-6 w-6" />
-                    ) : (
-                      <Menu className="h-6 w-6" />
-                    )}
-                  </Button>
-                </motion.div>
-              )}
-
-              {/* Logo/Brand */}
-              <motion.div
-                className="flex items-center gap-3"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+    <header className={`${positionClasses} z-40 bg-white/70 dark:bg-[#050C14]/80 backdrop-blur-2xl saturate-[1.2] border-b border-slate-200/50 dark:border-emerald-500/10 transition-colors duration-300 overflow-hidden ${className}`}>
+      {/* Noise Texture Overlay for Holographic Feel */}
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay z-0"></div>
+      
+      <div className="w-full px-4 sm:px-6 relative z-10">
+        <div className="flex items-center justify-between h-16">
+          
+          {/* Left side - Sidebar toggle, Accessory, and logo */}
+          <div className="flex items-center gap-3 md:gap-4 shrink-0">
+            {leftAccessory}
+            
+            {showSidebarToggle && !leftAccessory && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-10 h-10 text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-emerald-500/10 rounded-full transition-colors"
+                onClick={() => onSidebarToggle?.(!sidebarOpen)}
               >
-                <div className="relative">
-                  <img
-                    src="/logo.svg"
-                    alt="CognitoSpeak Logo"
-                    className="w-10 h-10 transition-all duration-300 hover:scale-105"
-                  />
-                  <div className="absolute inset-0 w-10 h-10 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-lg blur-lg opacity-0 hover:opacity-100 transition-all duration-300"></div>
-                </div>
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            )}
+
+            {!hideLogo && (
+              <motion.div
+                className="flex items-center gap-2.5 cursor-pointer"
+                onClick={() => navigate('/dashboard')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <img
+                  src="/logo.svg"
+                  alt="CognitoSpeak Logo"
+                  className="w-8 h-8"
+                />
                 <div className="hidden sm:block">
-                  <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-emerald-800 dark:from-white dark:to-emerald-400 bg-clip-text text-transparent tracking-tight">
+                  <span className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                     {title}
                   </span>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium opacity-80">
-                    {subtitle}
-                  </p>
                 </div>
               </motion.div>
-            </div>
+            )}
+          </div>
 
-            {/* Center - Search Bar */}
-            <div className="flex items-center gap-3 flex-1 max-w-md mx-8">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <Input
-                  placeholder="Search lessons, words, notes..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-10 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 focus:bg-background focus:border-emerald-300 rounded-xl"
-                />
-              </div>
-            </div>
-
-            {/* Right side - Actions and User profile */}
-            <div className="flex items-center gap-2">
-              {/* Action buttons */}
-              <NotificationDropdown />
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-300 hover:shadow-md hover:rounded-2xl"
-              >
-                <Calendar className="h-5 w-5" />
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-300 hover:shadow-md hover:rounded-2xl"
-              >
-                <Settings className="h-5 w-5" />
-              </motion.button>
-
-              {/* User Profile Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all duration-200 rounded-xl ml-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg border border-emerald-200/30">
-                      {user?.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt="Profile"
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        user?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'
-                      )}
-                    </div>
-                    <div className="hidden sm:flex flex-col items-start">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {user?.fullName || user?.email?.split('@')[0] || 'User'}
-                        </span>
-                        {user?.isVerified && <BadgeCheck className="h-4 w-4 text-blue-500" />}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                          {user?.role === 'teacher' ? 'Teacher' :
-                           user?.role === 'admin' ? 'Admin' :
-                           user?.role === 'student' ? 'Student' : 'Student'}
-                        </span>
-                        {user?.subscriptionStatus === 'premium' && <PremiumPlanIcon size="sm" className="flex-shrink-0" />}
-                        {user?.subscriptionStatus === 'basic' && <BasicPlanIcon size="sm" className="flex-shrink-0" />}
-                        {user?.subscriptionStatus === 'pro' && <span className="text-xs">⭐</span>}
-                        {user?.subscriptionStatus === 'free' && <FreePlanIcon size="sm" className="flex-shrink-0" />}
-                      </div>
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-emerald-200/50 dark:border-emerald-800/50">
-                  <DropdownMenuLabel className="text-slate-900 dark:text-slate-100">My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-emerald-200/50 dark:bg-emerald-800/50" />
-                  <DropdownMenuItem onClick={() => navigate('/profile')} className="hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-slate-700 dark:text-slate-300">
-                    <UserIcon className="h-4 w-4 mr-2 text-emerald-600" />
-                    View Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/edit-profile')} className="hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-slate-700 dark:text-slate-300">
-                    <Edit3 className="h-4 w-4 mr-2 text-emerald-600" />
-                    Edit Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')} className="hover:bg-emerald-50 dark:hover:bg-emerald-950/50 text-slate-700 dark:text-slate-300">
-                    <Settings className="h-4 w-4 mr-2 text-emerald-600" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-emerald-200/50 dark:bg-emerald-800/50" />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          {/* Center - Clean Search Bar */}
+          <div className="flex-1 max-w-xl mx-4 sm:mx-8 hidden sm:flex items-center justify-center">
+            <div className="relative w-full max-w-md group">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 h-10 bg-black/[0.04] dark:bg-white/[0.04] border-transparent hover:bg-black/[0.06] dark:hover:bg-white/[0.06] focus:bg-white dark:focus:bg-[#050C14] focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 rounded-full text-sm transition-all shadow-none placeholder:text-slate-500 dark:placeholder:text-slate-400 font-medium"
+              />
             </div>
           </div>
+
+          {/* Right side - Actions and User profile */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            
+            {/* Action buttons */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-emerald-400 hover:bg-black/5 dark:hover:bg-emerald-500/10 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+
+            <NotificationDropdown />
+
+            <button
+              onClick={() => navigate('/settings')}
+              className="p-2 rounded-full text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-emerald-400 hover:bg-black/5 dark:hover:bg-emerald-500/10 transition-colors hidden xs:block"
+              aria-label="Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+
+            {/* User Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-2 pl-2 pr-1 py-1.5 hover:bg-black/5 dark:hover:bg-emerald-500/10 transition-colors rounded-full ml-1 h-auto">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-300 text-sm font-semibold flex-shrink-0 shadow-sm border border-emerald-200 dark:border-emerald-500/30 overflow-hidden">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      user?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'
+                    )}
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-slate-400 hidden sm:block mr-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-2 bg-white/80 dark:bg-[#050C14]/90 backdrop-blur-3xl saturate-[1.2] border border-black/5 dark:border-emerald-500/20 rounded-2xl shadow-[0_16px_40px_rgb(0,0,0,0.12)] dark:shadow-[0_16px_40px_rgb(0,0,0,0.6)]">
+                <div className="px-2 py-3 flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {user?.fullName || user?.email?.split('@')[0] || 'User'}
+                    </span>
+                    {user?.isVerified && <BadgeCheck className="h-4 w-4 text-blue-500 shrink-0" />}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 capitalize">
+                      {user?.role || 'Student'}
+                    </span>
+                    <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                    {user?.tier === 'premium' && (
+                      <div className="flex items-center gap-1">
+                        <PremiumPlanIcon size="sm" className="text-emerald-500" />
+                        <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Premium</span>
+                      </div>
+                    )}
+                    {user?.tier === 'pro' && (
+                      <div className="flex items-center gap-1">
+                        <ProPlanIcon size="sm" className="text-blue-500" />
+                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Pro</span>
+                      </div>
+                    )}
+                    {(!user?.tier || user?.tier === 'free') && (
+                      <div className="flex items-center gap-1">
+                        <FreePlanIcon size="sm" className="text-slate-400" />
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Free</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenuSeparator className="bg-black/5 dark:bg-emerald-500/10 my-1" />
+                
+                <div className="p-1 space-y-0.5">
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')} className="rounded-xl cursor-pointer focus:bg-blue-50 focus:text-blue-700 dark:focus:bg-blue-500/10 dark:focus:text-blue-300 outline-none transition-colors group">
+                    <LayoutDashboard className="h-4 w-4 mr-2 text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors" />
+                    <span className="font-medium text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-300">Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')} className="rounded-xl cursor-pointer focus:bg-emerald-50 focus:text-emerald-700 dark:focus:bg-emerald-500/10 dark:focus:text-emerald-300 outline-none transition-colors group">
+                    <UserIcon className="h-4 w-4 mr-2 text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300 transition-colors" />
+                    <span className="font-medium text-slate-700 dark:text-slate-200 group-hover:text-emerald-700 dark:group-hover:text-emerald-300">Your Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')} className="rounded-xl cursor-pointer focus:bg-slate-100 focus:text-slate-900 dark:focus:bg-slate-800 dark:focus:text-white outline-none transition-colors group">
+                    <Settings className="h-4 w-4 mr-2 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white transition-colors" />
+                    <span className="font-medium text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">Settings</span>
+                  </DropdownMenuItem>
+                </div>
+                
+                <DropdownMenuSeparator className="bg-black/5 dark:bg-emerald-500/10 my-1" />
+                
+                <div className="p-1">
+                  <DropdownMenuItem onClick={handleLogout} className="rounded-xl cursor-pointer text-rose-600 focus:bg-rose-50 focus:text-rose-700 dark:text-rose-400 dark:focus:bg-rose-500/10 dark:focus:text-rose-300 transition-colors group">
+                    <LogOut className="h-4 w-4 mr-2 text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300 transition-colors" />
+                    <span className="font-medium">Sign Out</span>
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </header>
-    </>
+      </div>
+    </header>
   );
 };
 

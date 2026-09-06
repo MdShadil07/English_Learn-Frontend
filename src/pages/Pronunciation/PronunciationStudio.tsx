@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts';
 import RealLifeFeedback from '@/components/Pronunciation Page/Hero';
 import SoloPracticeModal from '@/components/Pronunciation Page/soloPractice';
 import LivePracticeModal from '@/components/Pronunciation Page/livePeerPractice';
+import { resolveUserTier } from '@/utils/tierUtils';
 
 // --- HIGH-PERFORMANCE AUDIO SPECTRUM ---
 const LiveAudioSpectrum = ({ isRecording, color = "emerald" }) => (
@@ -182,7 +183,7 @@ export default function PronunciationStudio() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fbff] dark:bg-[#070b14] font-sans text-slate-900 dark:text-slate-100 transition-colors duration-500 overflow-hidden relative selection:bg-teal-200 dark:selection:bg-teal-900/50 selection:text-teal-900 dark:selection:text-teal-100">
+    <div className="min-h-screen bg-[#f8fbff] dark:bg-[#050C14] font-sans text-slate-900 dark:text-slate-100 transition-colors duration-500 overflow-hidden relative selection:bg-teal-200 dark:selection:bg-teal-900/50 selection:text-teal-900 dark:selection:text-teal-100">
       
       {/* --- Optimized Background Elements (Hardware Accelerated) --- */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -198,6 +199,7 @@ export default function PronunciationStudio() {
           email: user?.email || 'user@example.com',
           fullName: user?.fullName || 'User',
           avatar: user?.avatar,
+          tier: resolveUserTier(user),
         }}
         onLogout={handleLogout}
         showSidebarToggle={true}

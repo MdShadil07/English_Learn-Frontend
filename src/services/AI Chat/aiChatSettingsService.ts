@@ -201,8 +201,26 @@ class AiChatSettingsService {
       'thai': 'th',
       'indonesian': 'id',
       'bengali': 'bn',
-      'urdu': 'ur'
+      'urdu': 'ur',
+      'marathi': 'mr',
+      'tamil': 'ta',
+      'malayalam': 'ml',
+      'telugu': 'te',
+      'kannada': 'kn',
+      'odia': 'or',
+      'assamese': 'as',
+      'sindhi': 'sd',
+      'konkani': 'kok',
+      'maithili': 'mai',
+      'santali': 'sat',
+      'kashmiri': 'ks',
+      'dogri': 'doi',
+      'bodo': 'brx',
+      'bhojpuri': 'bho',
+      'gujarati': 'gu',
+      'punjabi': 'pa'
     };
+    if (Object.values(mapping).includes(backendCode)) return backendCode;
     return mapping[backendCode] || 'en';
   }
 
@@ -230,8 +248,26 @@ class AiChatSettingsService {
       'th': 'thai',
       'id': 'indonesian',
       'bn': 'bengali',
-      'ur': 'urdu'
+      'ur': 'urdu',
+      'mr': 'marathi',
+      'ta': 'tamil',
+      'ml': 'malayalam',
+      'te': 'telugu',
+      'kn': 'kannada',
+      'or': 'odia',
+      'as': 'assamese',
+      'sd': 'sindhi',
+      'kok': 'konkani',
+      'mai': 'maithili',
+      'sat': 'santali',
+      'ks': 'kashmiri',
+      'doi': 'dogri',
+      'brx': 'bodo',
+      'bho': 'bhojpuri',
+      'gu': 'gujarati',
+      'pa': 'punjabi'
     };
+    if (Object.values(mapping).includes(frontendCode)) return frontendCode;
     return mapping[frontendCode] || 'english';
   }
 }

@@ -77,7 +77,7 @@ const AIChatHeader: React.FC<AIChatHeaderProps> = ({
             }
           }}
         >
-          <SelectTrigger className="w-48 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-emerald-200/30 dark:border-emerald-700/30">
+          <SelectTrigger className="w-48 bg-white/70 dark:bg-[#050C14]/70 backdrop-blur-xl border-emerald-200/30 dark:border-emerald-500/20">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

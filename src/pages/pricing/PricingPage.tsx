@@ -1,14 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Sparkles, Zap, Crown, HelpCircle } from 'lucide-react';
+import { Check, X, Sparkles, Zap, Crown, HelpCircle, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { PricingCard } from '@/components/Global Component/PricingCard';
 import PricingFeatures from '@/components/pricing/PricingFeatures';
 import PricingComparison from '@/components/pricing/PricingComparison';
@@ -16,234 +10,29 @@ import PricingFAQ from '@/components/pricing/PricingFAQ';
 import SubscribeCTA from '@/components/pricing/SubscribeCTA';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { api, getAuthToken } from '@/utils/api';
+import { api } from '@/utils/api';
 import useSubscriptionSSE from '@/hooks/useSubscriptionSSE';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface PricingTier {
-  id: string;
-  name: string;
-  description: string;
-  price: { monthly: number; yearly: number };
-  badge?: string;
-  badgeColor?: string;
-  features: Array<{
-    title: string;
-    included: boolean;
-    tooltip?: string;
-  }>;
-  cta: string;
-  color: 'slate' | 'emerald' | 'purple';
-  icon: React.ReactNode;
-  popular?: boolean;
-}
-
-// Pricing tiers with dynamic prices from backend
-const createPricingTiers = (pricing?: { pro: { monthly: number; yearly: number }; premium: { monthly: number; yearly: number } }): PricingTier[] => [
-  {
-    id: 'free',
-    name: 'Free',
-    description: 'Perfect for getting started',
-    price: { monthly: 0, yearly: 0 },
-    features: [
-      { title: '5 AI conversations/day', included: true, tooltip: 'Limited daily conversations' },
-      { title: 'Basic grammar lessons', included: true },
-      { title: 'Vocabulary basics (500 words)', included: true },
-      { title: 'Community access', included: true },
-      { title: 'Pronunciation analysis', included: false },
-      { title: 'All AI personalities', included: false },
-      { title: 'Writing feedback', included: false },
-      { title: 'Priority support', included: false },
-    ],
-    cta: 'Start Free',
-    color: 'slate',
-    icon: <Sparkles className="w-5 h-5" />,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    description: 'For serious learners',
-    price: { 
-      monthly: pricing?.pro.monthly || 499, 
-      yearly: pricing?.pro.yearly || 4990 
-    },
-    badge: 'Most Popular',
-    badgeColor: 'from-emerald-500 to-teal-500',
-    features: [
-      { title: 'Unlimited AI conversations', included: true },
-      { title: 'Full grammar curriculum', included: true },
-      { title: 'Expanded vocabulary (3,000+ words)', included: true },
-      { title: 'Community access', included: true },
-      { title: 'Basic pronunciation analysis', included: true },
-      { title: '3 AI personalities', included: true },
-      { title: 'Basic writing feedback', included: true },
-      { title: 'Private practice rooms', included: false },
-    ],
-    cta: 'Upgrade to Pro',
-    color: 'emerald',
-    icon: <Zap className="w-5 h-5" />,
-    popular: true,
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    description: 'For professionals',
-    price: { 
-      monthly: pricing?.premium.monthly || 999, 
-      yearly: pricing?.premium.yearly || 9990 
-    },
-    features: [
-      { title: 'Unlimited AI conversations', included: true },
-      { title: 'Complete curriculum', included: true },
-      { title: 'Comprehensive vocabulary (10,000+ words)', included: true },
-      { title: 'Priority community access', included: true },
-      { title: 'Advanced pronunciation analysis', included: true },
-      { title: 'All 5 AI personalities', included: true },
-      { title: 'Advanced writing feedback', included: true },
-      { title: 'Private practice rooms', included: true },
-    ],
-    cta: 'Upgrade to Premium',
-    color: 'purple',
-    icon: <Crown className="w-5 h-5" />,
-  },
-];
+import { mapBackendPlansToPricingTiers, defaultFallbackPlans } from '@/components/pricing/PricingUtils';
+import CheckoutModal from '@/components/settings/subscription/CheckoutModal';
+import { SupportTicketModal } from '@/components/support/SupportTicketModal';
 
 const PricingPage: React.FC = () => {
   const { user } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [pricingConfig, setPricingConfig] = useState<{ pro: { monthly: number; yearly: number }; premium: { monthly: number; yearly: number } } | null>(null);
-  const pricingTiers = createPricingTiers(pricingConfig || undefined);
+  const [pricingTiers, setPricingTiers] = useState<any[]>(defaultFallbackPlans);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [plansByTier, setPlansByTier] = useState<Record<string, unknown>>({});
   const [mySubscription, setMySubscription] = useState<unknown | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [upgradeTier, setUpgradeTier] = useState<PricingTier | null>(null);
-  const [buyerStateInput, setBuyerStateInput] = useState<string>('');
-  const [buyerGstinInput, setBuyerGstinInput] = useState<string>('');
-  interface TaxPreview {
-    taxTotal: number;
-    igst: number;
-    cgst: number;
-    sgst: number;
-    totalAmount: number;
-  }
-  const [taxPreview, setTaxPreview] = useState<TaxPreview | null>(null);
+  const [rawBackendPlans, setRawBackendPlans] = useState<any[]>([]);
   const { toast } = useToast();
 
-  async function loadScript(src: string) {
-    return new Promise<HTMLScriptElement | null>((resolve) => {
-      const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
-      if (existing) return resolve(existing);
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = true;
-      script.onload = () => resolve(script);
-      script.onerror = () => resolve(null);
-      document.body.appendChild(script);
-    });
-  }
 
-  const handleSubscribe = async (tier: PricingTier, buyerState?: string, buyerGstin?: string) => {
-    // Prevent double-clicks
-    setLoadingPlan(tier.id);
-    try {
-      // Create a production subscription via backend which returns a Razorpay subscription id
-      function generateIdempotencyKey(): string {
-        try {
-          // Use Web Crypto randomUUID when available
-          const globalCrypto = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto;
-          if (globalCrypto && typeof globalCrypto.randomUUID === 'function') return globalCrypto.randomUUID();
-        } catch (err) {
-          // ignore — fallback will generate a pseudo-random id
-          console.debug('generateIdempotencyKey: crypto.randomUUID not available', err);
-        }
-        return `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      }
-
-      const idempotencyKey = generateIdempotencyKey();
-      // Prefer sending the backend's plan _id when available (loaded via /payment/plans),
-      // fallback to the tier id (e.g., 'pro') if not present.
-      const planKey = `${tier.id}|${billingCycle}`;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const backendPlan = (plansByTier && (plansByTier as any)[planKey]) || null;
-      const planIdToSend = backendPlan && backendPlan._id ? String(backendPlan._id) : String(tier.id);
-      const payload: { planId?: string; planType?: string; idempotencyKey?: string } = { planId: planIdToSend, planType: billingCycle, idempotencyKey };
-      const resp = await api.payment.createSubscription(payload);
-      if (!resp || !resp.success) throw new Error(resp?.message || 'Failed to create subscription');
-
-      const razorpaySub = resp.razorpaySubscription;
-      const key = resp.key || import.meta.env.VITE_RAZORPAY_KEY_ID;
-      // If backend returned a redirect URL (hosted checkout/payment link), prefer redirecting the browser
-      const redirectUrl = ((resp as unknown) as Record<string, unknown>)['redirectUrl'] as string | undefined || null;
-      if (redirectUrl && typeof redirectUrl === 'string') {
-        // Redirect user to hosted payment page
-        window.location.assign(redirectUrl);
-        return;
-      }
-      if (!razorpaySub || !razorpaySub.id) throw new Error('No subscription id returned from server');
-
-      // Load Razorpay subscription checkout script
-      const script = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-      if (!script) throw new Error('Failed to load Razorpay checkout');
-
-      const options: Record<string, unknown> = {
-        key,
-        subscription_id: razorpaySub.id,
-        name: 'English Practice',
-        description: `${tier.name} subscription`,
-        prefill: { name: '', email: '' },
-        handler: async (response: Record<string, unknown>) => {
-          try {
-            // Show loading state during confirmation
-            toast({ title: 'Processing...', description: 'Confirming your payment', duration: 2000 });
-            
-            const r = response as Record<string, unknown>;
-            const razorpay_payment_id = (r['razorpay_payment_id'] as string) || null;
-            const razorpay_subscription_id = (r['razorpay_subscription_id'] as string) || null;
-            const razorpay_signature = (r['razorpay_signature'] as string) || null;
-
-            await api.payment.confirm({
-              razorpay_payment_id,
-              razorpay_subscription_id,
-              razorpay_signature,
-            });
-
-            toast({ title: 'Success!', description: `Subscribed to ${tier.name} plan successfully!`, duration: 3000 });
-            
-            // Redirect to dashboard after successful payment
-            setTimeout(() => {
-              window.location.href = '/dashboard';
-            }, 1500);
-          } catch (err) {
-            console.error('Payment confirmation error:', err);
-            toast({ title: 'Payment Error', description: 'Payment confirmation failed. Please contact support.', variant: 'destructive', duration: 6000 });
-            setLoadingPlan(null);
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoadingPlan(null);
-            toast({ title: 'Payment Cancelled', description: 'You cancelled the payment process.', duration: 3000 });
-          },
-        },
-        theme: { color: '#10b981' },
-      };
-
-      const Rz = (window as unknown as { Razorpay?: new (opts: Record<string, unknown>) => { open: () => void } }).Razorpay;
-      if (!Rz) throw new Error('Razorpay SDK not available');
-      const rzp = new Rz(options);
-      rzp.open();
-    } catch (err: unknown) {
-      console.error('subscribe error', err);
-      let message = 'Subscription failed';
-      if (err instanceof Error) message = err.message;
-      else message = String(err);
-      toast({ title: 'Subscription failed', description: message || 'Subscription failed', duration: 7000 });
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
 
   // Load backend plans and pricing configuration
   React.useEffect(() => {
@@ -263,25 +52,23 @@ const PricingPage: React.FC = () => {
       }
     })();
     
-    // Load backend plans and map by tier+planType to get real ObjectIds
+    // Load backend plans
     (async () => {
       try {
         const result = await api.payment.getPlans();
         if (!mounted) return;
-        const resObj = result as unknown as { success?: boolean; plans?: unknown[] };
-        if (resObj && resObj.success) {
-          const plansArr = resObj.plans ?? [];
-          const map: Record<string, unknown> = {};
-          plansArr.forEach((p) => {
-            const pp = p as Record<string, unknown>;
-            // map by `tier|planType` e.g., 'pro|monthly'
-            const key = `${String(pp['tier'] ?? '')}|${String(pp['planType'] ?? '')}`;
-            map[key] = pp;
-          });
-          setPlansByTier(map);
+        const resObj = result as unknown as { success?: boolean; plans?: any[] };
+        if (resObj && resObj.success && resObj.plans) {
+          setRawBackendPlans(resObj.plans);
+          const mapped = mapBackendPlansToPricingTiers(resObj.plans);
+          // sort so free is first, then cheapest to most expensive
+          mapped.sort((a, b) => a.price.monthly - b.price.monthly);
+          setPricingTiers(mapped);
         }
       } catch (err) {
         console.debug('Failed to load plans', err);
+      } finally {
+        if (mounted) setIsLoadingPlans(false);
       }
     })();
     // also load current user's subscription to guard trial CTA
@@ -297,32 +84,7 @@ const PricingPage: React.FC = () => {
     return () => { mounted = false };
   }, []);
 
-  // Upgrade modal helpers
-  const fetchTaxPreview = async (amountPaise: number) => {
-    try {
-      // Do not send client-supplied state — backend will resolve state from profile or GeoIP
-      const resp = await api.payment.taxPreview({ amount: amountPaise });
-      if (resp && resp.success) {
-        // api returns { success, tax, resolvedState, note }
-        const body = resp as unknown as { tax?: TaxPreview };
-        setTaxPreview(body.tax ?? null);
-      }
-    } catch (e) {
-      console.debug('tax preview failed', e);
-    }
-  };
 
-  const handleUpgradeSubmit = async () => {
-    if (!upgradeTier) return;
-    setShowUpgradeModal(false);
-    // call subscribe — server will resolve state/GST
-    await handleSubscribe(upgradeTier);
-    // clear modal state
-    setBuyerStateInput('');
-    setBuyerGstinInput('');
-    setTaxPreview(null);
-    setUpgradeTier(null);
-  };
 
   // Listen for realtime updates and refresh subscription snapshot
   useSubscriptionSSE(async (event) => {
@@ -356,7 +118,13 @@ const PricingPage: React.FC = () => {
   }, true);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
+    <div className="relative min-h-screen w-full overflow-hidden bg-slate-50 dark:bg-[#0B1120]">
+      {/* SaaS mesh gradient background */}
+      <div className="absolute top-0 left-0 right-0 h-[600px] w-full overflow-hidden z-0">
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-emerald-400/20 blur-[120px] dark:bg-emerald-900/40 pointer-events-none" />
+        <div className="absolute top-20 -left-20 w-[500px] h-[500px] rounded-full bg-teal-400/20 blur-[100px] dark:bg-teal-900/30 pointer-events-none" />
+      </div>
+
       {/* Main content */}
       <div className="relative z-10 container mx-auto px-4 py-12 md:py-20">
         {/* Header section */}
@@ -399,53 +167,77 @@ const PricingPage: React.FC = () => {
         </motion.div>
 
         {/* Pricing cards - grid layout with refined styling */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
-          {pricingTiers.map((tier, index) => {
-            const isCurrentPlan = user?.tier === tier.id;
-            const isHigherPlan = 
-              (user?.tier === 'premium' && tier.id !== 'premium') || 
-              (user?.tier === 'pro' && tier.id === 'free');
-
-            return (
-            <PricingCard
-              key={tier.id}
-              id={tier.id}
-              name={tier.name}
-              description={tier.description}
-              price={billingCycle === 'yearly' ? tier.price.yearly : tier.price.monthly}
-              period={billingCycle}
-              billingText={billingCycle === 'yearly' ? 'Billed annually' : 'Billed monthly'}
-              features={tier.features}
-              cta={isCurrentPlan ? 'Current Plan' : isHigherPlan ? 'Downgrade' : tier.cta}
-              color={tier.color}
-              popular={tier.popular}
-              index={index}
-              onCtaClick={async () => {
-                if (isCurrentPlan) return;
-                
-                // Direct upgrade flow for paid plans
-                if (tier.price && (billingCycle === 'yearly' ? tier.price.yearly : tier.price.monthly) > 0) {
-                  // Direct payment flow - no tax preview modal
-                  setLoadingPlan(tier.id);
-                  try {
-                    await handleSubscribe(tier);
-                  } catch (error) {
-                    console.error('Subscription error:', error);
-                    setLoadingPlan(null);
-                  }
-                } else {
-                  // Free plan or fallback
-                  if (user) {
-                     toast({ title: 'Downgrade', description: 'Please contact support to downgrade your plan.', duration: 5000 });
-                  } else {
-                    toast({ title: 'Free plan selected', description: 'Redirecting to signup', duration: 3000 });
-                    window.location.href = '/auth/signup';
-                  }
+        {!isLoadingPlans && pricingTiers.length === 0 ? (
+          <div className="max-w-2xl mx-auto text-center py-20 px-6 bg-white/50 dark:bg-[#0f172a]/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm mb-16">
+            <div className="w-16 h-16 mx-auto bg-slate-100 dark:bg-slate-800/50 text-slate-400 rounded-full flex items-center justify-center mb-6">
+              <Crown className="w-8 h-8 opacity-50" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3 tracking-tight">Our plans are getting an upgrade!</h3>
+            <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">We are currently crafting new, high-value subscription packages tailored for your fluency journey. Check back soon for exclusive early-bird offers.</p>
+            <Button variant="outline" className="rounded-full border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+              Notify Me When Available
+            </Button>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+            {isLoadingPlans && pricingTiers.length === 0 && <div className="col-span-3 text-center py-20">Loading plans...</div>}
+            {pricingTiers.map((tier, index) => {
+              let activeTier = 'free';
+              if (mySubscription) {
+                const subStatus = (mySubscription as any).status;
+                // Only consider the subscription active if it's actually active, trialing, or past_due.
+                // 'created' means they started the checkout process but haven't paid yet!
+                if (subStatus === 'active' || subStatus === 'trialing' || subStatus === 'past_due') {
+                  activeTier = (mySubscription as any).tier || 'free';
                 }
-              }}
-            />
-          )})}
-        </div>
+              } else if (user) {
+                const subStatus = (user as any).subscriptionStatus;
+                if (subStatus === 'active') {
+                  activeTier = user.tier || 'free';
+                }
+              }
+
+              const isCurrentPlan = activeTier === tier.id;
+              const isHigherPlan = 
+                (activeTier === 'premium' && tier.id !== 'premium') || 
+                (activeTier === 'pro' && tier.id === 'free');
+
+              return (
+              <PricingCard
+                key={tier.id}
+                id={tier.id}
+                name={tier.name}
+                description={tier.description}
+                price={billingCycle === 'yearly' ? tier.price.yearly : tier.price.monthly}
+                period={billingCycle}
+                billingText={billingCycle === 'yearly' ? 'Billed annually' : 'Billed monthly'}
+                features={tier.features}
+                cta={isCurrentPlan ? 'Current Plan' : isHigherPlan ? 'Downgrade' : tier.cta}
+                color={tier.color}
+                popular={tier.popular}
+                index={index}
+                onCtaClick={async () => {
+                  if (isCurrentPlan) return;
+                  
+                  // Direct upgrade flow for paid plans
+                  if (tier.price && (billingCycle === 'yearly' ? tier.price.yearly : tier.price.monthly) > 0) {
+                    // Open the upgrade modal
+                    setUpgradeTier(tier);
+                    setShowUpgradeModal(true);
+                  } else {
+                    // Free plan or fallback
+                    if (user) {
+                       toast({ title: 'Downgrade', description: 'Please contact support to downgrade your plan.', duration: 5000 });
+                    } else {
+                      toast({ title: 'Free plan selected', description: 'Redirecting to signup', duration: 3000 });
+                      window.location.href = '/auth/signup';
+                    }
+                  }
+                }}
+              />
+            )})}
+          </div>
+        )}
 
         {/* Extra sections: features, comparison, subscribe, faq */}
         <PricingFeatures />
@@ -453,38 +245,45 @@ const PricingPage: React.FC = () => {
         <SubscribeCTA />
         <PricingFAQ />
       </div>
-      {/* Upgrade modal for collecting GST/billing info before paid flow */}
-      <Dialog open={showUpgradeModal} onOpenChange={(open) => setShowUpgradeModal(Boolean(open))}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Upgrade & Enter Billing Info</DialogTitle>
-                <p className="text-sm text-muted-foreground">We calculate taxes server-side using your saved billing address. You can preview the tax here before proceeding.</p>
-          </DialogHeader>
-          <div className="mt-4 space-y-3">
-            {/* State/GSTIN inputs removed — server will resolve state and GSTIN from user profile where possible */}
-            {upgradeTier && (
-              <div className="mt-2">
-                <button className="px-3 py-2 rounded bg-slate-800 text-white" onClick={() => fetchTaxPreview((billingCycle === 'yearly' ? upgradeTier.price.yearly : upgradeTier.price.monthly) * 100)}>Preview Tax</button>
-                {taxPreview && (
-                  <div className="mt-2 text-sm text-slate-700">
-                    <div>Tax Total: {(taxPreview.taxTotal / 100).toFixed(2)}</div>
-                    <div>IGST: {(taxPreview.igst / 100).toFixed(2)}</div>
-                    <div>CGST: {(taxPreview.cgst / 100).toFixed(2)}</div>
-                    <div>SGST: {(taxPreview.sgst / 100).toFixed(2)}</div>
-                    <div className="font-semibold">Total: {(taxPreview.totalAmount / 100).toFixed(2)}</div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <DialogFooter className="mt-4">
-            <div className="flex gap-2">
-              <button onClick={() => setShowUpgradeModal(false)} className="px-4 py-2 rounded border">Cancel</button>
-              <button onClick={handleUpgradeSubmit} className="px-4 py-2 rounded bg-emerald-600 text-white">Proceed to Checkout</button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
+      {/* Checkout Modal */}
+      {showUpgradeModal && upgradeTier && (
+        <CheckoutModal
+          planId={billingCycle === 'yearly' ? upgradeTier._yearlyId : upgradeTier._monthlyId}
+          plans={rawBackendPlans}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            setUpgradeTier(null);
+          }}
+          onSuccess={() => {
+            setShowUpgradeModal(false);
+            setUpgradeTier(null);
+            window.location.href = '/dashboard';
+          }}
+        />
+      )}
+
+      {/* Floating Support Button */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setShowSupportModal(true)}
+        className="fixed bottom-8 right-8 z-50 flex items-center gap-2.5 bg-slate-900/90 backdrop-blur-xl dark:bg-black/80 text-white px-5 py-3 rounded-full shadow-[0_8px_30px_rgba(244,63,94,0.25)] hover:shadow-[0_8px_40px_rgba(244,63,94,0.4)] border border-rose-500/30 hover:border-rose-400/60 transition-all duration-300 font-medium group"
+      >
+        <div className="bg-rose-500/20 p-1.5 rounded-full group-hover:bg-rose-500/30 transition-colors">
+          <Flag className="w-4 h-4 text-rose-400 drop-shadow-md" />
+        </div>
+        <span className="hidden sm:inline tracking-wide drop-shadow-sm">Report Issue</span>
+      </motion.button>
+
+      {/* Support Ticket Modal */}
+      <SupportTicketModal
+        isOpen={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        sourcePage="/pricing"
+      />
     </div>
   );
 };
